@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { cookies } from 'next/headers'
+import { outputLocale } from '@/lib/output-language'
 import { classifyQuote } from '@/lib/claude'
 import { analyzeDealFacts } from '@/lib/claude/analyze'
 import type { ExtractedFacts } from '@/lib/claude/extract'
@@ -120,7 +120,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ dea
         signing_deadline: output.snapshot?.signing_deadline,
       }
 
-      const locale = (await cookies()).get('termlift_lang')?.value || 'en'
+      // Generated in the language the deal already speaks, whatever the UI cookie says now.
+      const locale = outputLocale(output)
 
       const deepStart = Date.now()
       const { classification, deep, benchmarkInput, benchmarkRun } = await runWithAiContext({ userId: user.id, dealId, roundId: round.id }, async () => {
@@ -177,6 +178,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ dea
       // them — those are the trusted, already-shown headline facts. Deep
       // analysis fills in the sections that were deliberately deferred.
       const merged = {
+        generated_locale: locale,
         ...output,
         quick_read: deep.quick_read,
         red_flags: deep.red_flags,

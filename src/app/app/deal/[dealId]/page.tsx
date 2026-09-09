@@ -8,11 +8,15 @@ import type { DealOutput, DealOutputV2 } from '@/types'
 import { stripAdvancedOutput, stripFlagDetailForQuick, SHOW_FULL_NEGOTIATION_PLAYBOOK } from '@/lib/negotiation-gating'
 import { hasDeepContent, dealHasFullAnalysis } from '@/lib/deep-analysis-status'
 import { inferDealType } from '@/lib/deal-type-inference'
+import { getLocale } from 'next-intl/server'
+import { dealLocale, normalizeLocale } from '@/lib/output-language'
+import type { LanguageView } from '@/components/deal/TranslateControl'
 import enMessages from '@/i18n/en.json'
 import frMessages from '@/i18n/fr.json'
 
-export default async function DealPage({ params }: { params: Promise<{ dealId: string }> }) {
+export default async function DealPage({ params, searchParams }: { params: Promise<{ dealId: string }>; searchParams: Promise<{ original?: string }> }) {
   const { dealId } = await params
+  const { original } = await searchParams
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -28,7 +32,30 @@ export default async function DealPage({ params }: { params: Promise<{ dealId: s
   const isAdmin = !!profile?.is_admin
   const showFullPlaybook = isAdmin || SHOW_FULL_NEGOTIATION_PLAYBOOK
 
-  const sortedRounds = [...(deal.rounds || [])].sort((a: { round_number: number }, b: { round_number: number }) => b.round_number - a.round_number)
+  // ── Generated-content language ──
+  // The deal speaks Round 1's language. When the UI is in the other language and the
+  // user asked for a translation, serve the cached copies (rounds.output_json is never changed).
+  const uiLocale = normalizeLocale(await getLocale())
+  const contentLocale = dealLocale(deal.rounds || [])
+  let rounds = deal.rounds || []
+  let languageView: LanguageView = { dealLocale: contentLocale, uiLocale, state: 'original', available: false }
+  if (uiLocale !== contentLocale && rounds.length > 0) {
+    const { data: translations } = await supabase
+      .from('round_translations')
+      .select('round_id, output_json')
+      .eq('locale', uiLocale)
+      .in('round_id', rounds.map((r: { id: string }) => r.id))
+    const byRound = new Map((translations || []).map((t) => [t.round_id, t.output_json]))
+    const available = rounds.every((r: { id: string }) => byRound.has(r.id))
+    if (available && original !== '1') {
+      rounds = rounds.map((r: { id: string; output_json: unknown }) => ({ ...r, output_json: byRound.get(r.id) ?? r.output_json }))
+      languageView = { dealLocale: contentLocale, uiLocale, state: 'translated', available: true }
+    } else {
+      languageView = { dealLocale: contentLocale, uiLocale, state: available ? 'original' : 'untranslated', available }
+    }
+  }
+
+  const sortedRounds = [...rounds].sort((a: { round_number: number }, b: { round_number: number }) => b.round_number - a.round_number)
   const latestRound = sortedRounds[0]
   const rawLatestOutput = latestRound?.output_json as DealOutput | DealOutputV2 | undefined
   // Redaction happens at the render boundary only — never at persistence.
@@ -58,6 +85,7 @@ export default async function DealPage({ params }: { params: Promise<{ dealId: s
       showFullPlaybook={showFullPlaybook}
       negotiationRequest={negotiationRequest ?? null}
       inferredDealType={inferred.type}
+      languageView={languageView}
       addRoundForm={deepComplete ? <AddRoundForm dealId={dealId} roundNumber={sortedRounds.length + 1} /> : null}
     />
   )

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
+import { resolveRequestLocale } from '@/lib/request-locale'
+import { outputLocale } from '@/lib/output-language'
 import { createClient } from '@/lib/supabase/server'
 import { AddRoundSchema } from '@/lib/schemas'
 import { analyzeDeal } from '@/lib/claude'
@@ -137,8 +138,8 @@ export async function POST(
     }
     const previousOutput = lastRound?.output_json
 
-    // Determine locale from cookie
-    const locale = (await cookies()).get('termlift_lang')?.value || 'en'
+    // The deal's language (Round 1), not the vendor reply's and not the UI cookie's.
+    const locale = previousOutput ? outputLocale(previousOutput) : await resolveRequestLocale()
 
     // Analyze with context from previous round (auto-retry on transient failures)
     const output = await runWithAiContext({ userId: user.id, dealId }, () => withRetry(() => analyzeDeal(
@@ -183,7 +184,7 @@ export async function POST(
         round_number: nextRoundNumber,
         note: validated.note,
         extracted_text: validated.saveExtractedText ? validated.extractedText : null,
-        output_json: output,
+        output_json: { ...output, generated_locale: locale },
         extracted_data: toStructuredExtraction(output),
         vendor_offer: vendorOffer,
         output_markdown: renderMarkdown(output),

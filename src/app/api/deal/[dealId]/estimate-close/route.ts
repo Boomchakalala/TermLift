@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { getClaudeResponse, getLanguageInstruction, CLAUDE_MODEL_ID } from '@/lib/claude'
 import { NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
+import { outputLocale } from '@/lib/output-language'
 import { checkRateLimit } from '@/lib/rate-limit'
 import { runWithAiContext } from '@/lib/ai-telemetry'
 
@@ -152,8 +152,7 @@ Return ONLY valid JSON (no markdown, no code fences):
 }`
     }
 
-    // Determine locale from cookie
-    const locale = (await cookies()).get('termlift_lang')?.value || 'en'
+    const locale = outputLocale(firstOutput)
     const langInstruction = getLanguageInstruction(locale)
 
     const raw = (await runWithAiContext({ userId: user.id, dealId }, () => getClaudeResponse({

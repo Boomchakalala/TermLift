@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { getClaudeResponse, getLanguageInstruction, KEVIN_SYSTEM_PROMPT, EMAIL_RULES } from '@/lib/claude'
 import { NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
+import { outputLocale } from '@/lib/output-language'
 
 import { SHOW_FULL_NEGOTIATION_PLAYBOOK } from '@/lib/negotiation-gating'
 import { FULL_ANALYSIS_EMAIL_REGEN_LIMIT } from '@/lib/pricing'
@@ -201,8 +201,8 @@ Return ONLY valid JSON (no markdown, no code fences):
       hasInternalDeadline: !!internalDeadline,
     })
 
-    // Determine locale from cookie
-    const locale = (await cookies()).get('termlift_lang')?.value || 'en'
+    // Emails stay in the language the round was generated in; switching the UI never flips a draft.
+    const locale = outputLocale(round.output_json)
     const langInstruction = getLanguageInstruction(locale)
 
     const raw = (await runWithAiContext({ userId: user.id, dealId: round.deal_id, roundId }, () => getClaudeResponse({

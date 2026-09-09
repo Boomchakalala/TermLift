@@ -1,5 +1,5 @@
 ﻿import { NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
+import { resolveRequestLocale } from '@/lib/request-locale'
 import { createClient } from '@/lib/supabase/server'
 import { textForPersistence } from '@/lib/extract'
 import { CreateDealSchema } from '@/lib/schemas'
@@ -85,7 +85,7 @@ export async function POST(request: Request) {
     const validated = CreateDealSchema.parse(body)
 
     // Determine locale from cookie or request body
-    const locale = (await cookies()).get('termlift_lang')?.value || (body as any).locale || 'en'
+    const locale = await resolveRequestLocale((body as any).locale)
 
     // Validate PDF data if provided
     const validPdfData = validated.pdfData?.base64 && validated.pdfData?.mimeType === 'application/pdf'
@@ -179,7 +179,7 @@ export async function POST(request: Request) {
         // original quote text and can't rely on it still being in the
         // browser's memory. Extracted text only, never the original file.
         extracted_text: persistText,
-        output_json: output,
+        output_json: { ...output, generated_locale: locale },
         // Structured facts from this analysis, kept so an outcome can be compared later without the quote text.
         extracted_data: toStructuredExtraction(output),
         output_markdown: '', // V1 doesn't need markdown

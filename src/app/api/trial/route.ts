@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
+import { resolveRequestLocale } from '@/lib/request-locale'
 import { analyzeDeal } from '@/lib/claude'
 import { stripAdvancedOutput, stripFlagDetailForQuick, SHOW_FULL_NEGOTIATION_PLAYBOOK } from '@/lib/negotiation-gating'
 import { runWithAiContext } from '@/lib/ai-telemetry'
@@ -142,7 +142,7 @@ export async function POST(request: Request) {
       : undefined
 
     // Determine locale from cookie or request body
-    const resolvedLocale = (await cookies()).get('termlift_lang')?.value || locale || 'en'
+    const resolvedLocale = await resolveRequestLocale(locale)
 
     // Analyze with V1 (full text analysis — auto-retry on transient failures)
     const output = await runWithAiContext({ ipAddress: clientIP }, () => withRetry(() => analyzeDeal(
@@ -161,7 +161,7 @@ export async function POST(request: Request) {
       ? output
       : stripAdvancedOutput(output as DealOutput | DealOutputV2)
     // Trial = quick stage: per-flag asks/fallbacks stay server-side, same rule as /app/deal.
-    const responseOutput = stripFlagDetailForQuick(playbookOutput as DealOutput | DealOutputV2)
+    const responseOutput = { ...stripFlagDetailForQuick(playbookOutput as DealOutput | DealOutputV2), generated_locale: resolvedLocale }
 
     // Text the browser stashes with the trial so import-trial can persist it —
     // otherwise an uploaded trial imports with "[Document received]" as its text

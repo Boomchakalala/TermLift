@@ -140,6 +140,33 @@ export type Database = {
           schema_version?: 'v1' | 'v2'
         }
       }
+      /** Cached translated copies of rounds.output_json per locale (lib/output-language.ts). */
+      round_translations: {
+        Row: {
+          id: string
+          round_id: string
+          user_id: string
+          locale: 'en' | 'fr'
+          source_locale: 'en' | 'fr'
+          output_json: DealOutput | DealOutputV2
+          model: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          round_id: string
+          user_id: string
+          locale: 'en' | 'fr'
+          source_locale: 'en' | 'fr'
+          output_json: DealOutput | DealOutputV2
+          model?: string | null
+          created_at?: string
+        }
+        Update: {
+          output_json?: DealOutput | DealOutputV2
+          model?: string | null
+        }
+      }
     }
   }
 }
@@ -271,6 +298,8 @@ export type DealOutput = {
   email_recommended_tone?: 'neutral' | 'firm' | 'final_push'
   /** Round 2+: what the vendor's reply changed versus the previous round (written by /api/deal/[id]/round). */
   round_delta?: RoundDelta
+  /** Language this output was generated in (lib/output-language.ts). Absent on rounds before 2026-09-10: inferred from prose. */
+  generated_locale?: 'en' | 'fr'
 }
 
 /** What a vendor reply changed versus the previous round — the "Round N, counter proposal" card. */

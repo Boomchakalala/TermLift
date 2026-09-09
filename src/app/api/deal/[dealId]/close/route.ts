@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { getClaudeResponse, getLanguageInstruction } from '@/lib/claude'
 import { NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
+import { outputLocale } from '@/lib/output-language'
 import { checkRateLimit } from '@/lib/rate-limit'
 import { runWithAiContext } from '@/lib/ai-telemetry'
 import { deriveCloseOutcome } from '@/lib/close-outcome'
@@ -75,7 +75,7 @@ export async function POST(
     }
     const o = derived.value
 
-    const locale = (await cookies()).get('termlift_lang')?.value || 'en'
+    const locale = outputLocale(firstOutput || latestOutput)
     const langInstruction = getLanguageInstruction(locale)
 
     // Narrative close summary for the outcome page (won deals only). Uses the

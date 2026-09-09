@@ -1285,7 +1285,14 @@
     "serviceTitle": "Vous préférez ne pas gérer cela vous-même ?",
     "serviceBody": "Un négociateur TermLift mène les échanges avec {vendor} et vous validez chaque résultat. Rémunération au succès : une part des économies vérifiées, rien si nous ne vous faisons pas économiser.",
     "serviceCta": "Négociez ceci pour moi",
-    "demoNote": "Dossier d’exemple. Les chiffres, les hypothèses de remise et les commentaires sur le fournisseur sont illustratifs, pas des données de marché vérifiées."
+    "demoNote": "Dossier d’exemple. Les chiffres, les hypothèses de remise et les commentaires sur le fournisseur sont illustratifs, pas des données de marché vérifiées.",
+    "translateTo": "Afficher en français",
+    "translatedFrom": "Traduit de l’anglais",
+    "viewOriginal": "Voir l’original",
+    "translating": "Traduction…",
+    "translateFailed": "La traduction a échoué. L’original est inchangé.",
+    "translateRetry": "Réessayer",
+    "translateNote": "Les chiffres, les demandes et la structure sont ceux de l’original ; seule la formulation est traduite."
   },
   "tryPage": {
     "eyebrow": "Étape 1 · gratuit · sans inscription",

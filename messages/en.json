@@ -1285,7 +1285,14 @@
     "serviceTitle": "Rather not handle this yourself?",
     "serviceBody": "A TermLift negotiator runs the back-and-forth with {vendor} and you approve every outcome. Success-based: you pay a share of verified savings, and nothing if we don’t save you money.",
     "serviceCta": "Negotiate this for me",
-    "demoNote": "Sample deal. The figures, discount assumptions and vendor comments are illustrative, not verified market data."
+    "demoNote": "Sample deal. The figures, discount assumptions and vendor comments are illustrative, not verified market data.",
+    "translateTo": "View in English",
+    "translatedFrom": "Translated from French",
+    "viewOriginal": "View the original",
+    "translating": "Translating…",
+    "translateFailed": "Translation failed. The original is unchanged.",
+    "translateRetry": "Try again",
+    "translateNote": "Figures, asks and structure are the original; only the wording is translated."
   },
   "tryPage": {
     "eyebrow": "Step 1 · free · no signup",

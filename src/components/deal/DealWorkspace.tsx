@@ -12,6 +12,7 @@ import { DealHeaderClient } from '@/components/DealHeaderClient'
 import { HeroVerdict } from '@/components/HeroVerdict'
 import { NegotiationProgress } from '@/components/deal/NegotiationProgress'
 import { NextActionCard } from '@/components/deal/NextActionCard'
+import { TranslateControl, type LanguageView } from '@/components/deal/TranslateControl'
 import { AppPage, BackLink, Btn, Chip, GateCard, PageBody, ScoreRing, StatRow, StatTile } from '@/components/system'
 import { deriveDealStage, deriveNegotiationMode, stageChipKey, stageTone, type DealStage } from '@/lib/deal-stage'
 import { deriveNegotiationFlow } from '@/lib/negotiation-flow'
@@ -51,6 +52,8 @@ interface DealWorkspaceProps {
   inferredDealType?: 'renewal' | 'new_purchase' | 'expansion' | 'unknown'
   /** Already-redacted output when the playbook is hidden (server decides). */
   latestOutputOverride?: unknown
+  /** Generated-content language vs UI language (app mode only); drives the translate control. */
+  languageView?: LanguageView
 }
 
 /**
@@ -58,7 +61,7 @@ interface DealWorkspaceProps {
  * changes with the stage), stage rail, verdict, stat tiles, then the existing
  * analysis sections, then the hand-off gate. Shared by /app, /demo and /try.
  */
-export function DealWorkspace({ deal, mode, messages, isAdmin, showFullPlaybook, negotiationRequest, addRoundForm, inferredDealType, latestOutputOverride }: DealWorkspaceProps) {
+export function DealWorkspace({ deal, mode, messages, isAdmin, showFullPlaybook, negotiationRequest, addRoundForm, inferredDealType, latestOutputOverride, languageView }: DealWorkspaceProps) {
   const { t, locale } = useI18n()
   const router = useRouter()
   // Captured once per mount so render stays pure (react-compiler rule).
@@ -234,6 +237,7 @@ export function DealWorkspace({ deal, mode, messages, isAdmin, showFullPlaybook,
           )}
           <div className="ml-auto flex items-center gap-2">
             {isDemo && <Chip>{t('dealPage.demoSample')}</Chip>}
+            {mode === 'app' && languageView && <TranslateControl dealId={deal.id} view={languageView} />}
           </div>
         </div>
         <div className="px-4 sm:px-6 pt-1.5 pb-2.5 flex flex-wrap items-center gap-x-3 gap-y-2">
