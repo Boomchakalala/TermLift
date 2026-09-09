@@ -4,8 +4,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { useState, useEffect, useSyncExternalStore } from 'react'
-import { FileText, Building2, Settings, User, LogOut, HelpCircle, ChevronDown, Globe, PanelLeftClose, PanelLeftOpen, Briefcase, Gauge, Plus, BarChart3, ShieldCheck } from 'lucide-react'
-import { LanguageSwitcher } from '@/components/LanguageSwitcher'
+import { FileText, Building2, Settings, User, LogOut, HelpCircle, ChevronDown, ChevronLeft, ChevronRight, Briefcase, Gauge, Plus, BarChart3, ShieldCheck } from 'lucide-react'
 import { NotificationBell, type NotificationItem } from '@/components/NotificationBell'
 import { useT } from '@/i18n/context'
 import { cn } from '@/lib/utils'
@@ -22,6 +21,15 @@ interface AppSidebarProps {
   notifications?: NotificationItem[]
   /** Deals waiting on the user (unlock Deep Analysis, reply to TermLift) — shown as a badge on Deals. */
   needsYou?: number
+}
+
+/** Instant tooltip for the collapsed rail — the native title needs a second of stillness and is easy to miss. */
+function Tip({ children }: { children: React.ReactNode }) {
+  return (
+    <span role="tooltip" className="pointer-events-none absolute left-full top-1/2 -translate-y-1/2 ml-2.5 whitespace-nowrap rounded-md bg-ink px-2 py-1 text-[12px] font-medium text-white opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity z-50 before:content-[''] before:absolute before:right-full before:top-1/2 before:-translate-y-1/2 before:border-[5px] before:border-transparent before:border-r-ink">
+      {children}
+    </span>
+  )
 }
 
 const EXPANDED = 220
@@ -58,6 +66,7 @@ export function AppSidebar({ userEmail, isUpgraded, usageCount, isAdmin, linkBas
   }, [])
 
   const isActive = (href: string) => (href === linkBase ? pathname === linkBase || pathname.startsWith(`${linkBase}/deal`) : pathname.startsWith(href))
+  const onAdmin = pathname.startsWith('/app/admin')
 
   const adminUnread = notifications.filter((n) => !n.read_at && n.type === 'negotiation_new_request').length
 
@@ -66,7 +75,7 @@ export function AppSidebar({ userEmail, isUpgraded, usageCount, isAdmin, linkBas
     { href: linkBase, icon: FileText, label: t('nav.deals'), badge: needsYou, tone: 'warn' },
     ...(demoMode ? [] : [{ href: `${linkBase}/vendors`, icon: Building2, label: t('nav.vendors') }]),
   ]
-  // Admin tools get their own section so the labels no longer need an "(admin)" suffix that truncated at 220px.
+  // Admin tools sit behind one entry that opens only while you are in that area.
   const admin: Item[] = isAdmin && !demoMode ? [
     { href: '/app/admin/negotiations', icon: Briefcase, label: t('nav.adminNegotiations'), badge: adminUnread, tone: 'risk' as const },
     { href: '/app/admin/ai-usage', icon: Gauge, label: t('nav.adminAiUsage') },
@@ -77,15 +86,19 @@ export function AppSidebar({ userEmail, isUpgraded, usageCount, isAdmin, linkBas
     { href: demoMode ? '/help' : `${linkBase}/help`, icon: HelpCircle, label: t('nav.help') },
   ]
 
-  const NavLink = ({ item }: { item: Item }) => {
-    const active = isActive(item.href)
+
+  const renderItem = (item: Item, opts: { sub?: boolean; active?: boolean } = {}) => {
+    const { sub, active: forcedActive } = opts
+    const active = forcedActive ?? isActive(item.href)
     const badge = item.badge ?? 0
+    const tip = badge > 0 ? `${item.label} · ${badge}` : item.label
     return (
       <Link
         href={item.href}
-        title={collapsed ? item.label : undefined}
+        aria-label={collapsed ? tip : undefined}
         className={cn(
-          'relative flex items-center gap-2.5 py-2 rounded-lg text-[13.5px] font-medium transition-colors no-underline',
+          'group relative flex items-center gap-2.5 rounded-lg font-medium transition-colors no-underline',
+          sub ? 'h-[30px] text-[13px]' : 'h-[34px] text-[13.5px]',
           collapsed ? 'px-0 justify-center' : 'px-2.5',
           active ? 'bg-green-soft text-green-deep font-semibold' : 'text-ink-2 hover:bg-ground hover:text-ink',
         )}
@@ -102,97 +115,104 @@ export function AppSidebar({ userEmail, isUpgraded, usageCount, isAdmin, linkBas
           </span>
         )}
         {collapsed && badge > 0 && <span className={cn('absolute top-1 right-1.5 w-2 h-2 rounded-full', item.tone === 'risk' ? 'bg-risk' : 'bg-warn')} />}
+        {collapsed && <Tip>{tip}</Tip>}
       </Link>
     )
   }
 
   return (
     <>
-      {/* Desktop sidebar */}
+      {/* Desktop sidebar — variant A: five destinations, admin folded, one loud button. */}
       <aside className={cn('hidden md:flex fixed top-0 left-0 bottom-0 flex-col bg-surface border-r border-line z-40 transition-[width] duration-200', collapsed ? 'w-[60px]' : 'w-[220px]')}>
-        <div className={cn('pt-4 pb-3 flex items-center', collapsed ? 'px-2.5 flex-col gap-3 justify-center' : 'px-4 justify-between')}>
+        <div className={cn('pt-4 pb-3 flex items-center', collapsed ? 'px-2.5 justify-center' : 'px-4')}>
           <Link href="/" className="flex items-center gap-2 no-underline">
             <Image src="/logo-icon.png" alt="TermLift" width={26} height={26} priority />
             {!collapsed && <span className="font-display font-bold text-[16px] tracking-[-0.02em] text-ink">Term<span className="text-green">Lift</span></span>}
           </Link>
-          {!demoMode && <NotificationBell initialNotifications={notifications} collapsed={collapsed} />}
         </div>
 
-        <div className={cn(collapsed ? 'px-2' : 'px-3')}>
+        {/* Collapse toggle on the edge, out of the navigation's way */}
+        <button
+          type="button"
+          onClick={() => setCollapsed(!collapsed)}
+          title={collapsed ? t('nav.expand') : t('nav.collapse')}
+          aria-label={collapsed ? t('nav.expand') : t('nav.collapse')}
+          className="absolute top-[62px] -right-[11px] w-[22px] h-[22px] rounded-full bg-surface border border-line text-ink-3 hover:text-ink hover:border-[#C9D3CE] grid place-items-center shadow-sm transition-colors z-50"
+        >
+          {collapsed ? <ChevronRight className="w-3 h-3" /> : <ChevronLeft className="w-3 h-3" />}
+        </button>
+
+        <div className={cn(collapsed ? 'px-3' : 'px-3')}>
           <Link
             href={`${linkBase === '/demo' ? '/login?from=demo' : `${linkBase}/new`}`}
-            title={t('nav.newAnalysis')}
-            className={cn('flex items-center justify-center gap-2 h-9 rounded-[10px] bg-green text-white text-[13px] font-semibold no-underline shadow-[0_6px_18px_-8px_rgba(29,185,84,0.7)] hover:bg-[#19a84c] transition-colors', collapsed && 'w-9 mx-auto px-0')}
+            aria-label={collapsed ? t('nav.newAnalysis') : undefined}
+            className={cn('group relative flex items-center justify-center gap-2 h-9 rounded-[10px] bg-green text-white text-[13px] font-semibold no-underline shadow-[0_6px_18px_-8px_rgba(29,185,84,0.7)] hover:bg-[#19a84c] transition-colors', collapsed && 'w-9 mx-auto px-0')}
           >
             <Plus className="w-4 h-4" />
             {!collapsed && t('nav.newAnalysis')}
+            {collapsed && <Tip>{t('nav.newAnalysis')}</Tip>}
           </Link>
         </div>
 
-        <nav className={cn('mt-4 space-y-0.5', collapsed ? 'px-2' : 'px-3')} aria-label="Workspace">
-          {!collapsed && <p className="tl-label text-ink-3 px-2.5 mb-1.5 text-[10px]">{t('nav.workspace')}</p>}
-          {workspace.map((it) => <NavLink key={it.href} item={it} />)}
-        </nav>
-        {admin.length > 0 && (
-          <nav className={cn('mt-5 space-y-0.5', collapsed ? 'px-2' : 'px-3')} aria-label="Admin">
-            {!collapsed && <p className="tl-label text-ink-3 px-2.5 mb-1.5 text-[10px]">{t('nav.admin')}</p>}
-            {admin.map((it) => <NavLink key={it.href} item={it} />)}
-          </nav>
-        )}
-        <nav className={cn('mt-5 space-y-0.5', collapsed ? 'px-2' : 'px-3')} aria-label="Account">
-          {!collapsed && <p className="tl-label text-ink-3 px-2.5 mb-1.5 text-[10px]">{t('nav.account')}</p>}
-          {account.map((it) => <NavLink key={it.href} item={it} />)}
+        <nav className="mt-4 px-3 flex flex-col gap-0.5" aria-label="Main">
+          {workspace.map((it) => <span key={it.href} className="contents">{renderItem(it)}</span>)}
+          {admin.length > 0 && (
+            <>
+              {renderItem({ href: admin[0].href, icon: ShieldCheck, label: t('nav.admin'), badge: adminUnread, tone: 'risk' }, { active: onAdmin })}
+              {!collapsed && onAdmin && (
+                <div className="pl-[26px] flex flex-col gap-0.5 mt-0.5">
+                  {admin.map((it) => <span key={it.href} className="contents">{renderItem(it, { sub: true })}</span>)}
+                </div>
+              )}
+            </>
+          )}
+          <div className="border-t border-line-2 my-2" />
+          {account.map((it) => <span key={it.href} className="contents">{renderItem(it)}</span>)}
         </nav>
 
         <div className="flex-1" />
 
-        {!collapsed && (
-          <div className="px-3 mb-1">
-            <div className="flex items-center gap-2 px-2.5 py-2 text-ink-3"><Globe className="w-3.5 h-3.5" /><LanguageSwitcher variant="inline" /></div>
-          </div>
-        )}
-        <div className={cn('pb-2', collapsed ? 'px-2' : 'px-3')}>
-          <button
-            onClick={() => setCollapsed(!collapsed)}
-            className={cn('flex items-center gap-2.5 py-2 rounded-lg text-[13px] font-medium text-ink-3 hover:bg-ground hover:text-ink-2 transition-colors w-full', collapsed ? 'px-0 justify-center' : 'px-2.5')}
-            title={collapsed ? t('nav.expand') : t('nav.collapse')}
-            aria-label={collapsed ? t('nav.expand') : t('nav.collapse')}
-          >
-            {collapsed ? <PanelLeftOpen className="w-4 h-4" /> : <><PanelLeftClose className="w-4 h-4" />{t('nav.collapse')}</>}
-          </button>
-        </div>
-
-        <div className={cn('relative border-t border-line py-2.5', collapsed ? 'px-2' : 'px-3')}>
+        {/* Footer: who you are, the bell, the account menu */}
+        <div className={cn('relative border-t border-line py-2.5', collapsed ? 'px-2 flex flex-col items-center gap-1' : 'px-3')}>
           {collapsed ? (
-            <div className="flex justify-center"><span className="w-8 h-8 rounded-full bg-green-soft text-green-deep grid place-items-center"><User className="w-4 h-4" /></span></div>
-          ) : (
             <>
-              <button onClick={() => setShowUserMenu(!showUserMenu)} className="w-full flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-ground transition-colors text-left" aria-expanded={showUserMenu}>
+              {!demoMode && <NotificationBell initialNotifications={notifications} collapsed />}
+              <button type="button" onClick={() => setShowUserMenu(!showUserMenu)} aria-expanded={showUserMenu} aria-label={userEmail} className="group relative w-8 h-8 rounded-full bg-green-soft text-green-deep grid place-items-center text-[12px] font-bold">
+                {(userEmail[0] || 'U').toUpperCase()}
+                <Tip>{userEmail}</Tip>
+              </button>
+            </>
+          ) : (
+            <div className="flex items-center gap-1">
+              <button onClick={() => setShowUserMenu(!showUserMenu)} className="flex-1 min-w-0 flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-ground transition-colors text-left" aria-expanded={showUserMenu}>
                 <span className="w-7 h-7 rounded-full bg-green-soft text-green-deep grid place-items-center shrink-0 text-[12px] font-bold">{(userEmail[0] || 'U').toUpperCase()}</span>
                 <span className="flex-1 min-w-0">
                   <span className="block text-[12.5px] font-medium text-ink truncate">{userEmail}</span>
-                  {!isUpgraded && !isAdmin && (
+                  {isAdmin && !demoMode ? (
+                    <span className="block text-[11px] text-ink-3 truncate">{t('nav.admin')}</span>
+                  ) : !isUpgraded ? (
                     <span className="block text-[11px] text-ink-3 truncate">{t('nav.freeUsed', { used: Math.min(usageCount, FREE_ANALYSIS_LIMIT), limit: FREE_ANALYSIS_LIMIT })}</span>
-                  )}
+                  ) : null}
                 </span>
-                <ChevronDown className={cn('w-3.5 h-3.5 text-ink-3 transition-transform', showUserMenu && 'rotate-180')} />
+                <ChevronDown className={cn('w-3.5 h-3.5 text-ink-3 transition-transform shrink-0', showUserMenu && 'rotate-180')} />
               </button>
-              {showUserMenu && (
-                <>
-                  <div className="fixed inset-0 z-10" onClick={() => setShowUserMenu(false)} />
-                  <div className="absolute bottom-full left-3 right-3 mb-1 bg-surface rounded-[10px] shadow-lg border border-line py-1 z-20">
-                    <Link href={`${linkBase}/settings`} onClick={() => setShowUserMenu(false)} className="flex items-center gap-2 px-3 py-2 text-[13px] text-ink-2 hover:bg-ground no-underline"><Settings className="w-3.5 h-3.5" />{t('nav.settings')}</Link>
-                    <div className="border-t border-line-2 my-1" />
-                    {demoMode ? (
-                      <Link href="/login?from=demo" onClick={() => setShowUserMenu(false)} className="flex items-center gap-2 px-3 py-2 text-[13px] font-semibold text-green-deep hover:bg-green-soft no-underline"><User className="w-3.5 h-3.5" />{t('nav.demoSignup')}</Link>
-                    ) : (
-                      <form action="/auth/signout" method="post">
-                        <button type="submit" className="flex items-center gap-2 px-3 py-2 text-[13px] text-risk hover:bg-risk-soft w-full text-left"><LogOut className="w-3.5 h-3.5" />{t('nav.signOut')}</button>
-                      </form>
-                    )}
-                  </div>
-                </>
-              )}
+              {!demoMode && <NotificationBell initialNotifications={notifications} up />}
+            </div>
+          )}
+          {showUserMenu && (
+            <>
+              <div className="fixed inset-0 z-10" onClick={() => setShowUserMenu(false)} />
+              <div className={cn('absolute bottom-full mb-1 bg-surface rounded-[10px] shadow-lg border border-line py-1 z-20', collapsed ? 'left-2 w-52' : 'left-3 right-3')}>
+                <Link href={`${linkBase}/settings`} onClick={() => setShowUserMenu(false)} className="flex items-center gap-2 px-3 py-2 text-[13px] text-ink-2 hover:bg-ground no-underline"><Settings className="w-3.5 h-3.5" />{t('nav.settings')}</Link>
+                <div className="border-t border-line-2 my-1" />
+                {demoMode ? (
+                  <Link href="/login?from=demo" onClick={() => setShowUserMenu(false)} className="flex items-center gap-2 px-3 py-2 text-[13px] font-semibold text-green-deep hover:bg-green-soft no-underline"><User className="w-3.5 h-3.5" />{t('nav.demoSignup')}</Link>
+                ) : (
+                  <form action="/auth/signout" method="post">
+                    <button type="submit" className="flex items-center gap-2 px-3 py-2 text-[13px] text-risk hover:bg-risk-soft w-full text-left"><LogOut className="w-3.5 h-3.5" />{t('nav.signOut')}</button>
+                  </form>
+                )}
+              </div>
             </>
           )}
         </div>
