@@ -12,7 +12,7 @@ import { DealHeaderClient } from '@/components/DealHeaderClient'
 import { HeroVerdict } from '@/components/HeroVerdict'
 import { NegotiationProgress } from '@/components/deal/NegotiationProgress'
 import { NextActionCard } from '@/components/deal/NextActionCard'
-import { AppPage, Btn, Chip, GateCard, PageBody, ScoreRing, StatRow, StatTile } from '@/components/system'
+import { AppPage, BackLink, Btn, Chip, GateCard, PageBody, ScoreRing, StatRow, StatTile } from '@/components/system'
 import { deriveDealStage, deriveNegotiationMode, stageChipKey, stageTone, type DealStage } from '@/lib/deal-stage'
 import { deriveNegotiationFlow } from '@/lib/negotiation-flow'
 import { hasDeepContent, deepAnalysisIsRunning, dealHasFullAnalysis } from '@/lib/deep-analysis-status'
@@ -222,11 +222,15 @@ export function DealWorkspace({ deal, mode, messages, isAdmin, showFullPlaybook,
           {isTrial ? (
             <span className="text-[12.5px] text-ink-3">{t('dealPage.trialNotSaved')}</span>
           ) : (
-            <nav className="flex items-center gap-1.5 text-[12.5px] text-ink-3 min-w-0" aria-label="Breadcrumb">
-              <Link href={linkBase} className="hover:text-ink-2 no-underline">{t('dealPage.crumbDeals')}</Link>
-              <span aria-hidden>›</span>
-              <span className="text-ink font-semibold truncate">{vendor}</span>
-            </nav>
+            <>
+              {/* Phone: one tappable back control; the trail is desktop-only. */}
+              <BackLink href={linkBase} label={t('dealPage.crumbDeals')} className="md:hidden -my-1" />
+              <nav className="hidden md:flex items-center gap-1.5 text-[12.5px] text-ink-3 min-w-0" aria-label="Breadcrumb">
+                <Link href={linkBase} className="hover:text-ink-2 no-underline">{t('dealPage.crumbDeals')}</Link>
+                <span aria-hidden>›</span>
+                <span className="text-ink font-semibold truncate">{vendor}</span>
+              </nav>
+            </>
           )}
           <div className="ml-auto flex items-center gap-2">
             {isDemo && <Chip>{t('dealPage.demoSample')}</Chip>}

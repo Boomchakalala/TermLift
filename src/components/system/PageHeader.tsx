@@ -1,7 +1,21 @@
 import type { ReactNode } from 'react'
 import Link from 'next/link'
-import { ChevronRight } from 'lucide-react'
+import { ChevronRight, ChevronLeft } from 'lucide-react'
 import { cn } from '@/lib/utils'
+
+/**
+ * The phone's back control: one tappable "‹ Parent" link. The desktop
+ * breadcrumb trail is too small to be a target and the bottom tab bar only
+ * reaches top-level pages, so every sub-page shows this above its title.
+ */
+export function BackLink({ href, label, className }: { href: string; label: ReactNode; className?: string }) {
+  return (
+    <Link href={href} className={cn('inline-flex items-center gap-0.5 h-8 -ml-2 pl-1 pr-2.5 rounded-lg text-[13.5px] font-semibold text-ink-2 hover:text-ink hover:bg-ground active:bg-ground transition-colors no-underline max-w-full', className)}>
+      <ChevronLeft className="w-4 h-4 shrink-0" />
+      <span className="truncate">{label}</span>
+    </Link>
+  )
+}
 
 export interface Crumb {
   label: string
@@ -24,10 +38,13 @@ interface PageHeaderProps {
  * (stat tiles, tabs). Content below sits on the ground colour.
  */
 export function PageHeader({ title, sub, crumbs, actions, children, className }: PageHeaderProps) {
+  // On a phone the trail collapses to one back link: the nearest crumb that links somewhere.
+  const parent = crumbs ? [...crumbs.slice(0, -1)].reverse().find((c) => c.href) : undefined
   return (
     <div className={cn('bg-surface border-b border-line px-4 sm:px-6 py-4', className)}>
+      {parent?.href && <BackLink href={parent.href} label={parent.label} className="md:hidden mb-1.5" />}
       {crumbs && crumbs.length > 0 && (
-        <nav className="flex items-center gap-1.5 text-[12.5px] text-ink-3 mb-2 min-w-0" aria-label="Breadcrumb">
+        <nav className="hidden md:flex items-center gap-1.5 text-[12.5px] text-ink-3 mb-2 min-w-0" aria-label="Breadcrumb">
           {crumbs.map((c, i) => {
             const last = i === crumbs.length - 1
             return (

@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { trackEvent } from '@/lib/analytics'
 import { useI18n } from '@/i18n/context'
 import { AnalysisUploader, formatBytes, type LiveFindings } from '@/components/AnalysisUploader'
-import { AppPage, PageHeader, PageBody, Btn } from '@/components/system'
+import { AppPage, PageHeader, PageBody } from '@/components/system'
 
 export default function NewAnalysisPage() {
   const { locale, t } = useI18n()
@@ -98,7 +98,6 @@ export default function NewAnalysisPage() {
         crumbs={[{ label: t('nav.deals'), href: '/app' }, { label: t('newPage.crumb') }]}
         title={t('newPage.title')}
         sub={t('newPage.sub')}
-        actions={<Btn href="/app" variant="link" size="sm">← {t('nav.deals')}</Btn>}
       />
       <PageBody>
         {/* AnalysisUploader is a 3+2 column grid (shared with /try); it needs the width or the side column collapses. */}
