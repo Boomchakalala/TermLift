@@ -35,7 +35,7 @@ export function AnalysisResultView({ output }: AnalysisResultViewProps) {
       deal={deal}
       messages={{ en: enMessages as unknown as Record<string, string>, fr: frMessages as unknown as Record<string, string> }}
       isAdmin={false}
-      showFullPlaybook={false}
+      showFullPlaybook
     />
   )
 }

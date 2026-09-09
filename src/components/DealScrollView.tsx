@@ -54,6 +54,8 @@ interface DealScrollViewProps {
   demoMode?: boolean
   /** When false, the full DIY playbook (asks, leverage, email drafts) is replaced with a teaser + "Get this deal negotiated" CTA. */
   showFullPlaybook: boolean
+  /** Anonymous /try result: the Step 2 gate sends the visitor to sign up instead of running the Playbook. */
+  trialMode?: boolean
   /** Where the teaser's CTA links. Defaults to `/app/deal/{dealId}/negotiate` — override when there's no real saved deal yet (e.g. the anonymous trial view). */
   negotiateHref?: string
   /** Whether a negotiation_requests row already exists for this deal — one of
@@ -151,7 +153,7 @@ export function DealScrollView(props: DealScrollViewProps) {
     redFlagCount, potentialSavings, dealCurrency,
     sortedRounds, dealId, dealStatus, locale,
     savingsAmount, savingsPercent, closedAt,
-    addRoundForm, messages, demoMode, showFullPlaybook,
+    addRoundForm, messages, demoMode, showFullPlaybook, trialMode = false,
     negotiateHref = `/app/deal/${dealId}/negotiate`,
     hasNegotiationRequest = false,
     savedNegotiationContext,
@@ -588,8 +590,10 @@ export function DealScrollView(props: DealScrollViewProps) {
               tone="green"
               eyebrow={fr ? 'Étape 2 · Plan de négociation' : 'Step 2 · Negotiation Playbook'}
               title={fr ? 'Construisez votre stratégie de négociation' : 'Build your negotiation strategy'}
-              body={<>{fr ? 'Obtenez les demandes ordonnées et chiffrées, les positions cibles, les replis, vos leviers et la séquence de négociation prête à envoyer. Quelques minutes.' : 'Get the ordered asks with amounts, target positions, fallbacks, your leverage and the ready-to-send negotiation sequence. A couple of minutes.'}<span className="block mt-1.5 font-semibold text-green-deep">{deepAnalysisPriceNote(locale)}</span>{deepAnalysisError && <span className="block text-risk mt-1">{deepAnalysisError}</span>}</>}
-              action={<Btn variant="primary" onClick={handleDeepAnalysis}><Microscope className="w-4 h-4" />{deepAnalysisError ? (fr ? 'Réessayer' : 'Try again') : (fr ? 'Obtenir le Plan de négociation' : 'Get the Negotiation Playbook')}</Btn>}
+              body={<>{fr ? 'Obtenez les demandes ordonnées et chiffrées, les positions cibles, les replis, vos leviers et la séquence de négociation prête à envoyer. Quelques minutes.' : 'Get the ordered asks with amounts, target positions, fallbacks, your leverage and the ready-to-send negotiation sequence. A couple of minutes.'}<span className="block mt-1.5 font-semibold text-green-deep">{deepAnalysisPriceNote(locale)}{trialMode && (fr ? ' Cette analyse vous suit dans votre compte.' : ' This analysis comes with you into your account.')}</span>{deepAnalysisError && <span className="block text-risk mt-1">{deepAnalysisError}</span>}</>}
+              action={trialMode
+                ? <Btn href="/login?from=trial" variant="primary">{fr ? 'Créer un compte gratuit' : 'Create free account'}</Btn>
+                : <Btn variant="primary" onClick={handleDeepAnalysis}><Microscope className="w-4 h-4" />{deepAnalysisError ? (fr ? 'Réessayer' : 'Try again') : (fr ? 'Obtenir le Plan de négociation' : 'Get the Negotiation Playbook')}</Btn>}
             />
           )}
         </div>

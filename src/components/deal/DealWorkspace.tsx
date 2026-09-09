@@ -345,13 +345,10 @@ export function DealWorkspace({ deal, mode, messages, isAdmin, showFullPlaybook,
           <p className="text-[12.5px] text-ink-3 leading-snug mt-2.5">{t('dealPage.benchNoDataNote')}</p>
         )}
 
-        {isTrial ? (
-          <GateCard tone="green" eyebrow={t('dealPage.trialEyebrow')} title={t('dealPage.trialTitle')} body={t('dealPage.trialBody')} action={<Btn href="/login?from=trial" variant="primary">{t('dealPage.trialCta')}</Btn>} />
-        ) : (
-          /* "What should I do next?" — answered once, right under the numbers. Same action as the header. */
-          (primary || closed) && !waitingOnClient && (
-            <NextActionCard next={next} locale={locale} action={primary} aside={closeAside} error={next.key === 'unlock_full' ? deepError : null} />
-          )
+        {/* "What should I do next?" — answered once, right under the numbers. Same action as the header.
+            The trial shows the same card as a real quick-stage deal; only the button differs (sign up). */}
+        {(primary || closed) && !waitingOnClient && (
+          <NextActionCard next={next} locale={locale} action={primary} aside={isTrial ? undefined : closeAside} error={!isTrial && next.key === 'unlock_full' ? deepError : null} />
         )}
 
         {/* ── Analysis sections — each section is its own object on the ground ── */}
@@ -374,6 +371,7 @@ export function DealWorkspace({ deal, mode, messages, isAdmin, showFullPlaybook,
             dealCurrency={currency}
             sortedRounds={sortedRounds}
             dealId={isTrial ? 'trial' : deal.id}
+            trialMode={isTrial}
             dealStatus={deal.status || 'in_progress'}
             locale={locale}
             closeSummary={deal.close_summary ?? null}
@@ -394,7 +392,8 @@ export function DealWorkspace({ deal, mode, messages, isAdmin, showFullPlaybook,
           />
 
         {/* ── Bottom service CTA: the other way to run the negotiation. Once, at the end of the flow, never a competing primary. ── */}
-        {!isTrial && !closed && !openRequest && deepDone && showFullPlaybook && (
+        {/* The trial shows it too: it is the visitor's only view of step 4 before they sign up. */}
+        {((!isTrial && !closed && !openRequest && deepDone && showFullPlaybook) || isTrial) && (
           <GateCard
             tone="neutral"
             eyebrow={t('dealPage.serviceEyebrow')}
@@ -408,9 +407,6 @@ export function DealWorkspace({ deal, mode, messages, isAdmin, showFullPlaybook,
         {/* The active-handoff state is already the NextActionCard at the top; only "waiting on you" earns a second card. */}
         {!isTrial && !closed && openRequest && waitingOnClient && (
           <GateCard tone="warn" eyebrow={t('dealPage.handoffWaitingEyebrow')} title={t('dealPage.handoffWaitingTitle')} body={t('dealPage.handoffWaitingBody')} action={<Btn href={negotiationPageHref} variant="ink">{t('dealPage.handoffOpen')}</Btn>} />
-        )}
-        {isTrial && (
-          <GateCard tone="green" title={t('dealPage.trialKeepTitle')} body={t('dealPage.trialKeepBody')} action={<Btn href="/login?from=trial" variant="primary">{t('dealPage.trialCta')}</Btn>} />
         )}
       </PageBody>
     </AppPage>
