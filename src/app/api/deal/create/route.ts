@@ -8,6 +8,7 @@ import { toStructuredExtraction } from '@/lib/structured-extraction'
 import type { QuoteClassificationType } from '@/lib/schemas'
 import { checkRateLimit } from '@/lib/rate-limit'
 import { checkFreeQuota } from '@/lib/pricing'
+import { getPlaybookAccess, consumeCredit } from '@/lib/billing'
 import { resolveVendorForDeal } from '@/lib/vendor-resolve'
 import { stripAdvancedOutput, SHOW_FULL_NEGOTIATION_PLAYBOOK } from '@/lib/negotiation-gating'
 import { runWithAiContext } from '@/lib/ai-telemetry'
@@ -55,6 +56,7 @@ export async function POST(request: Request) {
     }
 
     // Get user profile and check usage limit
+    let useCredit = false
     const { data: profile } = await supabase
       .from('profiles')
       .select('usage_count, is_admin, negotiation_preferences')
@@ -76,7 +78,10 @@ export async function POST(request: Request) {
       }
       const quota = checkFreeQuota(profile.usage_count || 0)
       if (!quota.allowed) {
-        return NextResponse.json({ error: quota.message }, { status: 403 })
+        // Past the free quick analyses a new deal is a Playbook deal: first one free, else a paid credit.
+        const access = await getPlaybookAccess(user.id, null, false)
+        if (!access.granted) return NextResponse.json({ error: quota.message, paymentRequired: true }, { status: 402 })
+        if (access.kind === 'credit') useCredit = true
       }
     }
 
@@ -193,6 +198,9 @@ export async function POST(request: Request) {
     if (roundError || !round) {
       throw new Error('Failed to create round')
     }
+
+    // A credit bought from the new-deal gate is spent on this deal (its Playbook is then included).
+    if (useCredit) await consumeCredit(user.id, deal.id)
 
     // Increment usage count (skip for admins and demo text)
     if (!profile.is_admin && !validated.isDemoText) {

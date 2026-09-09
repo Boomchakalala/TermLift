@@ -1,0 +1,35 @@
+{
+  "billing": {
+    "confirming": "Confirmation de votre paiement…",
+    "cancelled": "Paiement annulé. Rien n’a été débité.",
+    "gateEyebrow": "Prochain dossier",
+    "gateTitle": "Votre prochain dossier inclut le Plan de négociation",
+    "gateBody": "Vous avez utilisé vos {limit} analyses rapides gratuites. Chaque dossier supplémentaire inclut le Plan de négociation complet pour {price}, en une fois, réglé par carte via Stripe. Votre devis est analysé juste après le paiement et la facture arrive par e-mail.",
+    "gateCta": "Payer {price} et démarrer",
+    "gateStarting": "Ouverture du paiement sécurisé…",
+    "creditReady": "Un Plan de négociation est réglé et en attente. Il s’applique au dossier que vous créez maintenant.",
+    "paidCta": "Obtenir le Plan de négociation · {price}"
+  },
+  "home": {
+    "usageLimitTitle": "Vos {limit} analyses rapides gratuites sont utilisées",
+    "usageLimitBody": "Chaque nouveau dossier inclut désormais le Plan de négociation : {note}"
+  },
+  "privacyPage": {
+    "s4Stripe": "Stripe",
+    "s4StripeDesc": "Traitement des paiements du Plan de négociation. Stripe reçoit vos données de carte, votre adresse de facturation, votre e-mail et le numéro de TVA que vous saisissez ; nous ne voyons ni ne stockons jamais votre numéro de carte et ne conservons que la référence du paiement, le montant et le lien de la facture. Certifié PCI DSS niveau 1."
+  },
+  "termsPage": {
+    "s5Item3": "Pendant l’accès anticipé, nous fournissons le Plan de négociation gratuitement, et le premier Plan d’un compte reste offert ensuite. Cela ne nous oblige pas à continuer.",
+    "s5Item4": "Les paiements par carte du Plan sont traités par Stripe au moment où vous le demandez ; nous ne voyons ni ne stockons votre numéro de carte, et Stripe envoie la facture par e-mail. Les honoraires de négociation sont facturés par e-mail à 30 jours."
+  },
+  "pricingPage": {
+    "faq4a": "Non. Les analyses rapides ne demandent aucun moyen de paiement, ni le Plan de négociation pendant l’accès anticipé. Ensuite, le Plan est réglé par carte, via Stripe, au moment où vous le demandez. Le service de négociation est facturé après la clôture du dossier."
+  },
+  "helpPage": {
+    "sections": {
+      "billing": {
+        "a3": "{price}, en une fois, par dossier, réglé par carte via Stripe au moment où vous le demandez ; la facture arrive par e-mail. Il couvre tout sur ce dossier : les demandes, les replis, les leviers, l’e-mail et chaque tour suivant. Il n’y a pas d’abonnement."
+      }
+    }
+  }
+}

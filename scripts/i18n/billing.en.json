@@ -1,0 +1,35 @@
+{
+  "billing": {
+    "confirming": "Confirming your payment…",
+    "cancelled": "Payment cancelled. Nothing was charged.",
+    "gateEyebrow": "Next deal",
+    "gateTitle": "Your next deal comes with the Negotiation Playbook",
+    "gateBody": "You have used your {limit} free Quick Analyses. Each further deal includes the full Negotiation Playbook for {price}, one time, paid by card via Stripe. Your quote is analysed right after payment, and the invoice arrives by email.",
+    "gateCta": "Pay {price} and start",
+    "gateStarting": "Opening secure payment…",
+    "creditReady": "One Negotiation Playbook is paid and waiting. It applies to the deal you create now.",
+    "paidCta": "Get the Negotiation Playbook · {price}"
+  },
+  "home": {
+    "usageLimitTitle": "Your {limit} free quick analyses are used",
+    "usageLimitBody": "Each new deal now comes with the Negotiation Playbook: {note}"
+  },
+  "privacyPage": {
+    "s4Stripe": "Stripe",
+    "s4StripeDesc": "Payment processing for the Negotiation Playbook. Stripe receives your card details, billing address, email and any VAT number you enter; we never see or store your card number and keep only the payment reference, amount and invoice link. PCI DSS Level 1 certified."
+  },
+  "termsPage": {
+    "s5Item3": "During early access we provide the Negotiation Playbook free of charge, and the first Playbook on an account stays free afterwards. That does not oblige us to keep doing so.",
+    "s5Item4": "Card payments for the Playbook are processed by Stripe at the moment you request it; we never see or store your card number, and Stripe issues the invoice by email. Negotiation fees are invoiced by email with 30-day payment terms."
+  },
+  "pricingPage": {
+    "faq4a": "No. Quick analyses need no payment details, and during early access neither does the Negotiation Playbook. After that the Playbook is paid by card, via Stripe, at the moment you request it. The negotiation service is invoiced after the deal closes."
+  },
+  "helpPage": {
+    "sections": {
+      "billing": {
+        "a3": "{price}, one time, per deal, paid by card via Stripe when you request it; the invoice arrives by email. It covers everything on that deal: the asks, fallbacks, leverage, the email and every follow-up round. There is no subscription."
+      }
+    }
+  }
+}

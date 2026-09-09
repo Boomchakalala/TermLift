@@ -8,7 +8,6 @@ import { compareRounds } from '@/lib/claude/round-delta'
 import { toStructuredExtraction } from '@/lib/structured-extraction'
 import { extractVendorOffer, type VendorOffer } from '@/lib/vendor-offer'
 import { checkRateLimit } from '@/lib/rate-limit'
-import { checkFreeQuota } from '@/lib/pricing'
 import { stripAdvancedOutput, SHOW_FULL_NEGOTIATION_PLAYBOOK } from '@/lib/negotiation-gating'
 import { MAX_ROUNDS_PER_DEAL } from '@/lib/ai-limits'
 import { runWithAiContext } from '@/lib/ai-telemetry'
@@ -80,10 +79,7 @@ export async function POST(
           { status: 429 }
         )
       }
-      const quota = checkFreeQuota(profile.usage_count || 0)
-      if (!quota.allowed) {
-        return NextResponse.json({ error: quota.message }, { status: 403 })
-      }
+      // No free-quota check here: rounds on an existing deal are covered by that deal's Playbook (pricing.ts).
     }
 
     // Parse request body

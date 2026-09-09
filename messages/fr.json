@@ -663,7 +663,7 @@
     "faq3q": "Comment est facturé le service de négociation ?",
     "faq3a": "Au succès : {pct} % des économies que TermLift vérifie par rapport à votre devis initial, avec un minimum de {min}. Pas d’économies, pas d’honoraires. Rien n’est conclu avec le fournisseur sans votre accord.",
     "faq4q": "Faut-il une carte bancaire pour commencer ?",
-    "faq4a": "Non. Les analyses rapides et, pendant l’accès anticipé, le Plan de négociation ne demandent aucun moyen de paiement. Le service de négociation est facturé après la clôture du dossier.",
+    "faq4a": "Non. Les analyses rapides ne demandent aucun moyen de paiement, ni le Plan de négociation pendant l’accès anticipé. Ensuite, le Plan est réglé par carte, via Stripe, au moment où vous le demandez. Le service de négociation est facturé après la clôture du dossier.",
     "faq5q": "Puis-je m’arrêter à n’importe quelle étape ?",
     "faq5a": "Oui. Chaque contrat suit la même échelle et vous vous arrêtez où vous voulez : lire l’analyse rapide, construire le Plan de négociation sur les contrats qui comptent, négocier vous-même, ou confier un contrat à TermLift. Vous pouvez aussi supprimer n’importe quel contrat ou votre compte à tout moment."
   },
@@ -764,7 +764,9 @@
     "s5Item6Prefix": "Télémétrie d'utilisation et IA :",
     "s5Item6": "Les adresses IP et les détails d'erreur sont supprimés après 90 jours ; les compteurs de tokens et de coûts sont conservés sans eux",
     "s5Item7Prefix": "Lignes de benchmark :",
-    "s5Item7": "Les lignes de résultats dé-identifiées (section 3) sont conservées après la suppression du contrat dont elles proviennent"
+    "s5Item7": "Les lignes de résultats dé-identifiées (section 3) sont conservées après la suppression du contrat dont elles proviennent",
+    "s4Stripe": "Stripe",
+    "s4StripeDesc": "Traitement des paiements du Plan de négociation. Stripe reçoit vos données de carte, votre adresse de facturation, votre e-mail et le numéro de TVA que vous saisissez ; nous ne voyons ni ne stockons jamais votre numéro de carte et ne conservons que la référence du paiement, le montant et le lien de la facture. Certifié PCI DSS niveau 1."
   },
   "termsPage": {
     "badge": "Juridique",
@@ -797,8 +799,8 @@
     "s5Title": "5. Tarifs et paiement",
     "s5Item1": "Les prix sont en euros et hors TVA lorsqu'elle s'applique.",
     "s5Item2": "Le Plan de négociation est payé au moment de la demande. Étant livré immédiatement, il n’est pas remboursable une fois livré, sauf disposition légale contraire.",
-    "s5Item3": "Tant que la facturation n’est pas activée sur votre compte, nous pouvons fournir le Plan de négociation gratuitement. Cela ne nous oblige pas à continuer.",
-    "s5Item4": "Nous n’acceptons pas de paiement par carte dans le produit aujourd’hui. Les honoraires de négociation, et le Plan une fois la facturation activée, sont facturés par e-mail à 30 jours. Si nous ajoutons un prestataire de paiement, la Politique de confidentialité le nommera.",
+    "s5Item3": "Pendant l’accès anticipé, nous fournissons le Plan de négociation gratuitement, et le premier Plan d’un compte reste offert ensuite. Cela ne nous oblige pas à continuer.",
+    "s5Item4": "Les paiements par carte du Plan sont traités par Stripe au moment où vous le demandez ; nous ne voyons ni ne stockons votre numéro de carte, et Stripe envoie la facture par e-mail. Les honoraires de négociation sont facturés par e-mail à 30 jours.",
     "s5Item5": "Nous pouvons modifier les tarifs avec un préavis d’au moins 30 jours. Un changement ne s’applique jamais à un Plan déjà payé, ni à une négociation déjà en cours.",
     "s6Title": "8. Propriété intellectuelle",
     "s6YourContent": "Votre contenu",
@@ -1137,8 +1139,8 @@
     "seeExample": "Voir un exemple réel",
     "setupProfile": "Définissez votre profil de négociation pour des e-mails sur mesure",
     "usageEyebrow": "Analyses rapides",
-    "usageLimitTitle": "Vos 4 analyses rapides gratuites sont utilisées",
-    "usageLimitBody": "Chaque nouveau dossier passe désormais par un Plan de négociation ({note}) Le paiement arrive bientôt — écrivez-nous pour continuer d’ici là.",
+    "usageLimitTitle": "Vos {limit} analyses rapides gratuites sont utilisées",
+    "usageLimitBody": "Chaque nouveau dossier inclut désormais le Plan de négociation : {note}",
     "usageContact": "Nous écrire",
     "usageLeftTitle": "{n, plural, one {# analyse gratuite restante} other {# analyses gratuites restantes}}",
     "usageLeftBody": "Les Plans, les e-mails et les tours sur vos dossiers existants ne sont pas concernés.",
@@ -1525,7 +1527,7 @@
         "q2": "Combien d’analyses rapides gratuites ai-je ?",
         "a2": "Une sans compte sur la page d’essai, et jusqu’à {limit} avec un compte gratuit. Les Plans, e-mails et tours sur vos dossiers existants ne comptent jamais dans ce total.",
         "q3": "Combien coûte le Plan de négociation ? Est-ce par dossier ?",
-        "a3": "{price}, en une fois, par dossier. Il couvre tout sur ce dossier : les demandes, les replis, les leviers, l’e-mail et chaque tour suivant. Il n’y a pas d’abonnement.",
+        "a3": "{price}, en une fois, par dossier, réglé par carte via Stripe au moment où vous le demandez ; la facture arrive par e-mail. Il couvre tout sur ce dossier : les demandes, les replis, les leviers, l’e-mail et chaque tour suivant. Il n’y a pas d’abonnement.",
         "q4": "Que se passe-t-il après l’accès anticipé ?",
         "a4": "Jusqu’au {date}, chaque Plan est gratuit. Ensuite, le premier Plan de chaque compte reste offert et chaque Plan suivant coûte {price} par dossier. Tout ce que vous avez construit pendant l’accès anticipé reste à vous.",
         "q5": "Comment fonctionne TermLift Négociation ?",
@@ -1563,5 +1565,16 @@
     "round": "Tour {n}",
     "termlift": "Géré par TermLift",
     "replyNeeded": "Réponse attendue"
+  },
+  "billing": {
+    "confirming": "Confirmation de votre paiement…",
+    "cancelled": "Paiement annulé. Rien n’a été débité.",
+    "gateEyebrow": "Prochain dossier",
+    "gateTitle": "Votre prochain dossier inclut le Plan de négociation",
+    "gateBody": "Vous avez utilisé vos {limit} analyses rapides gratuites. Chaque dossier supplémentaire inclut le Plan de négociation complet pour {price}, en une fois, réglé par carte via Stripe. Votre devis est analysé juste après le paiement et la facture arrive par e-mail.",
+    "gateCta": "Payer {price} et démarrer",
+    "gateStarting": "Ouverture du paiement sécurisé…",
+    "creditReady": "Un Plan de négociation est réglé et en attente. Il s’applique au dossier que vous créez maintenant.",
+    "paidCta": "Obtenir le Plan de négociation · {price}"
   }
 }

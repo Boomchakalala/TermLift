@@ -22,6 +22,7 @@ export default async function PrivacyPage() {
     { name: t('s4Anthropic'), desc: t('s4AnthropicDesc'), link: 'https://www.anthropic.com/privacy' },
     { name: t('s4Supabase'), desc: t('s4SupabaseDesc') },
     { name: t('s4Vercel'), desc: t('s4VercelDesc') },
+    { name: t('s4Stripe'), desc: t('s4StripeDesc'), link: 'https://stripe.com/privacy' },
     { name: t('s4PostHog'), desc: t('s4PostHogDesc') },
   ]
 

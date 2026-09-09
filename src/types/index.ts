@@ -167,6 +167,43 @@ export type Database = {
           model?: string | null
         }
       }
+      /** One paid Negotiation Playbook (Stripe Checkout); deal_id null = credit not yet spent (lib/billing.ts). */
+      playbook_purchases: {
+        Row: {
+          id: string
+          user_id: string
+          deal_id: string | null
+          assigned_at: string | null
+          stripe_checkout_session_id: string
+          stripe_payment_intent_id: string | null
+          stripe_customer_id: string | null
+          amount_cents: number
+          currency: string
+          status: string
+          invoice_url: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          deal_id?: string | null
+          assigned_at?: string | null
+          stripe_checkout_session_id: string
+          stripe_payment_intent_id?: string | null
+          stripe_customer_id?: string | null
+          amount_cents: number
+          currency?: string
+          status?: string
+          invoice_url?: string | null
+          created_at?: string
+        }
+        Update: {
+          deal_id?: string | null
+          assigned_at?: string | null
+          status?: string
+          invoice_url?: string | null
+        }
+      }
     }
   }
 }

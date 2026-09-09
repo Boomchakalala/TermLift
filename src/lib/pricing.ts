@@ -74,9 +74,13 @@ export function deepAnalysisPriceLabel(): string {
  * One sentence for gates and cards: what Deep Analysis costs right now.
  * EN: "€29 per deal · free during early access until 30 September 2026."
  */
-export function deepAnalysisPriceNote(locale: string = 'en'): string {
+export function deepAnalysisPriceNote(locale: string = 'en', access?: 'first_free' | 'due' | 'credit' | 'purchased'): string {
   const fr = locale === 'fr'
   const price = deepAnalysisPriceLabel()
+  // Per-deal notes once the server has decided (lib/billing-rules.ts).
+  if (access === 'purchased' || access === 'credit') return fr ? 'Inclus · déjà réglé pour ce dossier.' : 'Included · already paid for this deal.'
+  if (access === 'first_free') return fr ? `${price} par dossier · votre premier Plan est offert.` : `${price} per deal · your first Playbook is free.`
+  if (access === 'due') return fr ? `${price} par dossier · paiement par carte via Stripe, facture par e-mail.` : `${price} per deal · paid by card via Stripe, invoice by email.`
   if (isEarlyAccess()) {
     return fr
       ? `${price} par dossier · gratuit pendant l'accès anticipé jusqu'au ${earlyAccessUntilLabel('fr')}.`
@@ -97,6 +101,6 @@ export function checkFreeQuota(usageCount: number): { allowed: boolean; message?
   if (isEarlyAccess()) return { allowed: true }
   return {
     allowed: false,
-    message: `You've used your ${FREE_ANALYSIS_LIMIT} free quick analyses. Each further deal is a Negotiation Playbook at ${deepAnalysisPriceLabel()} — payment is coming soon; contact us to continue in the meantime.`,
+    message: `You've used your ${FREE_ANALYSIS_LIMIT} free quick analyses. Each further deal comes with the Negotiation Playbook at ${deepAnalysisPriceLabel()}, paid by card when you start it from New analysis.`,
   }
 }

@@ -122,7 +122,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
           atLimit && earlyAccess ? (
             <GateCard tone="neutral" eyebrow={t('usageEyebrow')} title={t('usageEarlyTitle')} body={t('usageEarlyBody', { note: priceNote })} action={<Btn href="/app/new" variant="primary" size="sm">{t('usageNew')}</Btn>} />
           ) : atLimit ? (
-            <GateCard tone="warn" eyebrow={t('usageEyebrow')} title={t('usageLimitTitle')} body={t('usageLimitBody', { note: priceNote })} action={<Btn href="/contact" variant="ink" size="sm">{t('usageContact')}</Btn>} />
+            <GateCard tone="neutral" eyebrow={t('usageEyebrow')} title={t('usageLimitTitle', { limit: FREE_ANALYSIS_LIMIT })} body={t('usageLimitBody', { note: priceNote })} action={<Btn href="/app/new" variant="primary" size="sm">{t('usageNew')}</Btn>} />
           ) : remaining <= 1 ? (
             <GateCard tone="neutral" eyebrow={t('usageEyebrow')} title={t('usageLeftTitle', { n: remaining })} body={t('usageLeftBody')} />
           ) : null

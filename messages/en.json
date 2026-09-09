@@ -663,7 +663,7 @@
     "faq3q": "How is the negotiation service priced?",
     "faq3a": "Success-based: {pct}% of the savings TermLift verifies against your original quote, with a minimum of {min}. No savings, no fee. Nothing is agreed with the vendor without your approval.",
     "faq4q": "Do I need a credit card to start?",
-    "faq4a": "No. Quick analyses and, during early access, the Negotiation Playbook need no payment details. The negotiation service is invoiced after the deal closes.",
+    "faq4a": "No. Quick analyses need no payment details, and during early access neither does the Negotiation Playbook. After that the Playbook is paid by card, via Stripe, at the moment you request it. The negotiation service is invoiced after the deal closes.",
     "faq5q": "Can I stop at any step?",
     "faq5a": "Yes. Every deal moves along the same ladder and you can stop wherever you like: read the quick analysis, build the Negotiation Playbook on the deals that matter, negotiate yourself, or hand one deal to TermLift. You can also delete any deal or your whole account at any time."
   },
@@ -764,7 +764,9 @@
     "s5Item6Prefix": "Usage and AI telemetry:",
     "s5Item6": "IP addresses and error details are removed after 90 days; token and cost counts are kept without them",
     "s5Item7Prefix": "Benchmark rows:",
-    "s5Item7": "De-identified outcome rows (section 3) are kept after the deal they came from is deleted"
+    "s5Item7": "De-identified outcome rows (section 3) are kept after the deal they came from is deleted",
+    "s4Stripe": "Stripe",
+    "s4StripeDesc": "Payment processing for the Negotiation Playbook. Stripe receives your card details, billing address, email and any VAT number you enter; we never see or store your card number and keep only the payment reference, amount and invoice link. PCI DSS Level 1 certified."
   },
   "termsPage": {
     "badge": "Legal",
@@ -797,8 +799,8 @@
     "s5Title": "5. Pricing & Payment",
     "s5Item1": "Prices are in euros and exclude VAT where it applies.",
     "s5Item2": "The Negotiation Playbook is paid when you request it. Because it is delivered immediately, it is not refundable once delivered, except where the law says otherwise.",
-    "s5Item3": "While billing is not yet enabled on your account we may provide the Negotiation Playbook free of charge. That does not oblige us to keep doing so.",
-    "s5Item4": "We do not take card payments inside the product today. Negotiation fees, and the Playbook once billing is enabled, are invoiced by email with 30-day payment terms. If we add a payment processor, the Privacy Policy will name it.",
+    "s5Item3": "During early access we provide the Negotiation Playbook free of charge, and the first Playbook on an account stays free afterwards. That does not oblige us to keep doing so.",
+    "s5Item4": "Card payments for the Playbook are processed by Stripe at the moment you request it; we never see or store your card number, and Stripe issues the invoice by email. Negotiation fees are invoiced by email with 30-day payment terms.",
     "s5Item5": "We may change prices with at least 30 days’ notice. A change never applies to a Playbook you have already paid for, or to a negotiation already under way.",
     "s6Title": "8. Intellectual Property",
     "s6YourContent": "Your Content",
@@ -1137,8 +1139,8 @@
     "seeExample": "See a real example",
     "setupProfile": "Set your negotiation profile for tailored emails",
     "usageEyebrow": "Quick analyses",
-    "usageLimitTitle": "Your 4 free quick analyses are used",
-    "usageLimitBody": "Each new deal now runs as a Negotiation Playbook ({note}) Payment is coming soon — get in touch to keep going in the meantime.",
+    "usageLimitTitle": "Your {limit} free quick analyses are used",
+    "usageLimitBody": "Each new deal now comes with the Negotiation Playbook: {note}",
     "usageContact": "Contact us",
     "usageLeftTitle": "{n, plural, one {# free analysis left} other {# free analyses left}}",
     "usageLeftBody": "Playbooks, emails and rounds on your existing deals are not affected.",
@@ -1525,7 +1527,7 @@
         "q2": "How many free Quick Analyses do I get?",
         "a2": "One without an account on the try page, and up to {limit} with a free account. Playbooks, emails and rounds on your existing deals never count against that number.",
         "q3": "What does the Negotiation Playbook cost? Is it per deal?",
-        "a3": "{price}, one time, per deal. It covers everything on that deal: the asks, fallbacks, leverage, the email and every follow-up round. There is no subscription.",
+        "a3": "{price}, one time, per deal, paid by card via Stripe when you request it; the invoice arrives by email. It covers everything on that deal: the asks, fallbacks, leverage, the email and every follow-up round. There is no subscription.",
         "q4": "What happens after the early-access period?",
         "a4": "Until {date} every Playbook is free. After that, the first Playbook on any account stays free and each further one is {price} per deal. Anything you built during early access stays yours.",
         "q5": "How does TermLift Negotiate work?",
@@ -1563,5 +1565,16 @@
     "round": "Round {n}",
     "termlift": "TermLift handling",
     "replyNeeded": "Reply needed"
+  },
+  "billing": {
+    "confirming": "Confirming your payment…",
+    "cancelled": "Payment cancelled. Nothing was charged.",
+    "gateEyebrow": "Next deal",
+    "gateTitle": "Your next deal comes with the Negotiation Playbook",
+    "gateBody": "You have used your {limit} free Quick Analyses. Each further deal includes the full Negotiation Playbook for {price}, one time, paid by card via Stripe. Your quote is analysed right after payment, and the invoice arrives by email.",
+    "gateCta": "Pay {price} and start",
+    "gateStarting": "Opening secure payment…",
+    "creditReady": "One Negotiation Playbook is paid and waiting. It applies to the deal you create now.",
+    "paidCta": "Get the Negotiation Playbook · {price}"
   }
 }

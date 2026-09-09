@@ -13,6 +13,8 @@ import { computeMarketBenchmark, type BenchmarkRun } from '@/lib/benchmark/servi
 import { clampInterpretation } from '@/lib/benchmark/interpret'
 import { toStructuredExtraction } from '@/lib/structured-extraction'
 import type { BenchmarkInput } from '@/lib/benchmark/types'
+import { getPlaybookAccess, consumeCredit } from '@/lib/billing'
+import { deepAnalysisPriceLabel } from '@/lib/pricing'
 
 export const maxDuration = 120
 
@@ -59,9 +61,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ dea
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    // Deep Analysis is a long, expensive Sonnet call with no price gate yet
-    // (see lib/pricing.ts) — reuse the same hourly/daily rate-limit budget
-    // as any other analysis action rather than leaving it fully unbounded.
+    // Deep Analysis is a long, expensive Sonnet call — reuse the same hourly/daily
+    // rate-limit budget as any other analysis action rather than leaving it unbounded.
     // A failed run reverts deep_analysis_status to 'idle' (see catch block
     // below), so without this check a bad document could be retried
     // indefinitely, each retry burning a fresh expensive call.
@@ -72,6 +73,18 @@ export async function POST(request: Request, { params }: { params: Promise<{ dea
         return NextResponse.json({ error: rateLimit.message || 'Rate limit exceeded' }, { status: 429 })
       }
     }
+
+    // Price gate (lib/billing-rules.ts): free during early access, first Playbook free,
+    // otherwise paid for this deal or covered by a credit bought from the new-deal gate.
+    const access = await getPlaybookAccess(user.id, dealId, !!limitProfile?.is_admin)
+    if (!access.granted) {
+      return NextResponse.json({
+        error: `The Negotiation Playbook is ${deepAnalysisPriceLabel()} for this deal.`,
+        paymentRequired: true,
+        price: access.priceEur,
+      }, { status: 402 })
+    }
+    if (access.kind === 'credit') await consumeCredit(user.id, dealId)
 
     const { data: deal } = await supabase
       .from('deals')

@@ -17,6 +17,8 @@ import { AppPage, BackLink, Btn, Chip, DealStatus, GateCard, PageBody, ScoreRing
 import { deriveDealStage, deriveNegotiationMode, stageChipKey, type DealStage } from '@/lib/deal-stage'
 import { deriveNegotiationFlow } from '@/lib/negotiation-flow'
 import { hasDeepContent, deepAnalysisIsRunning, dealHasFullAnalysis } from '@/lib/deep-analysis-status'
+import type { PlaybookAccess } from '@/lib/billing-rules'
+import { deepAnalysisPriceNote } from '@/lib/pricing'
 import { benchmarkRanButUnavailable } from '@/lib/benchmark/visibility'
 import { shortenVendorDisplayName } from '@/lib/vendor-normalize'
 import {
@@ -54,6 +56,8 @@ interface DealWorkspaceProps {
   latestOutputOverride?: unknown
   /** Generated-content language vs UI language (app mode only); drives the translate control. */
   languageView?: LanguageView
+  /** Server-decided Playbook price state for this deal (app mode). Absent = treat as granted. */
+  playbookAccess?: PlaybookAccess
 }
 
 /**
@@ -61,7 +65,7 @@ interface DealWorkspaceProps {
  * changes with the stage), stage rail, verdict, stat tiles, then the existing
  * analysis sections, then the hand-off gate. Shared by /app, /demo and /try.
  */
-export function DealWorkspace({ deal, mode, messages, isAdmin, showFullPlaybook, negotiationRequest, addRoundForm, inferredDealType, latestOutputOverride, languageView }: DealWorkspaceProps) {
+export function DealWorkspace({ deal, mode, messages, isAdmin, showFullPlaybook, negotiationRequest, addRoundForm, inferredDealType, latestOutputOverride, languageView, playbookAccess }: DealWorkspaceProps) {
   const { t, locale } = useI18n()
   const router = useRouter()
   // Captured once per mount so render stays pure (react-compiler rule).
@@ -101,6 +105,34 @@ export function DealWorkspace({ deal, mode, messages, isAdmin, showFullPlaybook,
     if (serverRunning) { wasPolling.current = true; return }
     if (wasPolling.current && deepDone) { wasPolling.current = false; window.scrollTo({ top: 0, behavior: 'smooth' }) }
   }, [serverRunning, deepDone])
+  // Back from Stripe Checkout: confirm the payment with the server, then build. The URL is cleaned either way.
+  const checkoutHandled = useRef(false)
+  const [checkoutNotice, setCheckoutNotice] = useState<'confirming' | 'cancelled' | null>(null)
+  useEffect(() => {
+    if (checkoutHandled.current || mode !== 'app') return
+    const params = new URLSearchParams(window.location.search)
+    const state = params.get('checkout')
+    if (!state) return
+    checkoutHandled.current = true
+    window.history.replaceState(null, '', window.location.pathname)
+    if (state === 'cancelled') { setCheckoutNotice('cancelled'); return }
+    const sessionId = params.get('session_id')
+    if (state !== 'success' || !sessionId) return
+    setCheckoutNotice('confirming')
+    ;(async () => {
+      try {
+        const res = await fetch('/api/billing/confirm', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionId }) })
+        const data = await res.json().catch(() => ({}))
+        if (!res.ok || !data.ok) throw new Error(data.error || 'Payment not confirmed yet')
+        setCheckoutNotice(null)
+        await requestPlaybook()
+      } catch (err) {
+        setCheckoutNotice(null)
+        setDeepError(err instanceof Error ? err.message : 'Payment not confirmed yet')
+      }
+    })()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode])
 
   if (!latestRound || !latestOutput) return null
 
@@ -114,13 +146,32 @@ export function DealWorkspace({ deal, mode, messages, isAdmin, showFullPlaybook,
   // Deal-level: Full Analysis unlocks once; later (quick-depth) rounds inherit it (deepDone, above).
   const deepRunning = serverRunning || deepLoading
 
-  const runFullAnalysis = async () => {
-    if (isTrial || isDemo || deepRunning || deepDone) return
+  const playbookDue = mode === 'app' && !!playbookAccess && !playbookAccess.granted
+  const priceLabel = `€${playbookAccess?.priceEur ?? 29}`
+
+  // Send the user to Stripe Checkout for this deal; the page picks the build up on return.
+  const startCheckout = async () => {
+    setDeepLoading(true); setDeepError(null)
+    try {
+      const res = await fetch('/api/billing/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ dealId: deal.id, locale }) })
+      const data = await res.json().catch(() => ({}))
+      if (res.status === 409 && data.granted) { router.refresh(); return }
+      if (!res.ok || !data.url) throw new Error(data.error || 'Could not start the payment')
+      window.location.assign(data.url)
+    } catch (err) {
+      setDeepError(err instanceof Error ? err.message : 'Could not start the payment')
+      setDeepLoading(false)
+    }
+  }
+
+  // One request to build the Playbook; 402 means "pay first" and hands over to Checkout.
+  const requestPlaybook = async () => {
     setDeepLoading(true); setDeepError(null)
     try {
       const res = await fetch(`/api/deal/${deal.id}/deep-analysis`, { method: 'POST' })
       // Already building (double tap, another tab, an earlier dropped request): pick the run up, don't report it.
       if (res.status === 409) { router.refresh(); return }
+      if (res.status === 402) { await startCheckout(); return }
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Building the Playbook failed')
       // The Playbook lands at the top of the page (verdict, tiles, next step), so bring the user there.
@@ -135,6 +186,12 @@ export function DealWorkspace({ deal, mode, messages, isAdmin, showFullPlaybook,
     } finally {
       setDeepLoading(false)
     }
+  }
+
+  const runFullAnalysis = async () => {
+    if (isTrial || isDemo || deepRunning || deepDone) return
+    if (playbookDue) return startCheckout()
+    return requestPlaybook()
   }
 
   const vendor = shortenVendorDisplayName(getVendorName(deal))
@@ -201,7 +258,7 @@ export function DealWorkspace({ deal, mode, messages, isAdmin, showFullPlaybook,
   else if (next.key === 'unlock_full' || next.key === 'full_running') {
     primary = isDemo
       ? <Btn href="/login?from=demo" variant="primary">{nextLabel}</Btn>
-      : <Btn variant="primary" onClick={runFullAnalysis} disabled={deepRunning}>{deepRunning ? <><Loader2 className="w-4 h-4 animate-spin" />{t('dealPage.primaryRunning')}</> : <><Microscope className="w-4 h-4" />{deepError ? (locale === 'fr' ? 'Réessayer' : 'Try again') : nextLabel}</>}</Btn>
+      : <Btn variant="primary" onClick={runFullAnalysis} disabled={deepRunning}>{deepRunning ? <><Loader2 className="w-4 h-4 animate-spin" />{t('dealPage.primaryRunning')}</> : <><Microscope className="w-4 h-4" />{deepError ? (locale === 'fr' ? 'Réessayer' : 'Try again') : playbookDue ? `${nextLabel} · ${priceLabel}` : nextLabel}</>}</Btn>
   }
   else if (next.key === 'open_negotiation') primary = <Btn href={next.href} variant={waitingOnClient ? 'primary' : 'ink'}>{nextLabel}</Btn>
   else if (next.key === 'view_outcome') primary = won ? <Btn href={next.href} variant="ghost">{nextLabel}</Btn> : null
@@ -316,6 +373,11 @@ export function DealWorkspace({ deal, mode, messages, isAdmin, showFullPlaybook,
 
       <PageBody className={cn(isTrial && 'pb-4')}>
         {isDemo && <p className="text-[12.5px] text-ink-3 -mt-2">{t('dealPage.demoNote')}</p>}
+        {checkoutNotice && (
+          <p className={cn('text-[13px] rounded-[10px] px-3.5 py-2.5 border', checkoutNotice === 'confirming' ? 'bg-green-soft border-green-line text-green-deep' : 'bg-ground border-line text-ink-2')}>
+            {checkoutNotice === 'confirming' ? t('billing.confirming') : t('billing.cancelled')}
+          </p>
+        )}
         {/* ── Verdict ─────────────────────────────────────────── */}
         <div className={cn('rounded-[14px] border px-4 py-4 sm:px-5 grid grid-cols-1 sm:grid-cols-[auto_1fr] gap-4 sm:gap-5 items-start', won ? 'bg-green-soft border-green-line' : waitingOnClient ? 'bg-warn-soft border-warn-line' : 'bg-surface border-line')}>
           {/* Top-aligned with the verdict text (not centred on the whole card, which left it floating between the verdict and the reasons list). */}
@@ -431,7 +493,7 @@ export function DealWorkspace({ deal, mode, messages, isAdmin, showFullPlaybook,
             messages={messages}
             demoMode={isDemo}
             hideNextStep
-            fullAnalysis={{ loading: deepRunning, error: deepError, run: runFullAnalysis }}
+            fullAnalysis={{ loading: deepRunning, error: deepError, run: runFullAnalysis, due: playbookDue, priceLabel, note: playbookAccess && !isTrial && !isDemo ? deepAnalysisPriceNote(locale, playbookAccess.kind === 'due' || playbookAccess.kind === 'first_free' || playbookAccess.kind === 'credit' || playbookAccess.kind === 'purchased' ? playbookAccess.kind : undefined) : undefined }}
             flowPhase={flow.phase}
           />
 
