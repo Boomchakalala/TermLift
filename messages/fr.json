@@ -996,14 +996,18 @@
     "shot": {
       "url": "termlift.com/app/deal/atlassian",
       "type": "Extension",
-      "verdict": "D'abord le périmètre, ensuite le prix",
-      "sub": "Bon produit, 15 145 $ à aller chercher",
-      "pushFor": "À demander",
-      "leverage": "Vos leviers",
-      "ask1": "120 sièges Premium + 80 Standard",
-      "ask2": "Remise volume de 8 %",
-      "lev1": "Une extension de 67 %, c'est leur croissance",
-      "lev2": "L'usage montre qui ne fait que consulter"
+      "verdict": "D’abord le périmètre, ensuite le prix",
+      "sub": "Bon produit, mauvais paliers. 80 utilisateurs sur 200 ne font que consulter.",
+      "statSavings": "Économies",
+      "statSavingsSub": "jusqu’à 25 %",
+      "statTotal": "Total",
+      "statTotalSub": "12 mois · d’avance",
+      "statFlags": "Alertes",
+      "statFlagsSub": "2 élevés · 1 moyen",
+      "nextStep": "Prochaine étape",
+      "nextTitle": "Construisez votre stratégie de négociation",
+      "nextBody": "Des demandes ordonnées et chiffrées, des positions de repli et l’e-mail à envoyer.",
+      "nextCta": "Obtenir le Plan"
     },
     "how": {
       "eyebrow": "Comment ça marche",

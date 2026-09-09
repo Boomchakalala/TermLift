@@ -120,11 +120,33 @@ body {
   animation: marquee 38s linear infinite;
 }
 
+/* Landing hero settle-in: each block rises once on load, staggered via --tl-delay. */
+@keyframes tl-rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.tl-rise {
+  animation: tl-rise 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation-delay: var(--tl-delay, 0ms);
+}
+
+/* Score ring draws from empty to its value (ScoreRing animate prop; --tl-ring-c is the circumference). */
+@keyframes tl-ring-draw {
+  from { stroke-dashoffset: var(--tl-ring-c); }
+}
+.tl-ring-draw {
+  animation: tl-ring-draw 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) 0.15s both;
+}
+
 /* Respect reduced-motion preference */
 @media (prefers-reduced-motion: reduce) {
   .animate-hero-float,
   .animate-marquee {
     animation-play-state: paused;
+  }
+  .tl-rise,
+  .tl-ring-draw {
+    animation: none;
   }
 }
 

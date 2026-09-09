@@ -4,7 +4,8 @@ import { ArrowRight, Check } from 'lucide-react'
 import { MarketingHeader } from '@/components/MarketingHeader'
 import { MarketingFooter } from '@/components/MarketingFooter'
 import Image from 'next/image'
-import { Btn, Chip, ScoreRing, StageRail } from '@/components/system'
+import { Btn, Chip, ScoreRing } from '@/components/system'
+import { CountUp, FillBar } from '@/components/landing/Reveal'
 import { LogoStrip } from '@/components/LogoStrip'
 
 /** A product screenshot in a soft device frame — same treatment for every picture on the page. */
@@ -88,38 +89,38 @@ export default async function LandingPage() {
           </div>
 
           {/* Real product surface — a deal at stage 2 */}
+          {/* The deal page as it really opens after the free step: verdict, the three numbers, the next step.
+              Same hierarchy as the product; the settle-in animation runs once on load. */}
           <Shot url={t('shot.url')}>
             <div className="p-4 flex flex-col gap-3">
-              <div className="flex items-center gap-3.5">
-                <ScoreRing score={48} size={72} />
+              <div className="flex items-center gap-3.5 tl-rise">
+                <ScoreRing score={48} size={64} animate />
                 <div className="min-w-0">
-                  <div className="flex flex-wrap gap-1.5 mb-1"><Chip>{t('shot.type')}</Chip><Chip tone="green">{ladder('full')}</Chip></div>
+                  <div className="flex flex-wrap gap-1.5 mb-1"><Chip>{t('shot.type')}</Chip><Chip tone="green">{ladder('quick')}</Chip></div>
                   <div className="font-display font-bold text-[17px] leading-tight">{t('shot.verdict')}</div>
-                  <div className="text-[12.5px] text-ink-2">{t('shot.sub')}</div>
+                  <div className="text-[12.5px] text-ink-2 mt-0.5">{t('shot.sub')}</div>
                 </div>
               </div>
-              <StageRail current="full" compact minimal />
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                <div className="rounded-xl border border-green-line bg-green-soft px-3.5 py-3">
-                  <p className="tl-label text-green-deep mb-2">{t('shot.pushFor')}</p>
-                  <ol className="m-0 p-0 list-none flex flex-col gap-2 text-[13px]">
-                    {[[t('shot.ask1'), '$11,088'], [t('shot.ask2'), '$4,057']].map(([a, v], i) => (
-                      <li key={a} className="flex items-start gap-2">
-                        <span className="w-[18px] h-[18px] rounded-full bg-green text-white tl-label text-[10px] grid place-items-center shrink-0 mt-px">{i + 1}</span>
-                        <span className="flex-1">{a}</span>
-                        <b className="text-green-deep tl-num">{v}</b>
-                      </li>
-                    ))}
-                  </ol>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { label: t('shot.statSavings'), value: '$15,145', sub: t('shot.statSavingsSub'), tone: 'text-green-deep' },
+                  { label: t('shot.statTotal'), value: '$61,800', sub: t('shot.statTotalSub'), tone: 'text-ink' },
+                  { label: t('shot.statFlags'), value: '3', sub: t('shot.statFlagsSub'), tone: 'text-risk' },
+                ].map((s, i) => (
+                  <div key={s.label} className="tl-rise rounded-xl border border-line bg-surface px-3 py-2.5 min-w-0" style={{ '--tl-delay': `${120 + i * 80}ms` } as React.CSSProperties}>
+                    <p className="tl-label text-ink-3 text-[9.5px]">{s.label}</p>
+                    <p className={`font-display font-bold text-[17px] tracking-[-0.02em] tl-num mt-1 leading-none ${s.tone}`}>{s.value}</p>
+                    <p className="text-[11px] text-ink-3 mt-1 truncate">{s.sub}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="tl-rise rounded-xl border border-green-line bg-green-soft px-3.5 py-3 flex items-center gap-3" style={{ '--tl-delay': '400ms' } as React.CSSProperties}>
+                <div className="min-w-0 flex-1">
+                  <p className="tl-label text-green-deep text-[10px]">{t('shot.nextStep')}</p>
+                  <p className="font-display font-bold text-[13.5px] leading-tight mt-0.5">{t('shot.nextTitle')}</p>
+                  <p className="text-[12px] text-ink-2 mt-0.5">{t('shot.nextBody')}</p>
                 </div>
-                <div className="rounded-xl border border-line bg-surface px-3.5 py-3">
-                  <p className="tl-label text-ink-3 mb-2">{t('shot.leverage')}</p>
-                  <ul className="m-0 p-0 list-none flex flex-col gap-2 text-[13px]">
-                    {[t('shot.lev1'), t('shot.lev2')].map((l) => (
-                      <li key={l} className="flex items-start gap-2"><span className="w-3.5 h-3.5 rounded-full border-[1.5px] border-green shrink-0 mt-[3px]" />{l}</li>
-                    ))}
-                  </ul>
-                </div>
+                <span className="shrink-0 inline-flex items-center h-8 px-3 rounded-[9px] bg-green text-white text-[12.5px] font-semibold shadow-[0_6px_18px_-8px_rgba(29,185,84,0.7)]">{t('shot.nextCta')}</span>
               </div>
             </div>
           </Shot>
@@ -201,9 +202,12 @@ export default async function LandingPage() {
                   <ArrowRight className="w-4 h-4 text-ink-3 mb-1" />
                   <div className="text-right"><div className="tl-label text-ink-3 text-[10px]">{t('wins.signed')}</div><div className="font-display font-bold text-[16px] tl-num">{d.final}</div></div>
                 </div>
-                <div className="px-4 py-3 bg-green-soft border-t border-green-line flex justify-between items-center">
-                  <span className="font-display font-extrabold text-[20px] text-green-deep tl-num">{d.saved}</span>
-                  <Chip tone="green">{t('wins.saved', { pct: d.pct })}</Chip>
+                <div className="px-4 py-3 bg-green-soft border-t border-green-line">
+                  <div className="flex justify-between items-center">
+                    <CountUp value={d.saved} className="font-display font-extrabold text-[20px] text-green-deep" />
+                    <Chip tone="green">{t('wins.saved', { pct: d.pct })}</Chip>
+                  </div>
+                  <FillBar pct={parseInt(d.pct, 10)} className="mt-2.5 bg-green-line/60" />
                 </div>
               </Link>
             ))}

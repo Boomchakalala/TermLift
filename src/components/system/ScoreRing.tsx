@@ -20,6 +20,8 @@ interface ScoreRingProps {
   className?: string
   /** Grey ring for deals where the score is no longer the signal (closed without a win). */
   muted?: boolean
+  /** Draw the arc from empty on mount (landing hero). Off everywhere in the product. */
+  animate?: boolean
 }
 
 /**
@@ -27,7 +29,7 @@ interface ScoreRingProps {
  * page, Home rows and Vendors — the old app mixed a ring, a gradient bar and a
  * mini bar depending on the page.
  */
-export function ScoreRing({ score, size = 88, stroke, className, muted }: ScoreRingProps) {
+export function ScoreRing({ score, size = 88, stroke, className, muted, animate }: ScoreRingProps) {
   const s = Math.max(0, Math.min(100, Math.round(score)))
   const sw = stroke ?? Math.max(3, Math.round(size * 0.08))
   const r = (size - sw) / 2
@@ -38,7 +40,7 @@ export function ScoreRing({ score, size = 88, stroke, className, muted }: ScoreR
     <span className={cn('relative inline-grid place-items-center shrink-0', className)} style={{ width: size, height: size }} aria-label={`Score ${s} out of 100`} role="img">
       <svg width={size} height={size} className="-rotate-90">
         <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--tl-line-2)" strokeWidth={sw} />
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={muted ? 'var(--tl-ink-3)' : scoreColor(s)} strokeWidth={sw} strokeDasharray={c} strokeDashoffset={off} strokeLinecap="round" />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={muted ? 'var(--tl-ink-3)' : scoreColor(s)} strokeWidth={sw} strokeDasharray={c} strokeDashoffset={off} strokeLinecap="round" className={animate ? 'tl-ring-draw' : undefined} style={animate ? ({ '--tl-ring-c': c } as React.CSSProperties) : undefined} />
       </svg>
       <span className="absolute font-display font-extrabold tracking-[-0.03em] leading-none text-ink tl-num" style={{ fontSize: size * 0.36 }}>
         {s}
