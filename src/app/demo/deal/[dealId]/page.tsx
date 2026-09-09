@@ -5,6 +5,15 @@ import { Btn, GateCard } from '@/components/system'
 import { getDemoDeal, demoDeals } from '@/lib/demo-data'
 import enMessages from '@/i18n/en.json'
 import frMessages from '@/i18n/fr.json'
+import { getLocale } from 'next-intl/server'
+
+// One dictionary for the client instead of both languages: FR merged over EN so the
+// fallback lookup in DealScrollView still resolves, at roughly half the payload.
+function clientMessages(locale: string): Record<string, Record<string, string>> {
+  const en = enMessages as unknown as Record<string, string>
+  const dict = locale === 'fr' ? { ...en, ...(frMessages as unknown as Record<string, string>) } : en
+  return { en: dict, [locale]: dict }
+}
 
 export function generateStaticParams() {
   return demoDeals.map((d) => ({ dealId: d.id }))
@@ -20,7 +29,7 @@ export default async function DemoDealPage({ params }: { params: Promise<{ dealI
     <DealWorkspace
       mode="demo"
       deal={{ ...deal, deal_type: null, savings_percent: null }}
-      messages={{ en: enMessages as unknown as Record<string, string>, fr: frMessages as unknown as Record<string, string> }}
+      messages={clientMessages(await getLocale())}
       isAdmin={false}
       showFullPlaybook
       addRoundForm={

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { allowIp, clientIp, tooMany } from '@/lib/ip-limit'
 import { extractText } from '@/lib/extract'
 
 // CRITICAL: pdf-parse and canvas require Node.js runtime
@@ -6,6 +7,8 @@ export const runtime = 'nodejs'
 
 export async function POST(request: Request) {
   try {
+    // Anonymous route (the /try flow): cap uploads per IP so it cannot be used as a free OCR/PDF service.
+    if (!allowIp('upload', clientIp(request), 40, 60 * 60 * 1000)) return tooMany('Too many uploads from this network. Please try again in an hour.')
     const formData = await request.formData()
     const file = formData.get('file') as File
 

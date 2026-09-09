@@ -15,6 +15,14 @@ import { getPlaybookAccess } from '@/lib/billing'
 import enMessages from '@/i18n/en.json'
 import frMessages from '@/i18n/fr.json'
 
+// One dictionary for the client instead of both languages: FR merged over EN so the
+// fallback lookup in DealScrollView still resolves, at roughly half the payload.
+function clientMessages(locale: string): Record<string, Record<string, string>> {
+  const en = enMessages as unknown as Record<string, string>
+  const dict = locale === 'fr' ? { ...en, ...(frMessages as unknown as Record<string, string>) } : en
+  return { en: dict, [locale]: dict }
+}
+
 export default async function DealPage({ params, searchParams }: { params: Promise<{ dealId: string }>; searchParams: Promise<{ original?: string; checkout?: string; session_id?: string }> }) {
   const { dealId } = await params
   const { original } = await searchParams
@@ -83,7 +91,7 @@ export default async function DealPage({ params, searchParams }: { params: Promi
       mode="app"
       deal={clientDeal}
       latestOutputOverride={latestOutput}
-      messages={{ en: enMessages as unknown as Record<string, string>, fr: frMessages as unknown as Record<string, string> }}
+      messages={clientMessages(uiLocale)}
       isAdmin={isAdmin}
       showFullPlaybook={showFullPlaybook}
       negotiationRequest={negotiationRequest ?? null}

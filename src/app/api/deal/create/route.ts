@@ -1,6 +1,6 @@
 ﻿import { NextResponse } from 'next/server'
 import { resolveRequestLocale } from '@/lib/request-locale'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { textForPersistence } from '@/lib/extract'
 import { CreateDealSchema } from '@/lib/schemas'
 import { analyzeDeal, type ExtractedFacts } from '@/lib/claude'
@@ -204,7 +204,8 @@ export async function POST(request: Request) {
 
     // Increment usage count (skip for admins and demo text)
     if (!profile.is_admin && !validated.isDemoText) {
-      await supabase
+      // usage_count is a server-owned column (users cannot update it); the service role writes it.
+      await createAdminClient()
         .from('profiles')
         .update({ usage_count: profile.usage_count + 1 })
         .eq('id', user.id)

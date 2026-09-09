@@ -1,14 +1,22 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { emailAdmins } from '@/lib/notifications'
+import { allowIp, clientIp, tooMany } from '@/lib/ip-limit'
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 
 export async function POST(request: Request) {
   try {
     const { name, email, subject, message } = await request.json().catch(() => ({}))
 
-    if (!name?.trim() || !email?.trim() || !message?.trim()) {
+    if (typeof name !== 'string' || typeof email !== 'string' || typeof message !== 'string' || !name.trim() || !email.trim() || !message.trim()) {
       return NextResponse.json({ error: 'Name, email, and message are required' }, { status: 400 })
     }
+    if (!EMAIL_RE.test(email.trim()) || name.length > 200 || email.length > 320 || message.length > 5000 || (subject !== undefined && (typeof subject !== 'string' || subject.length > 200))) {
+      return NextResponse.json({ error: 'Please check the email address and keep the message under 5000 characters.' }, { status: 400 })
+    }
+    // Each submission emails the team: a few per hour per network is plenty.
+    if (!allowIp('contact', clientIp(request), 5, 60 * 60 * 1000)) return tooMany()
 
     const supabase = await createClient()
 

@@ -42,10 +42,7 @@ export async function GET(request: Request) {
           await supabase.from('profiles').insert({
             id: user.id,
             email: user.email || '',
-            first_name: user.user_metadata?.full_name?.split(' ')[0] || null,
-            last_name: user.user_metadata?.full_name?.split(' ').slice(1).join(' ') || null,
-            plan: 'free',
-            usage_count: 0,
+            contact_name: user.user_metadata?.full_name || null,
             locale: 'en',
           })
         }

@@ -3,7 +3,7 @@
   "devCommand": "next dev",
   "installCommand": "npm install",
   "framework": "nextjs",
-  "regions": ["iad1"],
+  "regions": ["dub1"],
   "crons": [
     { "path": "/api/cron/retention", "schedule": "0 3 * * *" }
   ]

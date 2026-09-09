@@ -1,5 +1,5 @@
 ﻿import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { checkRateLimit } from '@/lib/rate-limit'
 import { renderMarkdown } from '@/lib/render-markdown'
 import { checkFreeQuota } from '@/lib/pricing'
@@ -93,7 +93,8 @@ export async function POST(request: Request) {
 
     // Increment usage count (skip for admins)
     if (!profile.is_admin) {
-      await supabase
+      // usage_count is a server-owned column (users cannot update it); the service role writes it.
+      await createAdminClient()
         .from('profiles')
         .update({ usage_count: profile.usage_count + 1 })
         .eq('id', user.id)

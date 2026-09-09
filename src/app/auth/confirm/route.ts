@@ -35,8 +35,6 @@ export async function GET(request: Request) {
           await supabase.from('profiles').insert({
             id: user.id,
             email: user.email || '',
-            plan: 'free',
-            usage_count: 0,
             locale: 'en',
           })
         }

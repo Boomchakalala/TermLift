@@ -1,13 +1,15 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/server'
+import { allowIp, clientIp, tooMany } from '@/lib/ip-limit'
 
 export async function POST(request: Request) {
   try {
     const { email, source } = await request.json().catch(() => ({}))
 
-    if (!email?.trim() || !email.includes('@')) {
+    if (typeof email !== 'string' || !email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim()) || email.length > 320) {
       return NextResponse.json({ error: 'Valid email is required' }, { status: 400 })
     }
+    if (!allowIp('subscribe', clientIp(request), 10, 60 * 60 * 1000)) return tooMany()
 
     const supabase = createAdminClient()
 
