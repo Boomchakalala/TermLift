@@ -13,9 +13,9 @@ const tones: Record<ChipTone, string> = {
 }
 
 /**
- * Chip — stage, severity, or status. Tone carries the meaning:
- * green = money/won, info = you're acting, warn = TermLift is waiting on you,
- * risk = high-severity flag, ink = admin/system.
+ * Chip — severity, category, mode. Tone carries the meaning:
+ * green = money/won, info = ready/you're acting, warn = in motion or waiting on you,
+ * risk = high-severity flag, ink = admin/system. Deal stage is DealStatus, not Chip.
  */
 export function Chip({ tone = 'neutral', children, className, mono }: { tone?: ChipTone; children: ReactNode; className?: string; mono?: boolean }) {
   return (

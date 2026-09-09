@@ -2,7 +2,8 @@
  * TermLift design system — six objects. If a screen needs a seventh, question it.
  *
  *   Btn          one button; one `primary` per view
- *   Chip         stage / severity / status
+ *   Chip         severity / category / mode
+ *   DealStatus   the deal stage badge (+ secondary line)
  *   StatTile     the KPI tile (+ StatRow)
  *   ScoreRing    the only score visual
  *   StageRail    the product ladder
@@ -15,7 +16,7 @@ export { Chip, type ChipTone } from './Chip'
 export { StatTile, StatRow } from './StatTile'
 export { ScoreRing, scoreColor, scoreTextClass } from './ScoreRing'
 export { StageRail } from './StageRail'
-export { StagePips } from './StagePips'
+export { DealStatus } from './DealStatus'
 export { GateCard } from './GateCard'
 export { PageHeader, PageBody, AppPage, BackLink, type Crumb } from './PageHeader'
 export { Table, TableHead, TableRow, HideM, NameCell } from './DataTable'

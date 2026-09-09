@@ -1552,5 +1552,16 @@
       "a1": "Oui. Les fichiers de devis sont lus en mémoire et jamais stockés. Le texte extrait ne reste sur le contrat que jusqu’à la construction du Plan de négociation, la clôture du contrat ou 90 jours ; l’analyse elle-même reste jusqu’à ce que vous supprimiez le contrat. Toutes les données sont chiffrées en transit (TLS) et au repos. Vos documents ne sont jamais utilisés pour l’entraînement IA.",
       "a4": "Oui. Rendez-vous dans les paramètres de votre profil et choisissez « Supprimer le compte ». Votre compte, vos contrats sauvegardés, votre historique d'analyses et tout document importé pour le service de négociation sont supprimés immédiatement. Les lignes de benchmark dé-identifiées issues de contrats clôturés n'ont aucun lien avec votre compte et subsistent. Cette action est irréversible."
     }
+  },
+  "status": {
+    "analyzed": "Analysé",
+    "playbookReady": "Plan prêt",
+    "negotiating": "En négociation",
+    "won": "Gagné",
+    "lost": "Perdu",
+    "closed": "Clôturé",
+    "round": "Tour {n}",
+    "termlift": "Géré par TermLift",
+    "replyNeeded": "Réponse attendue"
   }
 }

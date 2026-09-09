@@ -20,6 +20,8 @@ export interface HomeRow {
   mode: NegotiationMode
   closed: boolean
   won: boolean
+  /** status === 'closed_lost' (the only closed sub-status with its own badge). */
+  lost: boolean
   /** TermLift negotiation is waiting on the user. */
   waitingOnClient: boolean
   /** Deal is stuck at Quick — the "unlock Deep Analysis" hint. */
@@ -67,6 +69,7 @@ export function buildHomeRows(deals: DealLike[], requestStatusByDeal: Map<string
       mode,
       closed,
       won,
+      lost: d.status === 'closed_lost',
       waitingOnClient: nr === 'waiting_for_client_info',
       needsUnlock: stage === 'quick',
       score: getScore(d),

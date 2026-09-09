@@ -13,8 +13,8 @@ import { HeroVerdict } from '@/components/HeroVerdict'
 import { NegotiationProgress } from '@/components/deal/NegotiationProgress'
 import { NextActionCard } from '@/components/deal/NextActionCard'
 import { TranslateControl, type LanguageView } from '@/components/deal/TranslateControl'
-import { AppPage, BackLink, Btn, Chip, GateCard, PageBody, ScoreRing, StatRow, StatTile } from '@/components/system'
-import { deriveDealStage, deriveNegotiationMode, stageChipKey, stageTone, type DealStage } from '@/lib/deal-stage'
+import { AppPage, BackLink, Btn, Chip, DealStatus, GateCard, PageBody, ScoreRing, StatRow, StatTile } from '@/components/system'
+import { deriveDealStage, deriveNegotiationMode, stageChipKey, type DealStage } from '@/lib/deal-stage'
 import { deriveNegotiationFlow } from '@/lib/negotiation-flow'
 import { hasDeepContent, deepAnalysisIsRunning, dealHasFullAnalysis } from '@/lib/deep-analysis-status'
 import { benchmarkRanButUnavailable } from '@/lib/benchmark/visibility'
@@ -246,7 +246,6 @@ export function DealWorkspace({ deal, mode, messages, isAdmin, showFullPlaybook,
     body = verdict || scoreRationale || ''
   }
 
-  const stageChipLabel = won ? t('dealList.won') : closed ? t('dealList.noChange') : t(stageChipKey(stage, negMode))
 
   return (
     <AppPage className={isTrial ? '!mx-0 !my-0 min-h-0 rounded-[14px] border border-line overflow-hidden' : undefined}>
@@ -277,7 +276,8 @@ export function DealWorkspace({ deal, mode, messages, isAdmin, showFullPlaybook,
           <div className="flex flex-wrap gap-1.5">
             {category && category !== 'Other' && <Chip>{category}</Chip>}
             {dealType && <Chip>{dealType}</Chip>}
-            <Chip tone={stageTone(stage, { won, waitingOnClient, mode: negMode })}>{stageChipLabel}</Chip>
+            {/* Same badge as the deals list; the secondary line is dropped here because the header already says it. */}
+            {!isTrial && <DealStatus stage={stage} mode={negMode} won={won} lost={deal.status === 'closed_lost'} closed={closed} waitingOnClient={waitingOnClient} roundCount={sortedRounds.length} secondaryClassName="hidden" />}
             {sortedRounds.length > 1 && <Chip>{t('dealPage.rounds', { n: sortedRounds.length })}</Chip>}
           </div>
           {/* One action cluster: the next step · ⋯ (export / close / reopen). The hand-off lives at the bottom of the page. */}

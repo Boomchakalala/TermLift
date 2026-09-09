@@ -1,0 +1,13 @@
+{
+  "status": {
+    "analyzed": "Analysé",
+    "playbookReady": "Plan prêt",
+    "negotiating": "En négociation",
+    "won": "Gagné",
+    "lost": "Perdu",
+    "closed": "Clôturé",
+    "round": "Tour {n}",
+    "termlift": "Géré par TermLift",
+    "replyNeeded": "Réponse attendue"
+  }
+}

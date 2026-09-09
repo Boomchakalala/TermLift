@@ -7,7 +7,7 @@ import { useI18n } from '@/i18n/context'
 import { cn } from '@/lib/utils'
 import { trackEvent } from '@/lib/analytics'
 import type { HomeRow } from '@/lib/home-rows'
-import { ScoreRing, Table, TableHead, TableRow, HideM, NameCell, Btn, StagePips } from '@/components/system'
+import { ScoreRing, Table, TableHead, TableRow, HideM, NameCell, Btn, DealStatus } from '@/components/system'
 import { CloseDealModal } from '@/components/CloseDealModal'
 
 type Filter = 'all' | 'needs' | 'termlift' | 'won'
@@ -111,16 +111,15 @@ export function HomeDealsClient({ rows: initialRows, linkBase = '/app', readOnly
   ]
 
   const renderRow = (r: HomeRow) => {
-    const hint = r.waitingOnClient
-      ? <span className="text-warn font-medium">{t('home.hintReply')}</span>
-      : !r.closed && r.needsUnlock
-        ? <span className="text-ink-3 group-hover:text-green-deep transition-colors">{t('home.hintUnlock')}</span>
-        : null
+    // Desktop-only hover hint on rows still at the quick stage; every other secondary line comes from the status itself.
+    const hint = !r.closed && r.needsUnlock
+      ? <span className="text-ink-3 opacity-0 group-hover:opacity-100 group-hover:text-green-deep transition-opacity">{t('home.hintUnlock')}</span>
+      : null
     return (
       <TableRow key={r.id} cols={COLS} href={`${linkBase}/deal/${r.id}`} className={cn('group', deletingId === r.id && 'opacity-50')}>
         <NameCell name={r.vendor} sub={[r.category, r.dealType].filter(Boolean).join(' · ')} />
-        {/* Phone: pips + stage sit top-right, aligned across rows; the hint would not fit so it goes. */}
-        <StagePips stage={r.stage} mode={r.mode} won={r.won} closed={r.closed} waitingOnClient={r.waitingOnClient} round={r.roundCount} hint={hint} className="max-md:items-end max-md:text-right max-md:shrink-0" hintClassName="max-md:hidden" />
+        {/* Phone: the badge sits top-right, aligned across rows; the hover hint is desktop-only. */}
+        <DealStatus stage={r.stage} mode={r.mode} won={r.won} lost={r.lost} closed={r.closed} waitingOnClient={r.waitingOnClient} roundCount={r.roundCount} hint={hint} className="max-md:items-end max-md:text-right max-md:shrink-0" secondaryClassName="max-md:hidden" />
         {/* Phone-only third line: the numbers the desktop columns carry. */}
         <div className="md:hidden col-span-2 flex items-center gap-2 min-w-0 text-[12.5px] tl-num -mt-0.5">
           {r.score != null && <ScoreRing score={r.score} size={22} stroke={3} muted={r.closed && !r.won} />}

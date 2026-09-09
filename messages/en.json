@@ -1552,5 +1552,16 @@
       "a1": "Yes. Quote files are read in memory and never stored. The extracted text stays with the deal only until the Negotiation Playbook has been built, the deal closes, or 90 days pass; the analysis itself stays until you delete the deal. All data is encrypted in transit (TLS) and at rest. Your documents are never used for AI training.",
       "a4": "Yes. Go to your profile settings and choose 'Delete account.' Your account, saved deals, analysis history and any document you uploaded for the negotiation service are removed immediately. De-identified benchmark rows built from closed deals carry no link to your account and remain. This cannot be undone."
     }
+  },
+  "status": {
+    "analyzed": "Analyzed",
+    "playbookReady": "Playbook ready",
+    "negotiating": "Negotiating",
+    "won": "Won",
+    "lost": "Lost",
+    "closed": "Closed",
+    "round": "Round {n}",
+    "termlift": "TermLift handling",
+    "replyNeeded": "Reply needed"
   }
 }

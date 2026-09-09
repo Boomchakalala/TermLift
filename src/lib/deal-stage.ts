@@ -74,11 +74,3 @@ export function deriveNegotiationMode(d: StageInput): NegotiationMode {
   if (rounds.length >= 2 || rounds.some((r) => hasGeneratedEmail(r.output_json))) return 'self'
   return null
 }
-
-/** Chip tone per stage — matches the colour rules in the design system. */
-export function stageTone(stage: DealStage, opts?: { won?: boolean; waitingOnClient?: boolean; mode?: NegotiationMode }): 'neutral' | 'green' | 'info' | 'warn' {
-  if (stage === 'closed') return opts?.won ? 'green' : 'neutral'
-  if (stage === 'negotiate') return opts?.mode === 'termlift' && opts?.waitingOnClient ? 'warn' : 'info'
-  if (stage === 'full') return 'green'
-  return 'neutral'
-}

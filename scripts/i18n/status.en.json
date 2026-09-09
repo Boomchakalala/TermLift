@@ -1,0 +1,13 @@
+{
+  "status": {
+    "analyzed": "Analyzed",
+    "playbookReady": "Playbook ready",
+    "negotiating": "Negotiating",
+    "won": "Won",
+    "lost": "Lost",
+    "closed": "Closed",
+    "round": "Round {n}",
+    "termlift": "TermLift handling",
+    "replyNeeded": "Reply needed"
+  }
+}
