@@ -5,7 +5,7 @@ import { DEMO_USER_EMAIL, demoProfile } from '@/lib/demo-data'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Demo',
+  title: 'Demo — a vendor deal analysed and negotiated, no signup',
   description: 'Click around a fully-populated TermLift workspace with sample deals. No signup required.',
   robots: {
     index: true,

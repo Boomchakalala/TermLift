@@ -6,7 +6,7 @@ import { Btn, StageRail } from '@/components/system'
 import { NEGOTIATION_FEE_PERCENT, NEGOTIATION_FEE_MINIMUM_EUR, FULL_ANALYSIS_EMAIL_REGEN_LIMIT, FREE_ANALYSIS_LIMIT, deepAnalysisPriceLabel, earlyAccessUntilLabel, isEarlyAccess } from '@/lib/pricing'
 
 export const metadata: Metadata = {
-  title: 'Pricing',
+  title: `Pricing — free vendor quote analysis, ${deepAnalysisPriceLabel()} Negotiation Playbook per deal`,
   description: `Analyse a supplier quote free. Build the Negotiation Playbook per deal. Or have TermLift negotiate for a ${NEGOTIATION_FEE_PERCENT}% success fee — nothing if we don't save you money.`,
   alternates: { canonical: 'https://www.termlift.com/pricing' },
 }

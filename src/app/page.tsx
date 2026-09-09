@@ -52,9 +52,9 @@ export default async function LandingPage() {
   ]
 
   const tours = [
-    { k: t('tour.t1k'), title: t('tour.t1title'), body: t('tour.t1body'), bullets: [t('tour.t1b1'), t('tour.t1b2'), t('tour.t1b3')], img: t('tour.t1img'), src: '/landing/tour-playbook-v4.png', w: 912, h: 791, flip: false },
-    { k: t('tour.t2k'), title: t('tour.t2title'), body: t('tour.t2body'), bullets: [t('tour.t2b1'), t('tour.t2b2'), t('tour.t2b3')], img: t('tour.t2img'), src: '/landing/tour-email-v4.png', w: 912, h: 693, flip: true },
-    { k: t('tour.t3k'), title: t('tour.t3title'), body: t('tour.t3body'), bullets: [t('tour.t3b1'), t('tour.t3b2'), t('tour.t3b3')], img: t('tour.t3img'), src: '/landing/tour-negotiate-v4.png', w: 824, h: 720, flip: false },
+    { k: t('tour.t1k'), title: t('tour.t1title'), body: t('tour.t1body'), bullets: [t('tour.t1b1'), t('tour.t1b2'), t('tour.t1b3')], img: t('tour.t1img'), src: '/landing/tour-playbook-v5.png', w: 1104, h: 839, flip: false },
+    { k: t('tour.t2k'), title: t('tour.t2title'), body: t('tour.t2body'), bullets: [t('tour.t2b1'), t('tour.t2b2'), t('tour.t2b3')], img: t('tour.t2img'), src: '/landing/tour-email-v5.png', w: 1120, h: 686, flip: true },
+    { k: t('tour.t3k'), title: t('tour.t3title'), body: t('tour.t3body'), bullets: [t('tour.t3b1'), t('tour.t3b2'), t('tour.t3b3')], img: t('tour.t3img'), src: '/landing/tour-negotiate-v5.png', w: 840, h: 716, flip: false },
   ]
 
   const wrap = 'max-w-[1120px] mx-auto px-5 sm:px-7'
@@ -148,7 +148,7 @@ export default async function LandingPage() {
       {/* ═══ WHO IT'S FOR — photo slot ═══ */}
       <section className="py-12 sm:py-14">
         <div className={`${wrap} grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] gap-8 lg:gap-10 items-center`}>
-          <Frame src="/landing/who-home-v4.png" alt={t('who.imgAlt')} width={1220} height={660} />
+          <Frame src="/landing/who-home-v5.png" alt={t('who.imgAlt')} width={1220} height={660} />
           <div>
             <Eyebrow>{t('who.eyebrow')}</Eyebrow>
             <h2 className="font-display font-extrabold text-[26px] sm:text-[32px] leading-[1.08] tracking-[-0.03em] max-w-[24ch] mt-2.5">{t('who.title')}</h2>

@@ -35,10 +35,10 @@ const jetbrains = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "TermLift — Every vendor quote, negotiated",
+    default: "Vendor Quote Analysis & Negotiation Playbooks | TermLift",
     template: "%s | TermLift",
   },
-  description: "Paste a supplier quote. In a couple of minutes you get a score, the red flags and a savings number. Then TermLift builds your Negotiation Playbook, writes the emails, or runs the whole negotiation for you.",
+  description: "Paste a supplier quote and get a score, red flags and a savings number in minutes. Then a Negotiation Playbook, the emails, or TermLift negotiates for you.",
   metadataBase: new URL("https://www.termlift.com"),
   icons: {
     icon: "/favicon.png",
@@ -48,7 +48,7 @@ export const metadata: Metadata = {
     type: "website",
     siteName: "TermLift",
     title: "TermLift — Every vendor quote, negotiated",
-    description: "Paste a supplier quote and get a score, the red flags and a savings number in minutes. Then get the Negotiation Playbook, or have TermLift negotiate for you.",
+    description: "Paste a supplier quote and get a score, red flags and a savings number in minutes. Then a Negotiation Playbook, the emails, or TermLift negotiates for you.",
     url: "https://www.termlift.com",
     images: [{ url: "/og-image.png", width: 1200, height: 630 }],
   },
@@ -57,12 +57,9 @@ export const metadata: Metadata = {
     title: "TermLift — Every vendor quote, negotiated",
     description: "Paste a supplier quote and get a score, the red flags and a savings number in minutes. Then get the Negotiation Playbook, or have TermLift negotiate for you.",
   },
+  // French is served on the same URLs by cookie: no hreflang alternates (same-URL alternates are ignored by Google).
   alternates: {
     canonical: "https://www.termlift.com",
-    languages: {
-      en: "https://www.termlift.com",
-      fr: "https://www.termlift.com",
-    },
   },
 };
 
