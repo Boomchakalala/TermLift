@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { DEEP_ANALYSIS_PRICE_EUR, NEGOTIATION_FEE_PERCENT, FREE_ANALYSIS_LIMIT } from '@/lib/pricing'
 
 export const metadata: Metadata = {
   title: 'Help & FAQ',
@@ -10,14 +11,16 @@ export const metadata: Metadata = {
   alternates: { canonical: 'https://www.termlift.com/help' },
 }
 
+// Mirrors the questions in messages/*.json → helpPage.sections (structured data is English-only).
 const faqItems = [
-  { q: "What is TermLift?", a: "TermLift helps you negotiate better supplier deals. Upload a quote and get a fast initial assessment — deal score, red flags, and potential savings. From there, build the Negotiation Playbook for the ordered asks, fallback positions and leverage — then negotiate the deal yourself, or have TermLift negotiate it for you." },
-  { q: "How does the AI analysis work?", a: "Text is extracted from your document (PDF, image, or pasted text) and sent to Anthropic's Claude AI, which is prompted specifically for procurement analysis. It reads the full content, identifies risks, builds a negotiation strategy, and generates structured output." },
+  { q: "What is TermLift?", a: "TermLift helps you negotiate better supplier deals. Drop in a quote and the free Quick Analysis gives you a deal score, the key red flags, an estimated savings range and a verdict. The Negotiation Playbook then turns that into ordered asks, fallback positions, leverage and a ready-to-send email. If you would rather not run the negotiation yourself, TermLift can negotiate it for you." },
+  { q: "What is included in Quick Analysis?", a: "A deal score from 0 to 100 with its breakdown, the key red flags with their severity and why they matter, an estimated savings range, and a verdict on what is already solid. Detailed asks, fallback positions, email drafts and negotiation rounds are part of the Negotiation Playbook." },
+  { q: "Is Quick Analysis really free?", a: `Yes. Try one quote without signing up. Create a free account for up to ${FREE_ANALYSIS_LIMIT} Quick Analyses. No card, no trial clock.` },
+  { q: "What is the Negotiation Playbook?", a: "The execution layer for one deal: ordered negotiation asks with quantified impact, fallback positions, your leverage, what you can offer in return, must-have versus nice-to-have savings, a ready-to-send negotiation email, and every follow-up round on that deal." },
+  { q: "What does the Negotiation Playbook cost?", a: `€${DEEP_ANALYSIS_PRICE_EUR}, one time, per deal. It is free during early access, and the first Playbook on any account stays free after that. There is no subscription.` },
+  { q: "How does TermLift Negotiate work?", a: `You submit the deal, a negotiator confirms the scope with you and runs the back-and-forth with the supplier, and you approve the outcome. The fee is ${NEGOTIATION_FEE_PERCENT}% of verified savings, the documented difference between the original quote and the signed price. No savings, no fee.` },
+  { q: "Are my uploaded quote files stored?", a: "No. Quote files are read in memory and discarded when the request ends. The extracted text stays with the deal only until the Negotiation Playbook has been built, the deal closes, or 90 days pass; the analysis stays until you delete the deal. Your documents are never used for AI training." },
   { q: "What file formats are supported?", a: "PDF, PNG, JPG, WEBP, or plain text paste. Maximum file size is 10 MB. For best results with images, make sure the text in the image is clearly readable." },
-  { q: "What do I get back from an analysis?", a: "First, a fast initial assessment — a deal score, red flags, and an estimate of potential savings. From there, the Negotiation Playbook goes deeper: negotiation levers, recommended asks with amounts, fallback positions and what you can offer, plus a ready-to-send negotiation email once you're ready to act." },
-  { q: "Is my data private?", a: "Yes. Quote files are read in memory and never stored. The extracted text stays with the deal only until the Negotiation Playbook has been built, the deal closes, or 90 days pass; the analysis stays until you delete the deal. All data is encrypted in transit and at rest. Your documents are never used for AI training." },
-  { q: "Is analyzing a quote free?", a: "Yes — analyze a quote with no signup required, and no credit card." },
-  { q: "How does TermLift Negotiate pricing work?", a: "It's a success-based fee — a percentage of the verified savings TermLift negotiates for you, and nothing if we don't save you money." },
 ]
 
 export default function Layout({ children }: { children: React.ReactNode }) {

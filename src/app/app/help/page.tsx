@@ -43,10 +43,10 @@ const faqData: Record<Category, { q: string; a: string }[]> = {
     { q: 'Can I delete all my data?', a: "Yes. Go to Settings \u2192 Danger Zone and click \u2018Delete account.\u2019 Your account, deals, analysis history and any negotiation documents are removed immediately. De-identified benchmark rows built from closed deals carry no link to your account and remain. This action cannot be undone." },
   ],
   'billing': [
-    { q: "Is analyzing a quote free?", a: "Yes \u2014 the quick analysis is free and needs no credit card. Create an account to save deals and track your history." },
-    { q: 'How much does the Negotiation Playbook cost?', a: "€29 per deal, one time — it covers the asks, fallbacks and leverage, the emails and every round on that deal. During early access it is free, and the first Playbook on any account stays free after that. The Pricing page always shows the current terms." },
-    { q: 'What does it cost to have TermLift negotiate for me?', a: "Nothing upfront — our fee is a success-based percentage of the savings we help you achieve, and nothing if we don't save you money." },
-    { q: 'Is there a subscription to cancel?', a: "No. There is no subscription: the Playbook is a one-time charge per deal and the negotiation service is a success fee on verified savings. Delete any deal, or your whole account, at any time from Settings." },
+    { q: 'Is Quick Analysis really free?', a: 'Yes. No card, no trial clock. One quote can be analysed without an account; a free account gives you up to 4 Quick Analyses. Playbooks, emails and rounds on your existing deals never count against that number.' },
+    { q: 'What does the Negotiation Playbook cost? Is it per deal?', a: '€29, one time, per deal. It covers everything on that deal: the asks, fallbacks, leverage, the email and every follow-up round. During early access it is free, and the first Playbook on any account stays free after that. There is no subscription.' },
+    { q: 'How does TermLift Negotiate work, and how is the 20% fee calculated?', a: 'You submit the deal, a negotiator confirms the scope with you and runs the back-and-forth with the supplier, and you approve the outcome. The fee is 20% of verified savings with a €500 minimum, invoiced once the contract is signed. Verified savings are the documented difference between the original written quote and the signed price for the same scope and term. No savings, no fee.' },
+    { q: 'Does TermLift contact vendors without my approval?', a: 'No. We only contact the supplier after you have submitted a negotiation request and confirmed the scope with us. Nothing is agreed without your explicit approval, and you sign the contract yourself.' },
   ],
 }
 

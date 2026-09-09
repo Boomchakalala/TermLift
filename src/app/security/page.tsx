@@ -33,7 +33,7 @@ export default async function SecurityPage() {
   ]
 
   const donts = [t('dontSell'), t('dontAdvertise'), t('dontTrain'), t('dontStore'), t('dontShareBeyond'), t('dontAccess')]
-  const limits = [1, 2, 3, 4, 5].map((i) => ({ title: t(`limit${i}Title` as 'limit1Title'), desc: t(`limit${i}Desc` as 'limit1Desc') }))
+  const limits = [1, 2, 3].map((i) => ({ title: t(`limit${i}Title` as 'limit1Title'), desc: t(`limit${i}Desc` as 'limit1Desc') }))
 
   return (
     <MarketingPage>

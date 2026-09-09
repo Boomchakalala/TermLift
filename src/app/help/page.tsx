@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { getTranslations, getLocale } from 'next-intl/server'
 import { Info, Upload, CheckCircle2, Lock, CreditCard, Shield, Plus } from 'lucide-react'
-import { NEGOTIATION_FEE_PERCENT, NEGOTIATION_FEE_MINIMUM_EUR, deepAnalysisPriceLabel, earlyAccessUntilLabel } from '@/lib/pricing'
+import { NEGOTIATION_FEE_PERCENT, NEGOTIATION_FEE_MINIMUM_EUR, FREE_ANALYSIS_LIMIT, deepAnalysisPriceLabel, earlyAccessUntilLabel } from '@/lib/pricing'
 import { MarketingPage, PageHero, Section, wrap } from '@/components/marketing/MarketingPage'
 import { Btn } from '@/components/system'
 import { cn } from '@/lib/utils'
@@ -15,9 +15,9 @@ export const metadata: Metadata = {
 const SECTIONS = [
   { key: 'what', n: 3, icon: <Info className="w-4 h-4" /> },
   { key: 'upload', n: 3, icon: <Upload className="w-4 h-4" /> },
-  { key: 'output', n: 3, icon: <CheckCircle2 className="w-4 h-4" /> },
-  { key: 'privacy', n: 2, icon: <Lock className="w-4 h-4" /> },
-  { key: 'billing', n: 4, icon: <CreditCard className="w-4 h-4" /> },
+  { key: 'output', n: 4, icon: <CheckCircle2 className="w-4 h-4" /> },
+  { key: 'privacy', n: 3, icon: <Lock className="w-4 h-4" /> },
+  { key: 'billing', n: 8, icon: <CreditCard className="w-4 h-4" /> },
   { key: 'trouble', n: 2, icon: <Shield className="w-4 h-4" /> },
 ] as const
 
@@ -29,6 +29,7 @@ export default async function HelpPage() {
     date: earlyAccessUntilLabel(locale),
     pct: NEGOTIATION_FEE_PERCENT,
     min: NEGOTIATION_FEE_MINIMUM_EUR,
+    limit: FREE_ANALYSIS_LIMIT,
   }
 
   const sections = SECTIONS.map((s) => ({
@@ -37,7 +38,7 @@ export default async function HelpPage() {
     title: t(`sections.${s.key}.title`),
     sub: t(`sections.${s.key}.sub`),
     items: Array.from({ length: s.n }, (_, i) => ({
-      q: t(`sections.${s.key}.q${i + 1}`),
+      q: t(`sections.${s.key}.q${i + 1}`, pricing),
       a: t(`sections.${s.key}.a${i + 1}`, pricing),
     })),
   }))

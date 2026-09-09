@@ -19,7 +19,7 @@ describe('deriveNegotiationFlow — one dominant next action per state', () => {
     const f = deriveNegotiationFlow({ dealId, status: 'in_progress', rounds: [{ round_number: 1, output_json: quick }] })
     expect(f.phase).toBe('quick')
     expect(f.next.key).toBe('unlock_full')
-    expect(f.next.cta.en).toBe('Unlock Full Analysis')
+    expect(f.next.cta.en).toBe('Get the Negotiation Playbook')
     expect(f.next.href).toBe('#deep-analysis')
     expect(states(f)).toEqual(['analysis:done', 'strategy:current', 'round_1:next', 'round_2:next', 'outcome:next'])
     expect(f.next.offerClose).toBe(false)

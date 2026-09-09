@@ -150,14 +150,14 @@ export default function TryPage() {
   return (
     <div className="min-h-screen bg-white">
       <MarketingHeader />
-      <main className="max-w-[760px] mx-auto px-4 sm:px-6 pt-9 pb-12">
-        <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 sm:gap-6 items-end mb-4">
-          <div>
-            <p className="tl-label text-green-deep text-[11px]">{t('tryPage.eyebrow')}</p>
-            <h1 className="font-display font-extrabold text-[26px] sm:text-[30px] leading-[1.05] tracking-[-0.03em] text-ink mt-2">{t('tryPage.title')}</h1>
-            <p className="text-[14px] text-ink-2 mt-1.5">{t('tryPage.sub')}</p>
-          </div>
-          <div className="flex flex-wrap gap-1.5"><Chip>{t('tryPage.chipScore')}</Chip><Chip>{t('tryPage.chipFlags')}</Chip><Chip>{t('tryPage.chipSavings')}</Chip></div>
+      {/* One centred column: the header and footer span 1120px, so a left-aligned 760px block read as
+          off-centre. Centring the copy over the card makes the narrow width look intentional. */}
+      <main className="max-w-[720px] mx-auto px-4 sm:px-6 pt-9 sm:pt-12 pb-12">
+        <div className="text-center mb-5 sm:mb-6">
+          <p className="tl-label text-green-deep text-[11px]">{t('tryPage.eyebrow')}</p>
+          <h1 className="font-display font-extrabold text-[26px] sm:text-[32px] leading-[1.05] tracking-[-0.03em] text-ink mt-2 text-balance">{t('tryPage.title')}</h1>
+          <p className="text-[14.5px] text-ink-2 mt-2 max-w-[44ch] mx-auto">{t('tryPage.sub')}</p>
+          <div className="flex flex-wrap justify-center gap-1.5 mt-3"><Chip>{t('tryPage.chipScore')}</Chip><Chip>{t('tryPage.chipFlags')}</Chip><Chip>{t('tryPage.chipSavings')}</Chip></div>
         </div>
 
         <div className="bg-surface border border-line rounded-[14px] overflow-hidden">

@@ -93,7 +93,7 @@ export default async function LandingPage() {
               <div className="flex items-center gap-3.5">
                 <ScoreRing score={48} size={72} />
                 <div className="min-w-0">
-                  <div className="flex gap-1.5 mb-1"><Chip>{t('shot.type')}</Chip><Chip tone="green">{ladder('full')}</Chip></div>
+                  <div className="flex flex-wrap gap-1.5 mb-1"><Chip>{t('shot.type')}</Chip><Chip tone="green">{ladder('full')}</Chip></div>
                   <div className="font-display font-bold text-[17px] leading-tight">{t('shot.verdict')}</div>
                   <div className="text-[12.5px] text-ink-2">{t('shot.sub')}</div>
                 </div>

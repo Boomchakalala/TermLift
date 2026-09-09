@@ -159,7 +159,7 @@ export function deriveNegotiationFlow(input: FlowInput): NegotiationFlow {
         key: 'unlock_full',
         title: L('Build your negotiation strategy', 'Construisez votre stratégie de négociation'),
         body: L('Get the ordered asks with amounts, target positions, fallbacks, your leverage and the ready-to-send negotiation sequence.', 'Obtenez les demandes ordonnées et chiffrées, les positions cibles, les replis, vos leviers et la séquence prête à envoyer.'),
-        cta: L('Build the Negotiation Playbook', 'Construire le Plan de négociation'),
+        cta: L('Get the Negotiation Playbook', 'Obtenir le Plan de négociation'),
         href: '#deep-analysis',
         offerClose: false,
       }

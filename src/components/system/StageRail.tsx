@@ -61,9 +61,10 @@ export function StageRail({ current, hrefs, compact, minimal, skipped = [], clas
         )
         const cls = cn(
           'flex items-center justify-center gap-2 rounded-lg text-[12.5px] font-semibold whitespace-nowrap min-w-0',
-          // Below 600px only the current label is visible, so it takes the room the hidden ones give up.
-          minimal ? (state === 'now' ? 'flex-1' : 'flex-none') : state === 'now' ? 'flex-[3] @[600px]:flex-1' : 'flex-1',
-          compact ? 'px-2 py-1.5' : 'px-3 py-2',
+          // Below 600px only the current label is visible: the other steps shrink to their circle so
+          // the current label never truncates on a phone.
+          minimal ? (state === 'now' ? 'flex-1' : 'flex-none') : state === 'now' ? 'flex-1' : 'flex-none @[600px]:flex-1',
+          compact ? 'px-2 py-1.5' : state === 'now' ? 'px-3 py-2' : 'px-1.5 py-2 @[600px]:px-3',
           state === 'done' && 'text-ink-2',
           state === 'now' && 'bg-green-soft text-green-deep',
           (state === 'next' || state === 'skipped') && 'text-ink-3',

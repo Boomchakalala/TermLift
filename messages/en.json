@@ -36,7 +36,7 @@
     "title1": "Stop overpaying.",
     "title2": "Start pushing back.",
     "subtitle": "Paste a vendor quote. Get red flags, savings, and a ready-to-send negotiation email in minutes.",
-    "cta": "Analyze your quote",
+    "cta": "Analyze a quote",
     "ctaSecondary": "See a real example",
     "noSignup": "No signup needed. Free to try.",
     "check1": "Catch hidden costs, renewals, and price hikes",
@@ -67,7 +67,7 @@
   "cta": {
     "title": "That quote in your inbox? You're probably leaving money on the table.",
     "subtitle": "Find out in minutes. No signup, no commitment, just clear negotiation leverage and what to push back on.",
-    "button": "Analyze your first quote"
+    "button": "Analyze a quote"
   },
   "footer": {
     "pricing": "Pricing",
@@ -87,7 +87,7 @@
     "trustFastAnalysis": "Analysis in minutes",
     "trustNoDataStored": "Quote files never stored",
     "ctaTitle": "Ready to analyze your quote?",
-    "ctaButton": "Analyze my quote"
+    "ctaButton": "Analyze a quote"
   },
   "about": {
     "heroTitle": "Built by someone who's been on your side of the table",
@@ -111,7 +111,7 @@
     "value3Title": "Privacy",
     "value3Desc": "Your data is yours — always.",
     "ctaTitle": "Ready to stop overpaying?",
-    "ctaButton": "Analyze your first quote free"
+    "ctaButton": "Analyze a quote — free"
   },
   "contact": {
     "title": "Get in touch",
@@ -156,7 +156,6 @@
     "demoText": "Try with demo text",
     "seeExample": "See a full example first",
     "analysisReady": "Your analysis is ready",
-    "savePrompt": "Save it to your account and unlock 3 more free analyses — no credit card needed.",
     "createAccount": "Create free account",
     "continueWithout": "Continue without saving",
     "docReceived": "Document received — will be analyzed visually",
@@ -173,7 +172,7 @@
     "createAccount": "Create your account",
     "signInAccess": "Sign in to access your deals and analyses.",
     "signUpStart": "Start analyzing vendor quotes and saving money.",
-    "trialPrompt": "Sign up to save your analysis and unlock 3 more free analyses.",
+    "trialPrompt": "Create a free account to save this analysis and get up to 4 Quick Analyses.",
     "google": "Continue with Google",
     "orEmail": "or continue with email",
     "email": "Email",
@@ -200,7 +199,6 @@
   "app": {
     "dropFirst": "Drop in your first vendor quote",
     "getRedFlags": "Get red flags, savings opportunities, and a ready-to-send email in minutes.",
-    "remaining": "{remaining} of 4 free analyses remaining",
     "yourDeals": "Your deals",
     "dealsAnalyzed": "{count} deals analyzed",
     "deals": "Deals",
@@ -236,7 +234,6 @@
     "avgDeal": "Avg Deal",
     "newAnalysis": "New analysis",
     "unlockDashboard": "Unlock your full spend dashboard",
-    "unlockDesc": "upgrade to Pro for charts, savings tracking, and category breakdowns.",
     "dealsTracked": "{count} deals tracked",
     "potentialIdentified": "potential identified",
     "closeDealToTrack": "Close a deal to track",
@@ -274,12 +271,10 @@
   },
   "settings": {
     "title": "Account settings",
-    "subtitle": "Manage your account, subscription, and preferences.",
     "profile": "Profile",
     "password": "Password",
     "resetEmail": "Send password reset email",
     "resetSent": "Reset email sent — check your inbox",
-    "subscription": "Subscription",
     "currentPlan": "Current plan",
     "upgradePlan": "Upgrade plan",
     "usage": "Usage",
@@ -288,7 +283,6 @@
     "dealsTracked": "Deals tracked",
     "privacyData": "Privacy & Data",
     "productEmails": "Receive product update emails",
-    "productEmailsDesc": "Occasional emails about new features, improvements, and Pro plan launch. No spam, unsubscribe anytime.",
     "dangerZone": "Danger zone",
     "deleteAccount": "Delete account",
     "deleteDesc": "Permanently delete your account and all associated data. This action cannot be undone.",
@@ -304,12 +298,10 @@
     "cancel": "Cancel",
     "yesDelete": "Yes, delete my account",
     "deleting": "Deleting...",
-    "planFeaturePro1": "Unlimited AI analyses",
     "planFeaturePro2": "Multi-round deal tracking",
     "planFeaturePro3": "Personal spend dashboard",
     "planFeaturePro4": "Savings tracking",
     "planFeaturePro5": "90-day deal history",
-    "planFeatureBiz1": "Everything in Pro",
     "planFeatureBiz2": "Up to 3 user seats",
     "planFeatureBiz3": "Shared company workspace",
     "planFeatureBiz4": "Export to PDF",
@@ -561,7 +553,6 @@
     "activeDeals": "Active deals",
     "closedDeals": "Closed deals",
     "totalSavingsIdentified": "Total savings identified",
-    "subscription": "Subscription",
     "currentPlan": "Current plan",
     "upgradePlan": "Upgrade plan",
     "displayPreferences": "Display Preferences",
@@ -632,7 +623,7 @@
       "f3": "Your leverage, what you can offer, must-have vs nice-to-have savings",
       "f4": "Ready-to-send email, tone-matched, {n} regenerations",
       "f5": "Vendor replies analysed round by round on this deal",
-      "cta": "Start with a free analysis",
+      "cta": "Start a free analysis",
       "early": "Early access: every Negotiation Playbook is free until {date}. After that, your first one stays free.",
       "freeNow": "Free until {date}"
     },
@@ -652,7 +643,7 @@
       "f4": "Verdict and what’s already solid",
       "off1": "Asks, fallbacks and leverage",
       "off2": "Email drafts and follow-up rounds",
-      "cta": "Analyse a quote"
+      "cta": "Analyze a quote"
     },
     "neg": {
       "title": "TermLift negotiates",
@@ -663,10 +654,10 @@
       "f4": "No savings, no fee",
       "cta": "Request a negotiation"
     },
-    "foot": "{n} free quick analyses per account. Quote files are read in memory and never stored.",
+    "foot": "Try one quote without signing up. Create a free account for up to {n} Quick Analyses. Quote files are read in memory and never stored.",
     "faqEyebrow": "Common questions",
     "faq1q": "Is the quick analysis really free?",
-    "faq1a": "Yes. Every account gets free quick analyses: the deal score, every red flag with its severity and why it matters, the estimated savings range and what is already solid. No card, no trial clock.",
+    "faq1a": "Yes. Try one quote without signing up, and create a free account for up to 4 Quick Analyses: the deal score, every red flag with its severity and why it matters, the estimated savings range and what is already solid. No card, no trial clock.",
     "faq2q": "What does the Negotiation Playbook cost?",
     "faq2a": "{price} per deal, one time. It covers the ordered asks with amounts and fallbacks, your leverage and what you can offer, the ready-to-send email with regenerations, and every later round on that deal. During early access, until {date}, it is free, and your first Playbook stays free after that.",
     "faq3q": "How is the negotiation service priced?",
@@ -937,18 +928,14 @@
     "dontShareBeyond": "Share data with third parties beyond the services listed above",
     "dontAccess": "Access your saved deals, except to give support you ask for, to run a negotiation you requested, or to review a closed outcome for the de-identified benchmark described in the Privacy Policy",
     "limitationsTitle": "Being Honest: Limitations",
-    "limitationsIntro": "We believe in being upfront. We're a startup, and while we take security seriously, there are things we haven't done yet:",
-    "limit1Title": "We're not SOC 2 certified ourselves.",
-    "limit1Desc": "Our providers (Supabase, Vercel) are. We haven't gone through the certification process as a company.",
-    "limit2Title": "No penetration testing yet.",
-    "limit2Desc": "We haven't hired a third party to attempt to break into our systems. It's on our roadmap.",
-    "limit3Title": "No formal incident response plan.",
-    "limit3Desc": "If something went wrong, we'd handle it — but we don't have a documented, rehearsed procedure yet.",
-    "limit4Title": "Not end-to-end encrypted.",
-    "limit4Desc": "Data is encrypted in transit and at rest, but we can technically access stored data on the server side.",
-    "limit5Title": "Small team.",
-    "limit5Desc": "We don't have a dedicated security team. Security is handled by the same people building the product.",
-    "limitationsOutro": "We're improving this as we grow. If you have specific security requirements, reach out and we'll be honest about whether we can meet them.",
+    "limitationsIntro": "In the interest of transparency, here is where TermLift’s security programme stands today:",
+    "limit1Title": "Not SOC 2 certified.",
+    "limit1Desc": "Our providers (Supabase, Vercel) are. TermLift has not yet completed its own certification.",
+    "limit2Title": "No independent penetration test yet.",
+    "limit2Desc": "Third-party testing is planned as the platform scales.",
+    "limit3Title": "Not end-to-end encrypted.",
+    "limit3Desc": "Data is encrypted in transit and at rest and access is restricted, but TermLift can read stored data server-side. That is what lets us provide support and run the negotiation service.",
+    "limitationsOutro": "Security controls and independent testing will continue to mature as the platform scales. If you have specific requirements, ask and we will tell you plainly whether we meet them.",
     "questionsTitle": "Questions?",
     "questionsIntro": "If you have security concerns or questions about how we handle your data, we'd rather you ask than wonder.",
     "securityQuestions": "Security questions:",
@@ -983,7 +970,7 @@
     "writtenBy": "Written by the TermLift team",
     "writtenByDesc": "The same playbook TermLift runs on every quote, written out in plain English.",
     "ctaTitle": "Stop reading about negotiation. Start doing it.",
-    "ctaButton": "Analyze your first quote free",
+    "ctaButton": "Analyze a quote — free",
     "allPosts": "All posts"
   },
   "ladder": {
@@ -1000,7 +987,7 @@
     "h1a": "Every vendor quote,",
     "h1b": "negotiated.",
     "lead": "Paste a quote. In a couple of minutes you get a score, the red flags, and a savings number. Go one step further and TermLift builds the Negotiation Playbook, writes the email — or runs the whole negotiation for you.",
-    "ctaPrimary": "Analyse a quote — free",
+    "ctaPrimary": "Analyze a quote — free",
     "ctaSecondary": "See a real deal",
     "trust1": "No signup",
     "trust2": "Files never stored",
@@ -1097,15 +1084,15 @@
     },
     "final": {
       "title": "Try it on the quote in your inbox.",
-      "lead": "One free analysis. No card, no signup.",
-      "cta": "Analyse my quote — free"
+      "lead": "Try one quote without signing up. Create a free account for up to 4 Quick Analyses.",
+      "cta": "Analyze a quote — free"
     }
   },
   "home": {
     "title": "Deals",
     "sub": "{n, plural, one {# deal} other {# deals}} · {spend} analysed",
     "demoSub": "{n} sample deals · {spend} analysed",
-    "demoStartOwn": "Start your own",
+    "demoStartOwn": "Analyze a quote",
     "newAnalysis": "New analysis",
     "requestNegotiation": "Request a negotiation",
     "tabDeals": "Deals",
@@ -1136,7 +1123,7 @@
     "colUpdated": "Updated",
     "colClosed": "Closed",
     "flags": "{n, plural, one {# flag} other {# flags}}",
-    "hintUnlock": "Build the Negotiation Playbook →",
+    "hintUnlock": "Get the Negotiation Playbook →",
     "hintReply": "Reply needed",
     "saved": "saved",
     "potential": "potential",
@@ -1226,12 +1213,12 @@
     "crumbDeals": "Deals",
     "round": "Round {n}",
     "rounds": "{n, plural, one {# round} other {# rounds}}",
-    "primaryRunFull": "Build the Negotiation Playbook",
+    "primaryRunFull": "Get the Negotiation Playbook",
     "primaryRunning": "Building the Playbook…",
     "primaryEmail": "Prepare Round 1",
     "primaryUploadReply": "Add vendor response",
     "primaryOpenNegotiation": "Open the negotiation",
-    "secondaryNegotiate": "Request TermLift negotiation",
+    "secondaryNegotiate": "Request a negotiation",
     "statSavings": "Savings potential",
     "statSaved": "Saved",
     "statFlags": "Red flags",
@@ -1258,7 +1245,7 @@
     "handoffEyebrow": "TermLift negotiates · add-on",
     "handoffTitle": "Don't want to send it yourself? TermLift negotiates.",
     "handoffBody": "We take the playbook from here and run the back-and-forth with {vendor}. You approve every outcome. {pct}% of verified savings, nothing if we don't save you money.",
-    "handoffCta": "Request TermLift negotiation",
+    "handoffCta": "Request a negotiation",
     "handoffWaitingEyebrow": "TermLift is negotiating",
     "handoffWaitingTitle": "Waiting on you",
     "handoffWaitingBody": "Your negotiator needs an answer before the next round.",
@@ -1272,7 +1259,7 @@
     "trialKeepTitle": "Keep this analysis",
     "trialKeepBody": "A free account saves it, tracks the rounds and shows your savings across vendors.",
     "trialNotSaved": "Not saved · sign up to keep it",
-    "trialAnalyseAnother": "Analyse another",
+    "trialAnalyseAnother": "Analyze another quote",
     "demoSample": "Sample deal",
     "demoCta": "Sign up to use it for real",
     "demoRoundTitle": "Want to add the next round?",
@@ -1302,7 +1289,7 @@
     "serviceEyebrow": "TermLift negotiates · success-based",
     "serviceTitle": "Rather not handle this yourself?",
     "serviceBody": "A TermLift negotiator runs the back-and-forth with {vendor} and you approve every outcome. Success-based: you pay a share of verified savings, and nothing if we don’t save you money.",
-    "serviceCta": "Let TermLift negotiate it for you",
+    "serviceCta": "Negotiate this for me",
     "demoNote": "Sample deal. The figures, discount assumptions and vendor comments are illustrative, not verified market data."
   },
   "tryPage": {
@@ -1324,9 +1311,9 @@
     "contextPlaceholder": "Anything we should know? Budget, relationship, urgency… (optional)",
     "sample": "Use a sample quote",
     "trust": "~2 min · quote file never stored",
-    "cta": "Analyse this quote",
+    "cta": "Analyze this quote",
     "analysing": "Analysing…",
-    "footnote": "Steps 2–4 need a free account · files are never stored",
+    "footnote": "Try one quote without signing up · a free account gives you up to 4 Quick Analyses",
     "errorNeedInput": "Upload a file or paste your quote first."
   },
   "newPage": {
@@ -1478,18 +1465,18 @@
     "still": {
       "title": "Still have questions?",
       "body": "We answer every email, usually the same day.",
-      "cta": "Analyse a quote"
+      "cta": "Analyze a quote"
     },
     "sections": {
       "what": {
         "title": "What TermLift does",
         "sub": "Understanding how TermLift works and what to expect",
         "q1": "What is TermLift?",
-        "a1": "TermLift helps you negotiate better supplier deals. Upload a quote and you get a fast initial assessment — your deal score, red flags, and potential savings. From there, build the Negotiation Playbook for the ordered asks, fallback positions and leverage — then negotiate the deal yourself, or have TermLift negotiate it for you.",
-        "q2": "What TermLift is NOT",
-        "a2": "TermLift is not legal advice, not a guarantee of savings, and not a replacement for reading your contracts. It's a starting point that gives you leverage and structure — but you should always review the outputs yourself and consult a professional for legal or financial decisions.",
-        "q3": "How does the AI analysis work?",
-        "a3": "Text is extracted from your document (PDF, image, or pasted text) and sent to Anthropic's Claude AI, which is prompted specifically for procurement analysis. It reads the full content, identifies risks, builds a negotiation strategy, and generates structured output."
+        "a1": "TermLift helps you negotiate better supplier deals. Drop in a quote and the free Quick Analysis gives you a deal score, the key red flags, an estimated savings range and a verdict. The Negotiation Playbook then turns that into ordered asks, fallback positions, leverage and a ready-to-send email. If you would rather not run the negotiation yourself, TermLift can negotiate it for you.",
+        "q2": "What types of quotes can TermLift analyze?",
+        "a2": "Supplier quotes, renewal notices, order forms and contract emails across SaaS, IT and infrastructure, logistics and business services. It works best on B2B quotes with a price, a term and line items. Consumer purchases are out of scope.",
+        "q3": "What TermLift is NOT",
+        "a3": "TermLift is not legal advice, not a guarantee of savings, and not a replacement for reading your contracts. It is a starting point that gives you leverage and structure. Always review the outputs yourself and consult a professional for legal or financial decisions."
       },
       "upload": {
         "title": "Uploading quotes",
@@ -1504,32 +1491,44 @@
       "output": {
         "title": "Analysis output",
         "sub": "What you get back and how to use it",
-        "q1": "What do I get back from an analysis?",
-        "a1": "First, a fast initial assessment — a deal score, red flags, and an estimate of potential savings, usually within a couple of minutes. From there, the Negotiation Playbook goes deeper: negotiation levers, recommended asks with amounts, fallback positions and what you can offer. Once you have what you need, generate a ready-to-send email yourself or have TermLift negotiate the deal for you.",
-        "q2": "What are the email drafts for?",
-        "a2": "They're ready-to-copy replies to your supplier, built from the playbook. TermLift writes three variants in one go — Balanced, Firm, and Final push — and opens the one it recommends for your situation. Step to a softer or firmer one if the relationship calls for it, edit anything, then copy or open in your mail app.",
-        "q3": "Is the AI always accurate?",
-        "a3": "No. AI can miss details, misinterpret terms, or make errors. TermLift is a starting point for negotiation, not the final word. Always review the outputs against your original documents before acting on them. If something looks off, it probably is — trust your judgment."
+        "q1": "What is included in Quick Analysis?",
+        "a1": "A deal score from 0 to 100 with its breakdown, the key red flags with their severity and why they matter, an estimated savings range, and a verdict on what is already solid. It does not include the detailed asks, fallback positions, email drafts or negotiation rounds. Those are the Negotiation Playbook.",
+        "q2": "What is the Negotiation Playbook?",
+        "a2": "The execution layer for one deal: ordered negotiation asks with quantified impact, fallback positions, your leverage, what you can offer in return, must-have versus nice-to-have savings, and a ready-to-send negotiation email in the tone that fits the relationship. It also covers every follow-up round on that deal.",
+        "q3": "Can TermLift analyze vendor replies?",
+        "a3": "Yes. Once a deal has its Playbook, upload or paste the vendor’s reply as a new round. TermLift records their offer, explains what changed against the previous position and prepares your counter. Rounds are unlimited on that deal.",
+        "q4": "Is the AI always accurate?",
+        "a4": "No. AI can miss details, misinterpret terms, or make errors. TermLift is a starting point for negotiation, not the final word. Always review the outputs against your original documents before acting on them. If something looks off, it probably is. Trust your judgment."
       },
       "privacy": {
         "title": "Privacy & data",
         "sub": "How we handle your documents and data",
-        "q1": "Is my data private?",
-        "a1": "Yes. Quote files are read in memory and never stored. The extracted text stays with the deal only until the Negotiation Playbook has been built, the deal closes, or 90 days pass; the analysis itself stays until you delete the deal. All data is encrypted in transit (TLS) and at rest. Your documents are never used for AI training.",
-        "q2": "What if I upload confidential documents?",
-        "a2": "Treat TermLift like any cloud-based tool. Don't upload documents you're contractually prohibited from sharing with third-party services. Your text is sent to Anthropic's API for processing. See our Privacy Policy and Terms for full details."
+        "q1": "Are my uploaded quote files stored?",
+        "a1": "No. Quote files are read in memory and discarded when the request ends. The text extracted from them stays with the deal only until the Playbook has been built, the deal closes or 90 days pass. The analysis and the structured deal facts stay until you delete the deal.",
+        "q2": "Is my data private?",
+        "a2": "Data is encrypted in transit and at rest, database access is enforced per account with Row Level Security, and your documents are never used to train AI models. Anthropic processes the extracted text under its API terms and does not train on it. The Security page lists exactly what we do and what we have not done yet.",
+        "q3": "What if I upload confidential documents?",
+        "a3": "Treat TermLift like any cloud-based tool. Do not upload documents you are contractually prohibited from sharing with third-party services. Your text is sent to Anthropic’s API for processing. See our Privacy Policy and Terms for full details."
       },
       "billing": {
         "title": "Account & pricing",
         "sub": "What it costs and how to manage your account",
-        "q1": "Is analyzing a quote free?",
-        "a1": "Yes — analyze a quote with no signup required, and no credit card. Create an account to save deals and keep going from there.",
-        "q2": "How much does the Negotiation Playbook cost?",
-        "a2": "{price} per deal, one time — it covers the asks, fallbacks and leverage, the emails and every round on that deal. During early access (until {date}) it is free, and the first Playbook on any account stays free after that.",
-        "q3": "What does it cost to have TermLift negotiate for me?",
-        "a3": "Nothing upfront. If you'd rather hand the negotiation over, our fee is {pct}% of the verified savings with a €{min} minimum, invoiced after the signed deal — no savings, no fee.",
-        "q4": "Can I delete my account?",
-        "a4": "Yes. Go to your profile settings and choose 'Delete account.' All your data — saved deals, analysis history, account info — is permanently removed. This cannot be undone."
+        "q1": "Is Quick Analysis really free?",
+        "a1": "Yes. No card, no trial clock. Try one quote without signing up. Create a free account for up to {limit} Quick Analyses, saved deals and the Negotiation Playbook.",
+        "q2": "How many free Quick Analyses do I get?",
+        "a2": "One without an account on the try page, and up to {limit} with a free account. Playbooks, emails and rounds on your existing deals never count against that number.",
+        "q3": "What does the Negotiation Playbook cost? Is it per deal?",
+        "a3": "{price}, one time, per deal. It covers everything on that deal: the asks, fallbacks, leverage, the email and every follow-up round. There is no subscription.",
+        "q4": "What happens after the early-access period?",
+        "a4": "Until {date} every Playbook is free. After that, the first Playbook on any account stays free and each further one is {price} per deal. Anything you built during early access stays yours.",
+        "q5": "How does TermLift Negotiate work?",
+        "a5": "You submit the deal with your objective, alternatives, competing quotes, seats or usage and any relationship context. A negotiator reviews it and confirms the scope with you, then runs the back-and-forth with the supplier. You follow every status change in the app and approve the outcome.",
+        "q6": "How is the {pct}% success fee calculated, and what are verified savings?",
+        "a6": "The fee is {pct}% of verified savings, with a €{min} minimum, invoiced once the contract is signed. Verified savings are the documented difference between the supplier’s original written quote and the final signed price for the same scope and term. Reductions from a smaller scope, fewer seats or removed items, credits and non-cash concessions, and taxes are not counted unless agreed in writing. No savings, no fee.",
+        "q7": "Does TermLift contact vendors without my approval?",
+        "a7": "No. We only contact the supplier after you have submitted a negotiation request and confirmed the scope with us. Nothing is agreed without your explicit approval, and you sign the contract yourself. TermLift never signs for you or binds you.",
+        "q8": "Can I delete my account?",
+        "a8": "Yes. Go to Settings and choose “Delete account”. Your saved deals, analysis history and account details are removed immediately. This cannot be undone."
       },
       "trouble": {
         "title": "Troubleshooting",

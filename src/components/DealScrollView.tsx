@@ -528,7 +528,7 @@ export function DealScrollView(props: DealScrollViewProps) {
                           <p className="mt-3.5 flex items-center gap-2 text-[12.5px] text-ink-3">
                             <Lock className="w-3.5 h-3.5 shrink-0" />
                             {fr ? 'La demande et la position de repli pour ce point arrivent avec le Plan de négociation.' : 'The ask and fallback position for this issue come with the Negotiation Playbook.'}
-                            {showFullPlaybook && <a href="#deep-analysis" className="text-green-deep font-medium no-underline hover:underline">{fr ? 'Construire le Plan de négociation' : 'Build the Negotiation Playbook'}</a>}
+                            {showFullPlaybook && <a href="#deep-analysis" className="text-green-deep font-medium no-underline hover:underline">{fr ? 'Obtenir le Plan de négociation' : 'Get the Negotiation Playbook'}</a>}
                           </p>
                         ) : null}
                       </div>
@@ -589,7 +589,7 @@ export function DealScrollView(props: DealScrollViewProps) {
               eyebrow={fr ? 'Étape 2 · Plan de négociation' : 'Step 2 · Negotiation Playbook'}
               title={fr ? 'Construisez votre stratégie de négociation' : 'Build your negotiation strategy'}
               body={<>{fr ? 'Obtenez les demandes ordonnées et chiffrées, les positions cibles, les replis, vos leviers et la séquence de négociation prête à envoyer. Quelques minutes.' : 'Get the ordered asks with amounts, target positions, fallbacks, your leverage and the ready-to-send negotiation sequence. A couple of minutes.'}<span className="block mt-1.5 font-semibold text-green-deep">{deepAnalysisPriceNote(locale)}</span>{deepAnalysisError && <span className="block text-risk mt-1">{deepAnalysisError}</span>}</>}
-              action={<Btn variant="primary" onClick={handleDeepAnalysis}><Microscope className="w-4 h-4" />{deepAnalysisError ? (fr ? 'Réessayer' : 'Try again') : (fr ? 'Construire le Plan de négociation' : 'Build the Negotiation Playbook')}</Btn>}
+              action={<Btn variant="primary" onClick={handleDeepAnalysis}><Microscope className="w-4 h-4" />{deepAnalysisError ? (fr ? 'Réessayer' : 'Try again') : (fr ? 'Obtenir le Plan de négociation' : 'Get the Negotiation Playbook')}</Btn>}
             />
           )}
         </div>
