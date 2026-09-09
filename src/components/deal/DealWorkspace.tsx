@@ -21,7 +21,7 @@ import { benchmarkRanButUnavailable } from '@/lib/benchmark/visibility'
 import { shortenVendorDisplayName } from '@/lib/vendor-normalize'
 import {
   type DealLike, getCategory, getDealCurrency, getDealType, getFlagSeverity, getLatestRound, getPotentialSavings, getRedFlagCount,
-  getRenewalDate, getSavingsRange, getScore, getTotalCommitment, getVendorName, isClosed as dealIsClosed, isWon as dealIsWon, fmtMoney, scoreHeadline,
+  getRenewalDate, getSavingsRange, getScore, getTotalAmount, getTotalCommitment, getVendorName, isClosed as dealIsClosed, isWon as dealIsWon, fmtMoney, roundAnchor, scoreHeadline,
 } from '@/lib/deal-metrics'
 import { normalizeAmount, parseMoney } from '@/lib/currency'
 import { latestConfirmedVendorOffer } from '@/lib/vendor-offer'
@@ -114,6 +114,7 @@ export function DealWorkspace({ deal, mode, messages, isAdmin, showFullPlaybook,
   const dealType = getDealType(deal)
   const currency = getDealCurrency(deal)
   const totalCommitment = getTotalCommitment(deal)
+  const totalNum = getTotalAmount(deal)
   const originalTotal = firstOutput?.snapshot?.total_commitment
   const term = latestOutput.snapshot?.term
   const flags = getRedFlagCount(deal)
@@ -125,7 +126,6 @@ export function DealWorkspace({ deal, mode, messages, isAdmin, showFullPlaybook,
   const scoreLabel = score != null ? scoreHeadline(score, locale) : latestOutput.score_label
   const scoreRationale = latestOutput.score_rationale
   const verdict = latestOutput.verdict
-  const targetRange = (latestOutput as unknown as { target_price_range?: { low: number; high: number } | null }).target_price_range || null
   // Market Benchmark (Deep Analysis): when the engine published a range, the tile shows the
   // model's clamped target (or the fair-market band) with the market position. Numbers come
   // from the engine result / clamped interpretation only.
@@ -322,8 +322,12 @@ export function DealWorkspace({ deal, mode, messages, isAdmin, showFullPlaybook,
             <StatTile label={t('dealPage.statFinal')} tone="money" value={finalTotalRecorded != null ? fmtMoney(finalTotalRecorded, currency) : achieved > 0 && originalTotal ? fmtMoney(parseMoney(originalTotal).amount - achieved, currency) : totalCommitment ? normalizeAmount(totalCommitment) : '—'} sub={initialTotalRecorded != null ? t('dealPage.statWas', { v: fmtMoney(initialTotalRecorded, currency) }) : achieved > 0 && originalTotal ? t('dealPage.statWas', { v: normalizeAmount(originalTotal) }) : term || undefined} />
           ) : benchTile ? (
             <StatTile label={t('dealPage.statTargetLabel')} value={benchTile.value} sub={benchTile.sub} />
-          ) : targetRange ? (
-            <StatTile label={t('dealPage.statEstimatedTargetLabel')} value={`${fmtMoney(targetRange.low, currency)}–${fmtMoney(targetRange.high, currency)}`} sub={t('dealPage.statEstimatedTargetSub')} />
+          ) : deepDone && totalNum > 0 && potential > 0 ? (
+            /* Playbook exists: one exact target, quote minus the must-have asks — the same figure the savings-impact card shows. */
+            <StatTile label={t('dealPage.statTargetLabel')} value={fmtMoney(totalNum - potential, currency)} sub={t('dealPage.statTargetSub', { v: normalizeAmount(totalCommitment || '') })} />
+          ) : totalNum > 0 && (range?.high || potential) > 0 ? (
+            /* Quick stage: one rounded estimate, not a second range. Exact once the Playbook is built. */
+            <StatTile label={t('dealPage.statEstimatedTargetLabel')} value={`≈ ${fmtMoney(roundAnchor(totalNum - (range?.high || potential)), currency)}`} sub={t('dealPage.statEstimatedTargetSub')} />
           ) : (
             <StatTile label={t('dealPage.statTotal')} value={totalCommitment ? normalizeAmount(totalCommitment) : '—'} sub={[term, latestOutput.snapshot?.billing_payment].filter(Boolean).join(' · ') || undefined} />
           )}

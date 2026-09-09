@@ -215,6 +215,18 @@ export function fmtMoney(amount: number, currency: Currency): string {
   return formatCurrency(Math.round(amount), currency)
 }
 
+/**
+ * A clean number to say out loud. Used only for the quick-stage "≈ target"
+ * tile and the anchor an email states; the analysis itself keeps exact
+ * figures so every ask still adds up. Nearest 100 under 20k, nearest 500
+ * under 200k, nearest 1,000 above.
+ */
+export function roundAnchor(amount: number): number {
+  if (!Number.isFinite(amount) || amount <= 0) return 0
+  const step = amount < 20_000 ? 100 : amount < 200_000 ? 500 : 1_000
+  return Math.round(amount / step) * step
+}
+
 /** €12.4k / €1.2M — for tiles and chart labels. */
 export function fmtCompact(n: number, currency: Currency): string {
   const sym = formatCurrency(0, currency).replace(/[\d.,\s]/g, '') || '€'
