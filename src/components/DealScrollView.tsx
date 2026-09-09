@@ -876,7 +876,7 @@ export function DealScrollView(props: DealScrollViewProps) {
                     <div className="min-w-0">
                       <p className="text-[13px] font-semibold text-green-deep">{dealStatus === 'closed_won' ? (fr ? 'Dossier gagné' : 'Deal won') : (fr ? 'Dossier clôturé' : 'Deal closed')}</p>
                       <p className="text-[12px] text-ink-2 tl-num">{[closedAt ? new Date(closedAt).toLocaleDateString(fr ? 'fr-FR' : 'en-US', { month: 'short', day: 'numeric' }) : null, savingsAmount != null && savingsAmount > 0 ? `${fmtSav(savingsAmount)} ${fr ? 'économisés' : 'saved'}` : null, savingsPercent != null ? `${savingsPercent.toFixed(1)}%` : null].filter(Boolean).join(' · ')}</p>
-                      {dealStatus === 'closed_won' && <Link href={`/app/deal/${dealId}/outcome`} className="inline-block mt-1.5 text-[12.5px] font-semibold text-green-deep hover:underline">{fr ? 'Voir le résultat complet →' : 'View full outcome →'}</Link>}
+                      {dealStatus === 'closed_won' && <Link href={`/app/deal/${dealId}/outcome`} className="inline-flex items-center min-h-[32px] mt-0.5 text-[12.5px] font-semibold text-green-deep hover:underline">{fr ? 'Voir le résultat complet →' : 'View full outcome →'}</Link>}
                     </div>
                   </li>
                 ) : sortedRounds.length > 0 && (
