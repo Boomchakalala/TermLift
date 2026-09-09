@@ -218,6 +218,15 @@ export function AppSidebar({ userEmail, isUpgraded, usageCount, isAdmin, linkBas
         </div>
       </aside>
 
+      {/* Phone top bar: the sidebar is hidden, so this is the only place the brand and the bell live on a phone. */}
+      <div className="md:hidden flex items-center justify-between h-12 px-4 bg-surface border-b border-line">
+        <Link href={demoMode ? '/' : linkBase} className="flex items-center gap-2 no-underline">
+          <Image src="/logo-icon.png" alt="TermLift" width={24} height={24} priority />
+          <span className="font-display font-bold text-[15px] tracking-[-0.02em] text-ink">Term<span className="text-green">Lift</span></span>
+        </Link>
+        {!demoMode && <NotificationBell initialNotifications={notifications} align="right" />}
+      </div>
+
       {/* Mobile admin sheet — the admin pages have no other entry point on a phone */}
       {showAdminSheet && isAdmin && !demoMode && (
         <div className="md:hidden fixed inset-0 z-40" onClick={() => setShowAdminSheet(false)}>

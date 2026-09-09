@@ -3,9 +3,10 @@ import { resolveRequestLocale } from '@/lib/request-locale'
 import { analyzeDeal } from '@/lib/claude'
 import { stripAdvancedOutput, stripFlagDetailForQuick, SHOW_FULL_NEGOTIATION_PLAYBOOK } from '@/lib/negotiation-gating'
 import { runWithAiContext } from '@/lib/ai-telemetry'
-import { createAdminClient } from '@/lib/supabase/server'
+import { createAdminClient, createClient } from '@/lib/supabase/server'
 import { textForPersistence } from '@/lib/extract'
 import { TRIAL_MAX_PER_IP_PER_DAY } from '@/lib/ai-limits'
+import { FREE_ANALYSIS_LIMIT } from '@/lib/pricing'
 import type { DealOutput, DealOutputV2 } from '@/types'
 
 // Allow up to 120s for classification + analysis with retries (Vercel Pro plan)
@@ -84,6 +85,18 @@ async function checkTrialRateLimit(ip: string): Promise<{ allowed: boolean }> {
   }
 }
 
+async function isSignedInAdmin(): Promise<boolean> {
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return false
+    const { data } = await supabase.from('profiles').select('is_admin').eq('id', user.id).single()
+    return !!data?.is_admin
+  } catch {
+    return false
+  }
+}
+
 export async function POST(request: Request) {
   try {
     if (!process.env.ANTHROPIC_API_KEY) {
@@ -113,13 +126,16 @@ export async function POST(request: Request) {
       )
     }
 
-    // IP-based rate limiting for trial route
+    // IP-based rate limiting for trial route. A signed-in admin testing /try skips it.
     const clientIP = getClientIP(request)
-    const rateLimit = await checkTrialRateLimit(clientIP)
+    const rateLimit = (await isSignedInAdmin()) ? { allowed: true } : await checkTrialRateLimit(clientIP)
 
     if (!rateLimit.allowed) {
+      const fr = (await resolveRequestLocale(locale)) === 'fr'
       return NextResponse.json(
-        { error: 'You\'ve used your free trial analysis. Sign up to unlock 3 more free analyses!' },
+        { error: fr
+          ? `Vous avez utilisé votre analyse gratuite du jour. Créez un compte gratuit pour jusqu’à ${FREE_ANALYSIS_LIMIT} analyses rapides.`
+          : `You’ve used today’s free analysis. Create a free account for up to ${FREE_ANALYSIS_LIMIT} Quick Analyses.` },
         { status: 429 }
       )
     }

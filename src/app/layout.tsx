@@ -35,10 +35,10 @@ const jetbrains = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "TermLift — Turn Vendor Quotes Into Better Deals",
+    default: "TermLift — Every vendor quote, negotiated",
     template: "%s | TermLift",
   },
-  description: "Analyze a supplier quote and find your negotiation opportunity — savings, leverage, and a full strategy. Negotiate it yourself, or have TermLift negotiate for you.",
+  description: "Paste a supplier quote. In a couple of minutes you get a score, the red flags and a savings number. Then TermLift builds your Negotiation Playbook, writes the emails, or runs the whole negotiation for you.",
   metadataBase: new URL("https://www.termlift.com"),
   icons: {
     icon: "/favicon.png",
@@ -47,15 +47,15 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     siteName: "TermLift",
-    title: "TermLift — Turn Vendor Quotes Into Better Deals",
-    description: "Analyze a supplier quote and find your negotiation opportunity. Negotiate it yourself, or have TermLift negotiate for you.",
+    title: "TermLift — Every vendor quote, negotiated",
+    description: "Paste a supplier quote and get a score, the red flags and a savings number in minutes. Then get the Negotiation Playbook, or have TermLift negotiate for you.",
     url: "https://www.termlift.com",
     images: [{ url: "/og-image.png", width: 1200, height: 630 }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "TermLift — Turn Vendor Quotes Into Better Deals",
-    description: "Analyze a supplier quote and find your negotiation opportunity. Negotiate it yourself, or have TermLift negotiate for you.",
+    title: "TermLift — Every vendor quote, negotiated",
+    description: "Paste a supplier quote and get a score, the red flags and a savings number in minutes. Then get the Negotiation Playbook, or have TermLift negotiate for you.",
   },
   alternates: {
     canonical: "https://www.termlift.com",
@@ -87,7 +87,7 @@ export default async function RootLayout({
                 "@type": "SoftwareApplication",
                 name: "TermLift",
                 applicationCategory: "BusinessApplication",
-                description: "Stop overpaying vendors. Analyze a quote to find red flags and negotiation leverage, then negotiate it yourself or have TermLift negotiate it for you.",
+                description: "Paste a supplier quote and get a score, the red flags and a savings number in minutes. Then get the Negotiation Playbook, or have TermLift negotiate for you.",
                 url: "https://www.termlift.com",
                 offers: { "@type": "Offer", price: "0", priceCurrency: "EUR" },
                 operatingSystem: "Web",
@@ -98,7 +98,7 @@ export default async function RootLayout({
                 name: "TermLift",
                 url: "https://www.termlift.com",
                 logo: "https://www.termlift.com/logo-icon.png",
-                description: "AI-powered vendor quote analysis and a done-for-you negotiation service — find your negotiation opportunity, then negotiate it yourself or have TermLift negotiate on your behalf.",
+                description: "Vendor quote analysis and a done-for-you negotiation service for SaaS, IT and marketing spend. Free Quick Analysis, a per-deal Negotiation Playbook, or TermLift negotiates for a success fee.",
                 sameAs: [],
                 contactPoint: {
                   "@type": "ContactPoint",

@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useI18n } from '@/i18n/context'
 import { cn } from '@/lib/utils'
 import type { DealOutput } from '@/types'
@@ -78,9 +78,30 @@ export function DealWorkspace({ deal, mode, messages, isAdmin, showFullPlaybook,
   // ── Full Analysis run — owned here so the header, the next-step card and the
   // bottom gate all trigger the same request. Seeded from server truth so a
   // reload mid-run shows the in-progress state.
-  const [deepLoading, setDeepLoading] = useState(deepAnalysisIsRunning(latestOutput))
+  // Client-side "my request is in flight". The server's own running flag (below) covers a page loaded mid-run.
+  const [deepLoading, setDeepLoading] = useState(false)
   const [deepError, setDeepError] = useState<string | null>(null)
   const [closeOpen, setCloseOpen] = useState(false)
+  // Hooks stay above the early return below. Server truth for "the Playbook is being built right now".
+  const serverRunning = !isTrial && !isDemo && deepAnalysisIsRunning(latestOutput)
+  const deepDone = !!latestOutput && (hasDeepContent(latestOutput) || dealHasFullAnalysis(deal.rounds))
+  // The build keeps going on the server when the phone locks or the tab is backgrounded and the
+  // request drops. While the stored flag says "running", poll for the result instead of showing
+  // "try again": every few seconds, and immediately when the page becomes visible again.
+  useEffect(() => {
+    if (!serverRunning) return
+    const tick = () => { if (document.visibilityState === 'visible') router.refresh() }
+    const id = setInterval(tick, 6000)
+    document.addEventListener('visibilitychange', tick)
+    return () => { clearInterval(id); document.removeEventListener('visibilitychange', tick) }
+  }, [serverRunning, router])
+  // When a polled run completes, land the user on the verdict like a direct completion does.
+  const wasPolling = useRef(false)
+  useEffect(() => {
+    if (serverRunning) { wasPolling.current = true; return }
+    if (wasPolling.current && deepDone) { wasPolling.current = false; window.scrollTo({ top: 0, behavior: 'smooth' }) }
+  }, [serverRunning, deepDone])
+
   if (!latestRound || !latestOutput) return null
 
   const openRequest = negotiationRequest && !negotiationRequest.status.startsWith('closed_') ? negotiationRequest : null
@@ -90,21 +111,26 @@ export function DealWorkspace({ deal, mode, messages, isAdmin, showFullPlaybook,
   const closed = dealIsClosed(deal)
   const won = dealIsWon(deal)
   const waitingOnClient = openRequest?.status === 'waiting_for_client_info'
-  // Deal-level: Full Analysis unlocks once; later (quick-depth) rounds inherit it.
-  const deepDone = hasDeepContent(latestOutput) || dealHasFullAnalysis(deal.rounds)
-  const deepRunning = deepAnalysisIsRunning(latestOutput) || deepLoading
+  // Deal-level: Full Analysis unlocks once; later (quick-depth) rounds inherit it (deepDone, above).
+  const deepRunning = serverRunning || deepLoading
 
   const runFullAnalysis = async () => {
-    if (isTrial || isDemo || deepLoading || deepDone) return
+    if (isTrial || isDemo || deepRunning || deepDone) return
     setDeepLoading(true); setDeepError(null)
     try {
       const res = await fetch(`/api/deal/${deal.id}/deep-analysis`, { method: 'POST' })
+      // Already building (double tap, another tab, an earlier dropped request): pick the run up, don't report it.
+      if (res.status === 409) { router.refresh(); return }
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Building the Playbook failed')
       // The Playbook lands at the top of the page (verdict, tiles, next step), so bring the user there.
       window.scrollTo({ top: 0, behavior: 'smooth' })
       router.refresh()
     } catch (err) {
+      // A dropped connection is not a failed build. Ask the server before saying "try again".
+      const state = await fetch(`/api/deal/${deal.id}/deep-analysis`).then((r) => (r.ok ? r.json() : null)).catch(() => null) as { status?: string } | null
+      if (state?.status === 'running') { router.refresh(); return }
+      if (state?.status === 'done') { window.scrollTo({ top: 0, behavior: 'smooth' }); router.refresh(); return }
       setDeepError(err instanceof Error ? err.message : 'Building the Playbook failed')
     } finally {
       setDeepLoading(false)
@@ -181,7 +207,11 @@ export function DealWorkspace({ deal, mode, messages, isAdmin, showFullPlaybook,
   else if (next.key === 'view_outcome') primary = won ? <Btn href={next.href} variant="ghost">{nextLabel}</Btn> : null
   else primary = <Btn href={next.href} variant="primary">{nextLabel}</Btn>
   // Header/phone bar: the closed state has no forward action (the ⋯ menu carries reopen).
-  const headerPrimary = closed ? null : primary
+  // Quick stage: the Step 2 gate at the end of the analysis carries the offer with its price note, so the
+  // header and the next-step card stay quiet; the phone keeps its thumb-reach bar (the gate is a long scroll away).
+  const quickOffer = !isTrial && !isDemo && (next.key === 'unlock_full' || next.key === 'full_running')
+  const headerPrimary = closed || quickOffer ? null : primary
+  const phonePrimary = closed ? null : primary
   const closeAside = next.offerClose && mode === 'app'
     ? <span className="text-ink-3">{t('dealPage.closeAside')} <button type="button" onClick={() => setCloseOpen(true)} className="font-semibold text-green-deep hover:underline">{t('dealPage.closeAsideCta')}</button></span>
     : null
@@ -278,9 +308,9 @@ export function DealWorkspace({ deal, mode, messages, isAdmin, showFullPlaybook,
       </div>
 
       {/* Phone: the header scrolls away, so the one next-step action rides above the bottom nav. */}
-      {!isTrial && !isDemo && headerPrimary && (
+      {!isTrial && !isDemo && phonePrimary && (
         <div className="md:hidden fixed left-0 right-0 z-30 px-4 py-2.5 bg-surface/95 backdrop-blur-sm border-t border-line flex gap-2 [&>a]:flex-1 [&>button]:flex-1" style={{ bottom: 'calc(58px + env(safe-area-inset-bottom))' }}>
-          {headerPrimary}
+          {phonePrimary}
         </div>
       )}
 
@@ -361,7 +391,7 @@ export function DealWorkspace({ deal, mode, messages, isAdmin, showFullPlaybook,
 
         {/* "What should I do next?" — answered once, right under the numbers. Same action as the header.
             The trial shows the same card as a real quick-stage deal; only the button differs (sign up). */}
-        {(primary || closed) && !waitingOnClient && (
+        {(primary || closed) && !waitingOnClient && !quickOffer && (
           <NextActionCard next={next} locale={locale} action={primary} aside={isTrial ? undefined : closeAside} error={!isTrial && next.key === 'unlock_full' ? deepError : null} />
         )}
 
@@ -401,7 +431,7 @@ export function DealWorkspace({ deal, mode, messages, isAdmin, showFullPlaybook,
             messages={messages}
             demoMode={isDemo}
             hideNextStep
-            fullAnalysis={{ loading: deepLoading, error: deepError, run: runFullAnalysis }}
+            fullAnalysis={{ loading: deepRunning, error: deepError, run: runFullAnalysis }}
             flowPhase={flow.phase}
           />
 

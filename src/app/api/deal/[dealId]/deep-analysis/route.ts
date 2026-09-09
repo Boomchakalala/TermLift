@@ -32,6 +32,25 @@ export const maxDuration = 120
 // Never resends/reprocesses the document beyond this one required read.
 // ─────────────────────────────────────────────────────────────────────────────
 
+/** Build state of the latest round: 'idle' | 'running' | 'done'. Lets the client recover a run whose response it lost. */
+export async function GET(_request: Request, { params }: { params: Promise<{ dealId: string }> }) {
+  const { dealId } = await params
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const { data: round } = await supabase
+    .from('rounds')
+    .select('output_json')
+    .eq('deal_id', dealId)
+    .eq('user_id', user.id)
+    .order('round_number', { ascending: false })
+    .limit(1)
+    .single()
+  if (!round) return NextResponse.json({ error: 'No analysis found for this deal' }, { status: 404 })
+  const status = (round.output_json as { deep_analysis_status?: string } | null)?.deep_analysis_status || 'idle'
+  return NextResponse.json({ status })
+}
+
 export async function POST(request: Request, { params }: { params: Promise<{ dealId: string }> }) {
   const { dealId } = await params
 

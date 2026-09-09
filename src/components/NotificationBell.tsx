@@ -25,7 +25,7 @@ function timeAgo(iso: string) {
   return `${Math.round(hrs / 24)}d ago`
 }
 
-export function NotificationBell({ initialNotifications, collapsed = false, up = false }: { initialNotifications: NotificationItem[]; collapsed?: boolean; /** Open the panel above the bell (sidebar footer). */ up?: boolean }) {
+export function NotificationBell({ initialNotifications, collapsed = false, up = false, align = 'left' }: { initialNotifications: NotificationItem[]; collapsed?: boolean; /** Open the panel above the bell (sidebar footer). */ up?: boolean; /** Panel edge to pin to the bell (right for a bell at the right edge of the screen). */ align?: 'left' | 'right' }) {
   const router = useRouter()
   const [notifications, setNotifications] = useState(initialNotifications)
   const [open, setOpen] = useState(false)
@@ -74,7 +74,7 @@ export function NotificationBell({ initialNotifications, collapsed = false, up =
       </button>
 
       {open && (
-        <div className={`absolute z-50 w-80 max-h-[70vh] overflow-y-auto bg-white border-2 border-line rounded-[14px] shadow-xl ${collapsed ? 'bottom-0 left-full ml-2' : up ? 'bottom-11 right-0' : 'top-11 left-0'}`}>
+        <div className={`absolute z-50 w-80 max-h-[70vh] overflow-y-auto bg-white border-2 border-line rounded-[14px] shadow-xl ${collapsed ? 'bottom-0 left-full ml-2' : up ? 'bottom-11 right-0' : align === 'right' ? 'top-11 right-0 max-w-[calc(100vw-2rem)]' : 'top-11 left-0'}`}>
           <div className="flex items-center justify-between px-4 py-3 border-b border-line-2 sticky top-0 bg-white">
             <p className="text-[13px] font-bold text-ink font-display">Notifications</p>
             {unreadCount > 0 && (
