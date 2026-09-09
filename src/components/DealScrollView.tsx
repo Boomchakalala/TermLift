@@ -192,6 +192,8 @@ export function DealScrollView(props: DealScrollViewProps) {
       const res = await fetch(`/api/deal/${dealId}/deep-analysis`, { method: 'POST' })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Building the Playbook failed')
+      // The Playbook lands at the top of the page (verdict, tiles, next step), so bring the user there.
+      window.scrollTo({ top: 0, behavior: 'smooth' })
       router.refresh()
     } catch (err) {
       setLocalDeepError(err instanceof Error ? err.message : 'Building the Playbook failed')

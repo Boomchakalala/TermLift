@@ -101,6 +101,8 @@ export function DealWorkspace({ deal, mode, messages, isAdmin, showFullPlaybook,
       const res = await fetch(`/api/deal/${deal.id}/deep-analysis`, { method: 'POST' })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Building the Playbook failed')
+      // The Playbook lands at the top of the page (verdict, tiles, next step), so bring the user there.
+      window.scrollTo({ top: 0, behavior: 'smooth' })
       router.refresh()
     } catch (err) {
       setDeepError(err instanceof Error ? err.message : 'Building the Playbook failed')

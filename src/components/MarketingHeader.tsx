@@ -52,8 +52,11 @@ export function MarketingHeader() {
         </button>
       </div>
 
+      {/* Phone menu floats over the page instead of pushing it down: the header keeps its height. */}
+      {/* Absolute, not fixed: backdrop-blur on the header makes it the containing block for fixed children. */}
+      {open && <div className="md:hidden absolute left-0 right-0 top-full h-screen z-40 bg-ink/20" onClick={close} aria-hidden />}
       {open && (
-        <div className="md:hidden border-t border-line bg-white px-5 py-3 pb-4 flex flex-col gap-0.5">
+        <div className="md:hidden absolute left-0 right-0 top-full z-50 border-t border-b border-line bg-white px-5 py-3 pb-4 flex flex-col gap-0.5 shadow-[0_24px_48px_-24px_rgba(16,26,23,0.35)]">
           {links.map((l) => (
             <Link key={l.href} href={l.href} onClick={close} className="py-2.5 px-2 text-[14px] font-medium text-ink-2 hover:text-ink rounded-lg no-underline">{l.label}</Link>
           ))}
