@@ -47,6 +47,8 @@ export async function POST(request: Request) {
       price_data: {
         currency: 'eur',
         unit_amount: DEEP_ANALYSIS_PRICE_EUR * 100,
+        // Terms: prices exclude VAT. Stripe Tax adds the right rate per billing address (reverse charge with a valid EU VAT number).
+        tax_behavior: 'exclusive',
         product_data: {
           name: fr ? 'Plan de négociation' : 'Negotiation Playbook',
           description: vendor
@@ -59,6 +61,7 @@ export async function POST(request: Request) {
       ? { customer: profile.stripe_customer_id, customer_update: { address: 'auto', name: 'auto' } }
       : { customer_email: user.email ?? undefined, customer_creation: 'always' as const }),
     billing_address_collection: 'required',
+    automatic_tax: { enabled: true },
     tax_id_collection: { enabled: true },
     invoice_creation: { enabled: true },
     allow_promotion_codes: true,

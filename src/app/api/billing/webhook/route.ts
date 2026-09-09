@@ -4,10 +4,10 @@ import { getStripe, stripeConfigured } from '@/lib/stripe'
 import { recordCheckoutSession } from '@/lib/billing'
 
 /**
- * Stripe webhook. Configure the endpoint in the Stripe dashboard as
- * https://www.termlift.com/api/billing/webhook with the events
- * checkout.session.completed and checkout.session.async_payment_succeeded,
- * and set STRIPE_WEBHOOK_SECRET to its signing secret.
+ * Stripe webhook. The dashboard endpoint is https://www.termlift.com/api/stripe/webhook
+ * (kept from the earlier build; /api/stripe/webhook re-exports this handler) with the
+ * event checkout.session.completed; add checkout.session.async_payment_succeeded if a
+ * delayed payment method is ever enabled. STRIPE_WEBHOOK_SECRET is its signing secret.
  */
 export async function POST(request: Request) {
   const secret = process.env.STRIPE_WEBHOOK_SECRET
