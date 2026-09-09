@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { Search, Building2 } from 'lucide-react'
 import { useI18n } from '@/i18n/context'
 import { formatTotals, type VendorRow } from '@/lib/vendor-aggregate'
+import { fmtCompact } from '@/lib/deal-metrics'
+import type { Currency } from '@/lib/currency'
 import { AppPage, PageHeader, PageBody, StatRow, StatTile, ScoreRing } from '@/components/system'
 
 function sumTotals(rows: VendorRow[], key: 'totalsByCurrency' | 'savingsByCurrency'): Record<string, number> {
@@ -18,18 +20,24 @@ function sumTotals(rows: VendorRow[], key: 'totalsByCurrency' | 'savingsByCurren
  * row: name, what you spend with them, what you've clawed back, how their
  * quotes score. The header strip totals the lot.
  */
-export function VendorsListClient({ rows }: { rows: VendorRow[] }) {
+export function VendorsListClient({ rows, baseCurrency = 'EUR' }: { rows: VendorRow[]; baseCurrency?: Currency }) {
+  // One figure per tile in the base currency; the per-currency split stays as the sub line when a vendor bills in more than one.
+  const base = (r: VendorRow, key: 'totalBase' | 'savingsBase', map: 'totalsByCurrency' | 'savingsByCurrency') => r[key] ?? Object.values(r[map]).reduce((s, n) => s + n, 0)
+  const money = (n: number) => (n > 0 ? fmtCompact(n, baseCurrency) : '—')
+  const split = (map: Record<string, number>) => (Object.keys(map).filter((k) => map[k] > 0).length > 1 ? formatTotals(map) : undefined)
   const { t, locale } = useI18n()
   const [q, setQ] = useState('')
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase()
     const list = term ? rows.filter((r) => r.name.toLowerCase().includes(term) || r.aliases.some((a) => a.toLowerCase().includes(term))) : rows
-    return [...list].sort((a, b) => Object.values(b.totalsByCurrency).reduce((s, n) => s + n, 0) - Object.values(a.totalsByCurrency).reduce((s, n) => s + n, 0))
+    return [...list].sort((a, b) => base(b, 'totalBase', 'totalsByCurrency') - base(a, 'totalBase', 'totalsByCurrency'))
   }, [rows, q])
   const fmtDate = (d: string | null) => (d ? new Date(d).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—')
 
-  const totalSpend = formatTotals(sumTotals(rows, 'totalsByCurrency'))
-  const totalSaved = formatTotals(sumTotals(rows, 'savingsByCurrency'))
+  const spendMap = sumTotals(rows, 'totalsByCurrency')
+  const savedMap = sumTotals(rows, 'savingsByCurrency')
+  const totalSpend = money(rows.reduce((s, r) => s + base(r, 'totalBase', 'totalsByCurrency'), 0))
+  const totalSaved = money(rows.reduce((s, r) => s + base(r, 'savingsBase', 'savingsByCurrency'), 0))
   const dealCount = rows.reduce((s, r) => s + r.dealCount, 0)
 
   return (
@@ -47,8 +55,8 @@ export function VendorsListClient({ rows }: { rows: VendorRow[] }) {
         {rows.length > 0 && (
           <StatRow flat className="mt-4 pt-4 border-t border-line-2">
             <StatTile flat label={t('vendorsPage.statVendors')} value={rows.length} sub={t('vendorsPage.cardDeals', { n: dealCount })} />
-            <StatTile flat label={t('vendorsPage.statSpend')} value={totalSpend || '—'} />
-            <StatTile flat tone="money" label={t('vendorsPage.statSavedAll')} value={totalSaved || '—'} />
+            <StatTile flat label={t('vendorsPage.statSpend')} value={totalSpend} sub={split(spendMap)} />
+            <StatTile flat tone="money" label={t('vendorsPage.statSavedAll')} value={totalSaved} sub={split(savedMap)} />
             <StatTile flat label={t('vendorsPage.statScore')} value={(() => { const s = rows.filter((r) => r.avgScore != null); return s.length ? Math.round(s.reduce((a, r) => a + (r.avgScore as number), 0) / s.length) : '—' })()} />
           </StatRow>
         )}
@@ -65,7 +73,7 @@ export function VendorsListClient({ rows }: { rows: VendorRow[] }) {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
             {filtered.map((v) => {
-              const saved = formatTotals(v.savingsByCurrency)
+              const saved = base(v, 'savingsBase', 'savingsByCurrency')
               return (
                 <Link key={v.id} href={`/app/vendors/${v.id}`} className="group no-underline bg-surface border border-line rounded-[14px] p-4 flex flex-col gap-3 transition-colors hover:border-[#C9D3CE]">
                   <div className="flex items-start justify-between gap-3">
@@ -78,11 +86,11 @@ export function VendorsListClient({ rows }: { rows: VendorRow[] }) {
                   <div className="grid grid-cols-2 gap-3 pt-3 border-t border-line-2">
                     <div className="min-w-0">
                       <p className="tl-label text-ink-3 text-[10px]">{t('vendorsPage.colTotal')}</p>
-                      <p className="font-display font-bold text-[15px] text-ink tl-num mt-0.5 truncate">{formatTotals(v.totalsByCurrency) || '—'}</p>
+                      <p className="font-display font-bold text-[15px] text-ink tl-num mt-0.5 truncate">{money(base(v, 'totalBase', 'totalsByCurrency'))}</p>
                     </div>
                     <div className="min-w-0">
                       <p className="tl-label text-ink-3 text-[10px]">{t('vendorsPage.colSaved')}</p>
-                      <p className={`font-display font-bold text-[15px] tl-num mt-0.5 truncate ${saved ? 'text-green-deep' : 'text-ink-3'}`}>{saved || '—'}</p>
+                      <p className={`font-display font-bold text-[15px] tl-num mt-0.5 truncate ${saved > 0 ? 'text-green-deep' : 'text-ink-3'}`}>{money(saved)}</p>
                     </div>
                   </div>
                   <p className="text-[11.5px] text-ink-3">{t('vendorsPage.cardDeals', { n: v.dealCount })} · {t('vendorsPage.lastActivity', { d: fmtDate(v.lastActivity) })}</p>

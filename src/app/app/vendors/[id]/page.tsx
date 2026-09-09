@@ -5,10 +5,11 @@ import { TrendingUp } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import {
   aggregateVendors, concessionsFromDeals, feePatternsFromDeals, hasAnyExtraction,
-  formatTotals, latestOutput, dealCurrency, type DealLite,
+  formatTotals, sumInBase, latestOutput, dealCurrency, type DealLite,
 } from '@/lib/vendor-aggregate'
 import { vendorKeySimilarity } from '@/lib/vendor-normalize'
-import { formatCurrency, normalizeAmount, type Currency } from '@/lib/currency'
+import { formatCurrency, normalizeAmount, fetchRates, type Currency } from '@/lib/currency'
+import { fmtCompact } from '@/lib/deal-metrics'
 import { VendorNotes } from '@/components/VendorNotes'
 import { VendorMerge } from '@/components/VendorMerge'
 import { AppPage, PageHeader, PageBody, StatRow, StatTile, Card, SectionHeading, Chip, ScoreRing, Table, TableRow, HideM, NameCell } from '@/components/system'
@@ -41,6 +42,13 @@ export default async function VendorDetailPage({ params }: { params: Promise<{ i
 
   const deals = (dealsRaw || []) as DealLite[]
   const row = aggregateVendors([{ id: vendor.id, canonical_name: vendor.canonical_name, aliases: vendor.aliases || [] }], deals)[0]
+  // Same conversion Home uses, so the tiles show one number in the base currency; the split stays as the sub line.
+  const { data: profile } = await supabase.from('profiles').select('base_currency').eq('id', user.id).single()
+  const baseCurrency = ((profile?.base_currency as Currency) || 'EUR') as Currency
+  try { await fetchRates() } catch { /* unconverted fallback */ }
+  const totalBase = await sumInBase(row.totalsByCurrency, baseCurrency)
+  const savingsBase = await sumInBase(row.savingsByCurrency, baseCurrency)
+  const split = (map: Record<string, number>) => (Object.keys(map).filter((k) => map[k] > 0).length > 1 ? formatTotals(map) : undefined)
   const concessions = concessionsFromDeals(deals)
   const feePatterns = feePatternsFromDeals(deals)
   const showFees = hasAnyExtraction(deals)
@@ -70,8 +78,8 @@ export default async function VendorDetailPage({ params }: { params: Promise<{ i
       >
         <StatRow flat className="mt-4 pt-4 border-t border-line-2">
           <StatTile flat label={t('statDeals')} value={row.dealCount} />
-          <StatTile flat label={t('statTotal')} value={formatTotals(row.totalsByCurrency) || '—'} />
-          <StatTile flat tone="money" label={t('statSaved')} value={formatTotals(row.savingsByCurrency) || '—'} />
+          <StatTile flat label={t('statTotal')} value={totalBase > 0 ? fmtCompact(totalBase, baseCurrency) : '—'} sub={split(row.totalsByCurrency)} />
+          <StatTile flat tone="money" label={t('statSaved')} value={savingsBase > 0 ? fmtCompact(savingsBase, baseCurrency) : '—'} sub={split(row.savingsByCurrency)} />
           <StatTile flat label={t('statScore')} value={row.avgScore == null ? '—' : <span className="inline-flex items-center gap-2.5"><ScoreRing score={row.avgScore} size={30} stroke={3} />{row.avgScore}</span>} />
         </StatRow>
       </PageHeader>

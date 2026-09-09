@@ -1,4 +1,4 @@
-import { parseMoney, detectCurrency } from './currency'
+import { parseMoney, detectCurrency, convertCurrency, SUPPORTED_CURRENCIES, type Currency } from './currency'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Pure aggregation for the vendors list + header. Currencies are never converted;
@@ -39,6 +39,9 @@ export interface VendorRow {
   dealCount: number
   totalsByCurrency: Record<string, number>
   savingsByCurrency: Record<string, number>
+  /** Converted into the account's base currency (see sumInBase); set by the page, absent in tests. */
+  totalBase?: number
+  savingsBase?: number
   avgScore: number | null
   lastActivity: string | null
 }
@@ -104,6 +107,21 @@ export function compactMoney(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(n % 1_000_000 === 0 ? 0 : 1)}M`
   if (n >= 1_000) return `${Math.round(n / 1000)}K`
   return String(Math.round(n))
+}
+
+/**
+ * One number in the account's base currency, converted with the same live
+ * rates Home uses. Falls back to the unconverted sum if rates are unavailable.
+ */
+export async function sumInBase(map: Record<string, number>, base: Currency): Promise<number> {
+  let total = 0
+  for (const [cur, amount] of Object.entries(map)) {
+    if (!(amount > 0)) continue
+    const from = (SUPPORTED_CURRENCIES as readonly string[]).includes(cur) ? (cur as Currency) : detectCurrency(cur)
+    if (from === base) { total += amount; continue }
+    try { total += await convertCurrency(amount, from, base) } catch { total += amount }
+  }
+  return Math.round(total)
 }
 
 /** "€42K + $18K" across currencies, or "—" when empty. */

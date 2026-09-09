@@ -119,7 +119,21 @@ export function HomeDealsClient({ rows: initialRows, linkBase = '/app', readOnly
     return (
       <TableRow key={r.id} cols={COLS} href={`${linkBase}/deal/${r.id}`} className={cn('group', deletingId === r.id && 'opacity-50')}>
         <NameCell name={r.vendor} sub={[r.category, r.dealType].filter(Boolean).join(' · ')} />
-        <StagePips stage={r.stage} mode={r.mode} won={r.won} closed={r.closed} waitingOnClient={r.waitingOnClient} round={r.roundCount} hint={hint} />
+        {/* Phone: pips + stage sit top-right, aligned across rows; the hint would not fit so it goes. */}
+        <StagePips stage={r.stage} mode={r.mode} won={r.won} closed={r.closed} waitingOnClient={r.waitingOnClient} round={r.roundCount} hint={hint} className="max-md:items-end max-md:text-right max-md:shrink-0" hintClassName="max-md:hidden" />
+        {/* Phone-only third line: the numbers the desktop columns carry. */}
+        <div className="md:hidden col-span-2 flex items-center gap-2 min-w-0 text-[12.5px] tl-num -mt-0.5">
+          {r.score != null && <ScoreRing score={r.score} size={22} stroke={3} muted={r.closed && !r.won} />}
+          <span className="text-ink-2 truncate">{r.total || '—'}</span>
+          {r.savingsKind !== 'none' && (
+            <span className="truncate">
+              <span className="text-ink-3">· </span>
+              <span className="font-semibold text-green-deep">{r.savings}</span>
+              <span className="text-ink-3"> {r.savingsKind === 'saved' ? t('home.saved') : t('home.potential')}</span>
+            </span>
+          )}
+          {!r.closed && r.flags > 0 && <span className="text-ink-3 ml-auto shrink-0">{t('home.flags', { n: r.flags })}</span>}
+        </div>
         <HideM className="flex items-center gap-2">
           {r.score != null ? <ScoreRing score={r.score} size={28} stroke={3} muted={r.closed && !r.won} /> : <span className="text-ink-3">—</span>}
           <span className="text-[12px] text-ink-2 tl-num">{!r.closed && r.flags > 0 ? t('home.flags', { n: r.flags }) : ''}</span>

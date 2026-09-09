@@ -15,6 +15,8 @@ interface StagePipsProps {
   round?: number
   /** Second line under the label (e.g. "Reply needed", "Unlock Deep Analysis"). */
   hint?: React.ReactNode
+  /** Extra classes for the hint line (e.g. hide it on phones where the row has no room). */
+  hintClassName?: string
   className?: string
 }
 
@@ -23,7 +25,7 @@ interface StagePipsProps {
  * green, the current pip is green, future pips are hairlines. A won deal
  * fills all four; a deal closed without change greys them out.
  */
-export function StagePips({ stage, mode = null, won, closed, waitingOnClient, round, hint, className }: StagePipsProps) {
+export function StagePips({ stage, mode = null, won, closed, waitingOnClient, round, hint, hintClassName, className }: StagePipsProps) {
   const t = useT()
   const idx = closed ? STAGE_ORDER.length - 1 : stageIndex(stage)
   const grey = closed && !won
@@ -45,7 +47,7 @@ export function StagePips({ stage, mode = null, won, closed, waitingOnClient, ro
       <span className={cn('text-[12.5px] font-semibold leading-tight truncate', labelCls)}>
         {label}{stage === 'negotiate' && mode === 'self' && !closed && round && round > 1 ? ` · R${round}` : ''}
       </span>
-      {hint && <span className="text-[11.5px] leading-tight truncate">{hint}</span>}
+      {hint && <span className={cn('text-[11.5px] leading-tight truncate', hintClassName)}>{hint}</span>}
     </div>
   )
 }
