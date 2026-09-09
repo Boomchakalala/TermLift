@@ -1385,7 +1385,8 @@
     "statSavedAll": "Économisé avec eux",
     "cardDeals": "{n, plural, one {# dossier} other {# dossiers}}",
     "lastActivity": "Dernière activité {d}",
-    "noScore": "Pas encore de score"
+    "noScore": "Pas encore de score",
+    "shareOfSpend": "{pct} % des dépenses analysées"
   },
   "settingsPage": {
     "title": "Paramètres",

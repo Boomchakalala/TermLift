@@ -1385,7 +1385,8 @@
     "statSavedAll": "Saved with them",
     "cardDeals": "{n, plural, one {# deal} other {# deals}}",
     "lastActivity": "Last activity {d}",
-    "noScore": "No score yet"
+    "noScore": "No score yet",
+    "shareOfSpend": "{pct}% of analysed spend"
   },
   "settingsPage": {
     "title": "Settings",

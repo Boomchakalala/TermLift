@@ -39,6 +39,9 @@ export function VendorsListClient({ rows, baseCurrency = 'EUR' }: { rows: Vendor
   const totalSpend = money(rows.reduce((s, r) => s + base(r, 'totalBase', 'totalsByCurrency'), 0))
   const totalSaved = money(rows.reduce((s, r) => s + base(r, 'savingsBase', 'savingsByCurrency'), 0))
   const dealCount = rows.reduce((s, r) => s + r.dealCount, 0)
+  // Rank by converted spend across every vendor (not just the filtered set), plus each vendor's share of the total.
+  const spendAll = rows.reduce((s, r) => s + base(r, 'totalBase', 'totalsByCurrency'), 0)
+  const rank = new Map([...rows].sort((a, b) => base(b, 'totalBase', 'totalsByCurrency') - base(a, 'totalBase', 'totalsByCurrency')).map((r, i) => [r.id, i + 1]))
 
   return (
     <AppPage>
@@ -74,12 +77,17 @@ export function VendorsListClient({ rows, baseCurrency = 'EUR' }: { rows: Vendor
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
             {filtered.map((v) => {
               const saved = base(v, 'savingsBase', 'savingsByCurrency')
+              const spend = base(v, 'totalBase', 'totalsByCurrency')
+              const share = spendAll > 0 && spend > 0 ? Math.round((spend / spendAll) * 100) : 0
               return (
                 <Link key={v.id} href={`/app/vendors/${v.id}`} className="group no-underline bg-surface border border-line rounded-[14px] p-4 flex flex-col gap-3 transition-colors hover:border-[#C9D3CE]">
                   <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex items-start gap-2.5">
+                      {spend > 0 && <span className={`w-6 h-6 rounded-full grid place-items-center text-[11px] font-bold tl-num shrink-0 mt-px ${(rank.get(v.id) ?? 99) <= 3 ? 'bg-green text-white' : 'bg-ground text-ink-2'}`}>{rank.get(v.id)}</span>}
+                      <div className="min-w-0">
                       <p className="font-display font-bold text-[16px] text-ink leading-tight truncate group-hover:text-green-deep transition-colors">{v.name}</p>
                       <p className="text-[12px] text-ink-3 mt-0.5 truncate">{v.aliases.length > 0 ? t('vendorsPage.alsoKnown', { names: v.aliases.join(', ') }) : t('vendorsPage.cardDeals', { n: v.dealCount })}</p>
+                      </div>
                     </div>
                     {v.avgScore != null ? <ScoreRing score={v.avgScore} size={36} stroke={3.5} /> : <span className="tl-label text-ink-3 text-[10px] mt-1">{t('vendorsPage.noScore')}</span>}
                   </div>
@@ -93,7 +101,7 @@ export function VendorsListClient({ rows, baseCurrency = 'EUR' }: { rows: Vendor
                       <p className={`font-display font-bold text-[15px] tl-num mt-0.5 truncate ${saved > 0 ? 'text-green-deep' : 'text-ink-3'}`}>{money(saved)}</p>
                     </div>
                   </div>
-                  <p className="text-[11.5px] text-ink-3">{t('vendorsPage.cardDeals', { n: v.dealCount })} · {t('vendorsPage.lastActivity', { d: fmtDate(v.lastActivity) })}</p>
+                  <p className="text-[11.5px] text-ink-3">{t('vendorsPage.cardDeals', { n: v.dealCount })}{share > 0 && <> · {t('vendorsPage.shareOfSpend', { pct: share })}</>} · {t('vendorsPage.lastActivity', { d: fmtDate(v.lastActivity) })}</p>
                 </Link>
               )
             })}
