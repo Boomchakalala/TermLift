@@ -174,8 +174,9 @@ function fmt(amount: number, currency: string = 'EUR'): string {
 export function AnalysisPDF({ output, locale = 'en' }: { output: DealOutput; locale?: string }) {
   const logoBase64 = getLogoBase64()
   const score = output.score ?? 0
-  const scoreColor = score >= 80 ? c.emerald : score >= 60 ? c.amber : c.red
-  const scoreColorLight = score >= 80 ? c.emeraldLight : score >= 60 ? c.amberLight : c.redLight
+  // Same bands as the score ring in the app: ≥80 green · 65–79 amber · <65 red.
+  const scoreColor = score >= 80 ? c.emerald : score >= 65 ? c.amber : c.red
+  const scoreColorLight = score >= 80 ? c.emeraldLight : score >= 65 ? c.amberLight : c.redLight
   const fr = locale === 'fr'
 
   const ps = output.potential_savings as any

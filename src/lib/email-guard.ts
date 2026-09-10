@@ -34,7 +34,7 @@ const PHRASE_SWAPS: Array<[RegExp, string]> = [
   [/\bgap\b/gi, 'difference'],
   [/\bincentives?\b/gi, 'reasons'],
 ]
-const DROP_SENTENCE = /\b(treat nothing as agreed|confirm the contract terms)\b/i
+const DROP_SENTENCE = /\b(treat nothing as agreed|nothing (else )?is agreed|nothing is (final|settled)|confirm the contract terms)\b/i
 
 export function applyVoiceGuard(body: string): { body: string; changed: string[] } {
   const changed: string[] = []

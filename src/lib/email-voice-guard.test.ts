@@ -9,6 +9,11 @@ describe('applyVoiceGuard', () => {
     expect(r.changed.length).toBe(4)
   })
 
+  it('drops the "nothing is agreed" variants (live Datadog draft)', () => {
+    const r = applyVoiceGuard('Since the quote has expired, could you please send a refreshed version? Nothing else is agreed until we have that in hand.')
+    expect(r.body).toBe('Since the quote has expired, could you please send a refreshed version?')
+  })
+
   it('leaves a clean email alone', () => {
     const body = 'Hi Daan,\n\nThanks for the proposal. Once those points are agreed, we can sign.\n\nBest regards,\n[Your Name]'
     expect(applyVoiceGuard(body).body).toBe(body)

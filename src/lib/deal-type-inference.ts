@@ -73,6 +73,14 @@ export function inferDealTypeForPersistence(input: {
   const corpus = [input.extractedText || '', ...evidence].join('\n')
   let base = inferDealType(input.snapshotDealType, input.recurring, corpus)
   const currentSubLanguage = hasCurrentSubLanguage(corpus) || !!input.currentSubEnd
+  // The evidence spans are the document's OWN words about the order ("Order Type: Renewal").
+  // When they say renewal (or new) unambiguously, they beat the extraction's summary read.
+  const evidenceText = evidence.join('\n')
+  const evRenewal = countSignals(evidenceText, RENEWAL_SIGNALS) + (/(order|deal|quote|purchase)\s*type\s*:?\s*renewal|\brenewal order\b/i.test(evidenceText) ? 1 : 0)
+  const evNew = countSignals(evidenceText, NEW_PURCHASE_SIGNALS) + (/(order|deal|quote|purchase)\s*type\s*:?\s*new\b/i.test(evidenceText) ? 1 : 0)
+  const evExpansion = countSignals(evidenceText, EXPANSION_SIGNALS)
+  if (evRenewal > 0 && evNew === 0 && evExpansion === 0) base = { type: 'renewal', confidence: 'high' }
+  else if (evNew > 0 && evRenewal === 0 && evExpansion === 0 && !currentSubLanguage) base = { type: 'new_purchase', confidence: 'high' }
   // A document that names a running subscription is quoting for what follows it: an
   // uncorroborated "new purchase" read does not survive that signal.
   if (currentSubLanguage && base.type === 'new_purchase' && base.confidence === 'low') base = { type: 'renewal', confidence: 'low' }

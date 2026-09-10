@@ -61,6 +61,16 @@ describe('mergeCodeFlags', () => {
     expect(out.map((f) => (f as { source_rule?: string }).source_rule)).toContain('escalation.no_cap')
   })
 
+  it('does not fire the uplift rule on a bare "vendor may increase" read, and never merges it onto an overage flag (Datadog)', () => {
+    const datadog = normalizeExtraction({ renewalTerms: { autoRenew: null, noticeDays: null, escalationMinPct: null, escalationCapPct: null, extraIncreaseAllowed: true }, quoteDates: { expires: '2/28/2026' } }, 16328)
+    const code = detectCodeFlags(datadog, '2026-09-10', '$16,328')
+    expect(code.map((f) => f.source_rule)).toEqual(['quote.expired'])
+    const model = [{ type: 'Commercial', severity: 'high', score_category: 'pricing', issue: 'Overage rates carry zero discount — all additional usage is billed at full list price, and there is no cap', why_it_matters: '', what_to_ask_for: 'Cap overage rates at committed rates', if_they_push_back: '' }]
+    const out = mergeCodeFlags(model, code)
+    expect((out[0] as { what_to_ask_for?: string }).what_to_ask_for).toBe('Cap overage rates at committed rates')
+    expect((out[0] as { source_rule?: string }).source_rule).toBeUndefined()
+  })
+
   it('appends rule flags the model missed', () => {
     const out = mergeCodeFlags([], detectCodeFlags(knowBe4, '2026-09-10'))
     expect(out.length).toBe(3)

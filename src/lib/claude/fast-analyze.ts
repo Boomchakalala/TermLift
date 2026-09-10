@@ -159,6 +159,7 @@ GROUND RULES
 
 - Use the PROVIDED total_commitment. Do not recalculate it.
 - Every amount must trace to the quote or simple arithmetic on quote numbers.
+- PERIODS: a printed line total is the total for the term the quote shows (annual on a 12-month order), never a monthly figure. A monthly figure is quantity × unit price for ONE month; the term figure is that × term months. Never multiply a line total by the term. No single savings item can equal or exceed the quote total.
 - Do not invent competitor prices or claim market data as fact.
 - Do not ask the user questions in the output.
 - Keep currency consistent throughout.

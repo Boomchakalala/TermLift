@@ -1,15 +1,19 @@
 import { cn } from '@/lib/utils'
 
-/** Single source of truth for score → colour. ≥60 green · 40–59 amber · <40 red. */
+/**
+ * Single source of truth for score → colour, aligned with the verdict bands
+ * (lib/deal-metrics scoreHeadline): ≥80 "solid" green · 65–79 "decent" amber · <65 red.
+ * A 66 and an 84 must never share a colour.
+ */
 export function scoreColor(score: number): string {
-  if (score >= 60) return 'var(--tl-green)'
-  if (score >= 40) return 'var(--tl-warn)'
+  if (score >= 80) return 'var(--tl-green)'
+  if (score >= 65) return 'var(--tl-warn)'
   return 'var(--tl-risk)'
 }
 
 export function scoreTextClass(score: number): string {
-  if (score >= 60) return 'text-green-deep'
-  if (score >= 40) return 'text-warn'
+  if (score >= 80) return 'text-green-deep'
+  if (score >= 65) return 'text-warn'
   return 'text-risk'
 }
 

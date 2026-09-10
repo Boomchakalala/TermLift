@@ -168,7 +168,7 @@ export async function analyzeDeal(
     if (codeFlags.length) console.log('[TermLift] Step 2b: code flags:', codeFlags.map((f) => f.source_rule).join(', '))
 
     // ─── Step 2c: Savings normalisation (conditional asks unquantified, headline % net of line asks) ───
-    const potentialSavings = normalizeSavings(analysis.potential_savings, contractTotal) ?? analysis.potential_savings
+    const potentialSavings = normalizeSavings(analysis.potential_savings, contractTotal, quoteFacts.lines, asOf) ?? analysis.potential_savings
     if (potentialSavings && contractTotal > 0 && (potentialSavings as { total?: number }).total! > contractTotal) {
       console.warn(`[TermLift] GUARD: savings (${(potentialSavings as { total?: number }).total}) > total (${contractTotal}).`)
     }

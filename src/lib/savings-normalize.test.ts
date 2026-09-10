@@ -56,6 +56,33 @@ describe('normalizeSavings (KnowBe4 fixture)', () => {
     expect(r.total).toBe(Math.round((36330 - 500) * 0.05) + 500)
   })
 
+  it('recomputes a period error against the printed line (Datadog: annual $13,365 Log Events read as monthly ×12)', () => {
+    const lines = [
+      { description: 'Infra Host (Pro)', line_total: 990 },
+      { description: 'APM Host', line_total: 1227.6 },
+      { description: 'Log Events (30 Day Retention Period)', line_total: 13365 },
+    ]
+    const r = normalizeSavings({ must_have: [{ ask: '15% discount on Log Events rate (from $2.475/M to $2.10/M)', amount: 20250, rationale: 'Saves $1,687.50/month x 12 months.' }] }, 16328, lines)!
+    expect(r.must_have[0].amount).toBe(2005) // 15% × 13,365
+    expect(r.must_have[0].recomputed_from).toEqual({ pct: 15, base: 13365, original: 20250 })
+    expect(r.total).toBe(2005)
+    expect(quantifiedMustHaveTotal(r)).toBe(2005)
+  })
+
+  it('unquantifies an impossible amount it cannot recompute, and never lets the total reach the quote', () => {
+    const r = normalizeSavings({ must_have: [{ ask: 'Remove the platform fee', amount: 20000 }, { ask: 'Waive onboarding', amount: 9000 }, { ask: 'Waive support', amount: 9000 }] }, 16328, [])!
+    expect(r.must_have[0].quantified).toBe(false)
+    expect(r.must_have[0].dropped_reason).toBe('exceeds_quote')
+    expect(r.total).toBeLessThan(16328)
+    expect(r.total).toBe(9000)
+  })
+
+  it('removes a concession whose date is already behind the analysis date', () => {
+    const r = normalizeSavings({ must_have: [{ ask: 'Remove the $500 onboarding fee', amount: 500 }], nice_to_have: [{ ask: 'Early signature discount — sign by 2/15/2026 in exchange for an additional 3% off', amount: 490 }] }, 16328, [], '2026-09-10')!
+    expect(r.nice_to_have).toEqual([])
+    expect(r.must_have.length).toBe(1)
+  })
+
   it('returns null for a shape it does not understand', () => {
     expect(normalizeSavings(null, 100)).toBeNull()
     expect(normalizeSavings([], 100)).toBeNull()

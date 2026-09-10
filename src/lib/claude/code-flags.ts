@@ -78,7 +78,9 @@ export function detectCodeFlags(extraction: ExtractionResult, asOf: string | und
   }
 
   // ── Rule 2: renewal price escalation ────────────────────────────────────
-  if (rt && (rt.escalationMinPct != null || rt.escalationCapPct != null || rt.extraIncreaseAllowed)) {
+  // Only when THIS order states an uplift clause (a minimum or a cap). A bare
+  // "vendor may increase" read — often just overage billed at list — is not one.
+  if (rt && (rt.escalationMinPct != null || rt.escalationCapPct != null)) {
     const min = rt.escalationMinPct
     const cap = rt.escalationCapPct
     if (cap == null) {
@@ -169,7 +171,10 @@ function sameTopic(a: LlmFlag, b: CodeFlag): boolean {
   const issueA = String(a.issue || '')
   // Subject words decide first: a flag about the uplift is never the notice flag, whatever tokens overlap.
   const s = issueA.toLowerCase()
-  const escalation = /(escalat|uplift|price increase|fee increase|increase (in|of|by)|raise (fees|prices|pricing)|uncapped|no cap)/.test(s)
+  // A renewal-uplift subject: price rises at renewal. Overage / usage billed at list is a
+  // different clause and never merges with the uplift rule, whatever "cap" words it uses.
+  const overage = /(overage|over-usage|usage above|above (the )?commit|consumption|list price for additional|additional usage)/.test(s)
+  const escalation = !overage && /(escalat|uplift|price increase|fee increase|increase (in|of|by)|raise (fees|prices|pricing)|renewal pric)/.test(s)
   const notice = /(notice|cancel|non-renewal|renewal window|opt[- ]out)/.test(s)
   const expiry = /(expire|expiry|expiration|valid until|validity|deadline)/.test(s)
   if (b.source_rule.startsWith('auto_renew')) return notice && !escalation

@@ -231,7 +231,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ dea
       const redFlags = mergeCodeFlags(deep.red_flags || [], codeFlags)
       const highTermsFlagCount = countHighTermsFlags(redFlags)
       const scores = computeScores(mergedExtraction, { asOf, highTermsFlagCount })
-      const normalizedSavings = normalizeSavings(deep.potential_savings, contractTotal) ?? deep.potential_savings
+      const normalizedSavings = normalizeSavings(deep.potential_savings, contractTotal, output.quote_facts?.lines ?? null, asOf) ?? deep.potential_savings
       // Uplift cap policy (lib/ask-policy.ts): no proposed cap above 4%, never above the vendor's stated minimum.
       const policed = enforceUpliftPolicy({ red_flags: redFlags, what_to_ask_for: deep.what_to_ask_for, potential_savings: normalizedSavings }, mergedExtraction.renewalTerms)
       if (policed.rewrites.length) console.log('[TermLift] Deep: uplift policy rewrites:', policed.rewrites.join(' | '))
