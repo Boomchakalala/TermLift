@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { createTrackedMessage, CLAUDE_MODEL, getResponseText, parseJsonFromContent, getLanguageInstruction, buildImageContent } from './client'
 import { QUOTE_TYPE_OVERLAYS, buildSavingsDirective, buildClassificationContext } from './overlays'
+import { buildPreferencesDirective } from './analyze'
 import type { QuoteClassificationType } from '../schemas'
 import type { DealOutput } from '@/types'
 import type { ExtractedFacts } from './extract'
@@ -81,6 +82,15 @@ extraction.leverageFactors:
 
 extraction.pricingItemized: true if pricing is broken out line-by-line; false if it is a lump sum or bundled.
 
+extraction.renewalTerms (literal reads; null when the document is silent):
+- autoRenew: true if the agreement renews automatically, false if it says it does not, else null
+- noticeDays: days of notice required to prevent renewal / cancel, as a number, else null
+- escalationMinPct: the stated minimum annual increase on renewal as a number ("at least 4%" = 4), else null
+- escalationCapPct: the stated maximum annual increase, ONLY if the document states a ceiling; a "minimum of X%" with no ceiling is null here
+- extraIncreaseAllowed: true if the vendor reserves the right to increase beyond the stated percentage, false if the stated percentage is the ceiling, else null
+
+extraction.quoteDates (copied as printed, null when absent): created (date the quote was issued), expires (valid-until / signing deadline), currentSubEnd (end date of an existing subscription the quote mentions, e.g. "Sub end date"). Do NOT compute days from these; report the dates.
+
 ==================================================
 WRITING STYLE
 ==================================================
@@ -137,7 +147,9 @@ Return valid JSON only. Do NOT include title, price_insight, quick_read.whats_co
     "paymentTerms": {"depositPct": 25, "balanceDueDaysBeforeDelivery": 0, "achOffered": true, "netTerms": 30},
     "vendorRights": {"unilateralSubstitution": false, "mandatoryMarketing": false, "reciprocalValue": true},
     "tbdLineItems": [],
-    "leverageFactors": {"competingQuoteInHand": false, "daysToDeadline": 21, "soleSource": false, "dealSizeSignificant": true, "buyerInsidePenaltyWindow": false}
+    "leverageFactors": {"competingQuoteInHand": false, "daysToDeadline": 21, "soleSource": false, "dealSizeSignificant": true, "buyerInsidePenaltyWindow": false},
+    "renewalTerms": {"autoRenew": true, "noticeDays": 60, "escalationMinPct": 4, "escalationCapPct": null, "extraIncreaseAllowed": true},
+    "quoteDates": {"created": "November 13, 2025", "expires": "January 31, 2026", "currentSubEnd": null}
   }
 }
 
@@ -150,6 +162,7 @@ GROUND RULES
 - Do not invent competitor prices or claim market data as fact.
 - Do not ask the user questions in the output.
 - Keep currency consistent throughout.
+- If the VERIFIED FACTS state quote_expires / signing_deadline earlier than the ANALYSIS DATE given in the context, the quote has expired: do not list the deadline as leverage or urgency, and say the numbers are historical until the vendor re-quotes.
 - HARD LIMITS: 3 red flags maximum, 3 leverage points maximum, 2 savings items maximum, 2 assumptions maximum. These are ceilings, not targets — fewer is fine when fewer is genuinely correct.
 - This is the FAST pass — brevity is correct, not a shortcoming. Do not apologize for or mention the brevity in the output.
 
@@ -223,15 +236,21 @@ export async function analyzeFastCore(
     imageData?: { base64: string; mimeType: string }
     allPages?: Array<{ base64: string; mimeType: string }>
     pdfData?: { base64: string; mimeType: string }
-    userPreferences?: { payment_terms?: string; top_priority?: string; auto_renewal?: string }
+    userPreferences?: { payment_terms?: string; top_priority?: string; auto_renewal?: string; contract_term_strategy?: string }
+    /** Server date `YYYY-MM-DD`; lets the model see that a printed deadline is already past. */
+    asOf?: string
   },
 ): Promise<FastAnalysisOutput> {
   const overlay = QUOTE_TYPE_OVERLAYS[classification.quote_type] || ''
   const savingsDirective = buildSavingsDirective(classification)
-  const enhancedPrompt = FAST_ANALYSIS_PROMPT + '\n\n' + overlay + '\n\n' + savingsDirective
+  // Same preferences block the Playbook uses — Round 1 and vendor-reply rounds
+  // used to ignore them (the option was accepted and never read).
+  const preferencesDirective = buildPreferencesDirective(options.userPreferences)
+  const enhancedPrompt = FAST_ANALYSIS_PROMPT + '\n\n' + overlay + '\n\n' + savingsDirective + '\n\n' + preferencesDirective
 
   const contextParts = [
     `Deal Type: ${options.dealType}`,
+    options.asOf && `ANALYSIS DATE: ${options.asOf}`,
     buildClassificationContext(classification),
     `\nVERIFIED FINANCIAL FACTS (use these as ground truth, do NOT recalculate):\n${JSON.stringify(facts, null, 2)}`,
     options.goal && `User Goal: ${options.goal}`,

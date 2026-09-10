@@ -1298,7 +1298,12 @@
     "translating": "Traduction…",
     "translateFailed": "La traduction a échoué. L’original est inchangé.",
     "translateRetry": "Réessayer",
-    "translateNote": "Les chiffres, les demandes et la structure sont ceux de l’original ; seule la formulation est traduite."
+    "translateNote": "Les chiffres, les demandes et la structure sont ceux de l’original ; seule la formulation est traduite.",
+    "historicalChip": "Historique",
+    "quoteExpiredBanner": "Devis expiré le {date}. Demandez un nouveau devis avant de considérer ces chiffres comme valables.",
+    "looksLikeRenewalTitle": "Cela ressemble à un renouvellement.",
+    "looksLikeRenewalBody": "Le document mentionne un abonnement en cours, mais ce dossier est classé comme un nouvel achat. Basculez-le pour que le plan et les e-mails utilisent le levier de fidélisation.",
+    "looksLikeRenewalCta": "Marquer comme renouvellement"
   },
   "tryPage": {
     "eyebrow": "Étape 1 · gratuit · sans inscription",
@@ -1330,7 +1335,12 @@
     "sub": "Importez un devis fournisseur — vous obtenez l’analyse rapide en quelques minutes.",
     "freeUsed": "{used} gratuite(s) sur {limit} utilisée(s)",
     "tailored": "Adapté à votre profil de négociation",
-    "edit": "modifier"
+    "edit": "modifier",
+    "dealTypeLabel": "Type de contrat",
+    "dealTypeNew": "Nouvel achat",
+    "dealTypeRenewal": "Renouvellement",
+    "dealTypeSuggested": "Suggéré d’après le devis",
+    "dealTypeSuggestedRenewal": "Le devis mentionne un abonnement en cours, nous avons donc sélectionné Renouvellement. Modifiez si ce n’est pas le cas."
   },
   "negotiationPage": {
     "crumb": "Négociation TermLift",

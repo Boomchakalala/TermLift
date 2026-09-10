@@ -10,6 +10,7 @@ import { checkRateLimit } from '@/lib/rate-limit'
 import { checkFreeQuota } from '@/lib/pricing'
 import { getPlaybookAccess, consumeCredit } from '@/lib/billing'
 import { resolveVendorForDeal } from '@/lib/vendor-resolve'
+import { inferDealTypeForPersistence, applyChosenDealType } from '@/lib/deal-type-inference'
 import { stripAdvancedOutput, SHOW_FULL_NEGOTIATION_PLAYBOOK } from '@/lib/negotiation-gating'
 import { runWithAiContext } from '@/lib/ai-telemetry'
 import type { DealOutput, DealOutputV2 } from '@/types'
@@ -110,7 +111,18 @@ export async function POST(request: Request) {
         }
       : undefined
 
-    // Analyze with V1 (full text analysis â€” auto-retry on transient failures)
+    // Text to keep for Deep Analysis later: pasted text, else extracted from the
+    // uploaded PDF/image now (best-effort). The file itself is never stored.
+    // Computed BEFORE the analysis so the classifier reads it too (Haiku cannot
+    // take a PDF) and deal-type inference can run while the text still exists.
+    const persistText = await textForPersistence({
+      extractedText: validated.extractedText,
+      pdfData: validated.pdfData ?? null,
+      imageData: validated.imageData ?? null,
+      allPages: (body as any).allPages ?? null,
+    })
+
+    // Analyze with V1 (full text analysis — auto-retry on transient failures)
     const analysisStart = Date.now()
     // Pre-generate the deal's id so the analysis call below — which runs
     // before the deal row exists — can still be tagged with the real
@@ -127,8 +139,24 @@ export async function POST(request: Request) {
       locale,
       validPdfData,
       (profile as any)?.negotiation_preferences || undefined,
-      precomputed
+      precomputed,
+      persistText || undefined,
     )))
+
+    // Deal-type inference, persisted on the round BEFORE the raw text can be
+    // purged (Playbook completion, close, retention). Nothing downstream may
+    // re-run inference on a purged text.
+    const inferredDealType = inferDealTypeForPersistence({
+      snapshotDealType: (output as any)?.snapshot?.deal_type,
+      recurring: (output as any)?.classification?.recurring,
+      extractedText: persistText,
+      evidence: (output as any)?.deal_type_evidence,
+      currentSubEnd: (output as any)?.snapshot?.current_sub_end,
+    })
+    ;(output as any).inferred_deal_type = inferredDealType
+    // The snapshot's deal type is the deal's CHOSEN type. What the document said is
+    // kept as evidence (`deal_type_stated`) and was already fed to the inference above.
+    applyChosenDealType(output as any, validated.dealType)
     console.log(`[TermLift timing] analyzeDeal() total: ${Date.now() - analysisStart}ms`)
 
     // Auto-detect vendor
@@ -163,15 +191,7 @@ export async function POST(request: Request) {
       console.error('[TermLift] vendor link failed (non-fatal):', e)
     }
 
-    // Text to keep for Deep Analysis later: pasted text, else extracted from the
-    // uploaded PDF/image now (best-effort). The file itself is never stored.
-    const persistText = await textForPersistence({
-      extractedText: validated.extractedText,
-      pdfData: validated.pdfData ?? null,
-      imageData: validated.imageData ?? null,
-    })
-
-    // Create Round 1 with V2 schema
+    // Create Round 1 (persistText was computed above, before the analysis)
     const { data: round, error: roundError } = await supabase
       .from('rounds')
       .insert({

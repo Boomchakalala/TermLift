@@ -15,6 +15,9 @@ import { toStructuredExtraction } from '@/lib/structured-extraction'
 import type { BenchmarkInput } from '@/lib/benchmark/types'
 import { getPlaybookAccess, consumeCredit } from '@/lib/billing'
 import { deepAnalysisPriceLabel } from '@/lib/pricing'
+import { analysisDate } from '@/lib/claude'
+import { isUnreadableClassification, resolveClassification } from '@/lib/claude/classification-guard'
+import { parseMoney } from '@/lib/currency'
 
 export const maxDuration = 120
 
@@ -156,9 +159,14 @@ export async function POST(request: Request, { params }: { params: Promise<{ dea
       const locale = outputLocale(output)
 
       const deepStart = Date.now()
+      const asOf = analysisDate()
+      const contractTotal = parseMoney(facts.total_commitment).amount
       const { classification, deep, benchmarkInput, benchmarkRun } = await runWithAiContext({ userId: user.id, dealId, roundId: round.id }, async () => {
-        const classification: QuoteClassificationType = output.classification
-          || await classifyQuote(round.extracted_text, deal.deal_type as 'New' | 'Renewal')
+        // A stored classification that could not read the document (the old blank-prompt
+        // PDF path) is not reused: classify again from the text, then guard the result.
+        const stored: QuoteClassificationType | undefined = output.classification && !isUnreadableClassification(output.classification) ? output.classification : undefined
+        const fresh = stored || await classifyQuote(round.extracted_text, deal.deal_type as 'New' | 'Renewal')
+        const classification: QuoteClassificationType = resolveClassification(fresh, facts, deal.deal_type as 'New' | 'Renewal', contractTotal).classification
 
         // ── Market Benchmark (optional, never blocks Deep Analysis) ──────────
         // 1. small fact-extraction call for product/quantity/unit price
@@ -195,6 +203,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ dea
           dealType: deal.deal_type as 'New' | 'Renewal',
           userLocale: locale,
           marketBenchmark: benchmarkRun?.result,
+          asOf,
         })
         return { classification, deep, benchmarkInput, benchmarkRun }
       })
@@ -204,11 +213,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ dea
       // it can explain the numbers, never move them.
       const benchmark_interpretation = benchmarkRun ? clampInterpretation(deep.benchmark_interpretation, benchmarkRun.result) : null
 
+
       // Enrich, don't overwrite: score/score_breakdown/extraction/deductions/
       // confidence/target_price_range/verdict/verdict_type/title/snapshot/
-      // vendor/category/description all stay exactly as the fast pass set
-      // them — those are the trusted, already-shown headline facts. Deep
-      // analysis fills in the sections that were deliberately deferred.
+      // vendor/category/description all stay exactly as the fast pass set them.
       const merged = {
         generated_locale: locale,
         ...output,

@@ -17,7 +17,7 @@
  */
 
 // Re-export the main pipeline function (used by API routes)
-export { analyzeDeal } from './claude/index'
+export { analyzeDeal, analysisDate } from './claude/index'
 
 // Re-export utilities used by other API routes
 export { getLanguageInstruction, type ClaudeUserContent } from './claude/client'

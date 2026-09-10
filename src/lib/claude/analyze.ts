@@ -110,6 +110,17 @@ extraction.leverageFactors:
 
 extraction.pricingItemized: true if pricing is broken out line-by-line; false if it is a lump sum or bundled.
 
+extraction.renewalTerms (literal reads; null when the document is silent):
+- autoRenew: true if the agreement renews automatically, false if it says it does not, else null
+- noticeDays: days of notice required to prevent renewal / cancel, as a number, else null
+- escalationMinPct: the stated minimum annual increase on renewal as a number ("at least 4%" = 4), else null
+- escalationCapPct: the stated maximum annual increase, ONLY if the document states a ceiling; a "minimum of X%" with no ceiling is null here
+- extraIncreaseAllowed: true if the vendor reserves the right to increase beyond the stated percentage, false if the stated percentage is the ceiling, else null
+
+extraction.quoteDates (copied as printed, null when absent): created (date the quote was issued), expires (valid-until / signing deadline), currentSubEnd (end date of an existing subscription the quote mentions, e.g. "Sub end date"). Do NOT compute days from these; report the dates.
+
+If the quote's expiry date is earlier than the ANALYSIS DATE in the context, the quote has expired: do not present the deadline as leverage or urgency anywhere, and treat the printed prices as historical until the vendor re-quotes.
+
 ==================================================
 RED FLAG SEVERITY (assign on every red flag)
 ==================================================
@@ -192,7 +203,9 @@ Return valid JSON only:
     "paymentTerms": {"depositPct": 25, "balanceDueDaysBeforeDelivery": 0, "achOffered": true, "netTerms": 30},
     "vendorRights": {"unilateralSubstitution": false, "mandatoryMarketing": false, "reciprocalValue": true},
     "tbdLineItems": [{"description": "AV package (TBD)", "dollarAmount": 3000}],
-    "leverageFactors": {"competingQuoteInHand": false, "daysToDeadline": 21, "soleSource": false, "dealSizeSignificant": true, "buyerInsidePenaltyWindow": false}
+    "leverageFactors": {"competingQuoteInHand": false, "daysToDeadline": 21, "soleSource": false, "dealSizeSignificant": true, "buyerInsidePenaltyWindow": false},
+    "renewalTerms": {"autoRenew": true, "noticeDays": 60, "escalationMinPct": 4, "escalationCapPct": null, "extraIncreaseAllowed": true},
+    "quoteDates": {"created": "November 13, 2025", "expires": "January 31, 2026", "currentSubEnd": null}
   },
   "score_rationale": "Short qualitative read for the buyer. No numbers.",
   "assumptions": ["..."],
@@ -315,6 +328,8 @@ export async function analyzeDealFacts(
     codeFlags?: Array<{ type: string; severity: string; issue: string; what_to_ask_for: string }>
     /** Deterministic Market Benchmark result (lib/benchmark). Injected as an authoritative block; the model may only interpret it. */
     marketBenchmark?: import('@/lib/benchmark/types').BenchmarkResult
+    /** Server date `YYYY-MM-DD`; lets the model see that a printed deadline is already past. */
+    asOf?: string
   }
 ): Promise<AnalysisOutput> {
   // Build the enhanced prompt with overlays
@@ -326,6 +341,7 @@ export async function analyzeDealFacts(
   // Build context parts — no code flags injected, let the AI think freely
   const contextParts = [
     `Deal Type: ${options.dealType}`,
+    options.asOf && `ANALYSIS DATE: ${options.asOf}`,
     buildClassificationContext(classification),
     `\nVERIFIED FINANCIAL FACTS (use these as ground truth, do NOT recalculate):\n${JSON.stringify(facts, null, 2)}`,
     options.goal && `User Goal: ${options.goal}`,

@@ -44,6 +44,18 @@ STRUCTURED COMMERCIAL FACTS (optional — copy printed figures only, never compu
 14. printed_line_totals: JSON array of every per-line total printed on the document (numbers). Omit if there are no itemised lines.
 15. term_months: the contract length in whole months as a JSON number, ONLY if the document states a duration ("24 months", "3 years", "annual" = 12). Omit if not stated.
 16. pricing_metric: exactly one of "per_seat_month", "per_seat_year", "per_host_month", "per_host_year", "per_gb_month", "per_unit", "per_hour", "flat_annual", "flat_total". Omit if unclear.
+   UNIT PRICE RULE: unit_price is always the NET / sales / discounted price the buyer pays per unit. When a line prints both a list price and a net price, unit_price = net, list_unit_price = list. Never put the list price in unit_price.
+17. line_items: JSON array, one entry per priced line as PRINTED, in document order (omit if there are no itemised lines). Each entry: description, sku (part number if printed, else omit), quantity, list_unit_price, discount_pct (the printed discount percentage for that line, else omit), net_unit_price, line_total, term_months (only if the line states its own duration). Numbers only, copied, never computed.
+18. quote_number: the quote / proposal / order-form reference number if printed (e.g. "Q-2025-1187"), else omit.
+19. quote_created: the date the quote was issued / prepared, exactly as printed, else omit.
+20. quote_expires: the date the quote is valid until / expires / must be signed by, exactly as printed, else omit. (Same date as signing_deadline when both exist.)
+21. current_sub_end: the end date of an EXISTING subscription or current term the document mentions (e.g. "Sub end date", "current term ends", "existing subscription expires"), exactly as printed, else omit.
+22. auto_renew: true if the document says the agreement renews automatically, false if it says it does not renew automatically, omit if silent.
+23. notice_days: the number of days' notice required to prevent renewal or to cancel, as a JSON number, only if stated.
+24. escalation_min_pct: the minimum / stated annual price increase on renewal as a JSON number (e.g. "increase of at least 4%" = 4), only if stated.
+25. escalation_cap_pct: the maximum / capped annual increase as a JSON number, only if the document states a cap. If the document says the increase is "a minimum of X%" or "at least X%" with no ceiling, omit this field.
+26. extra_increase_allowed: true if the document reserves the vendor's right to increase prices beyond the stated percentage (e.g. "a minimum of 4% … KnowBe4 may increase"), false if the stated percentage is the ceiling, omit if silent.
+27. deal_type_evidence: JSON array of up to 3 SHORT quoted spans (each under 80 characters, copied verbatim) that show whether this is a new purchase, a renewal or an expansion (e.g. "Sub end date: 11th Jan 2026", "Renewal of existing subscription", "New customer discount"). Omit if the document gives no such signal.
 
 Return ONLY valid JSON:
 {
@@ -63,7 +75,19 @@ Return ONLY valid JSON:
   "main_line": { "description": "Enterprise plan, per user", "quantity": 120, "unit_price": 11.35, "unit_period": "month", "list_unit_price": 15, "line_total": 16344 },
   "printed_line_totals": [16344],
   "term_months": 12,
-  "pricing_metric": "per_seat_month"
+  "pricing_metric": "per_seat_month",
+  "line_items": [
+    { "description": "Enterprise plan, per user", "sku": "ENT-U", "quantity": 120, "list_unit_price": 15, "discount_pct": 24.3, "net_unit_price": 11.35, "line_total": 16344, "term_months": 12 }
+  ],
+  "quote_number": "Q-2026-0417",
+  "quote_created": "February 1, 2026",
+  "quote_expires": "February 28, 2026",
+  "current_sub_end": "March 15, 2026",
+  "auto_renew": true,
+  "notice_days": 60,
+  "escalation_min_pct": 4,
+  "extra_increase_allowed": true,
+  "deal_type_evidence": ["Renewal of existing subscription", "Sub end date: March 15, 2026"]
 }
 
 RULES:
@@ -72,7 +96,8 @@ RULES:
 - If a field is not stated, omit it from the output
 - For total_commitment: if you cannot determine it, set to the stated amount with the currency symbol
 - NEVER multiply a stated total by the term length
-- Numeric fields (quantity, unit_price, list_unit_price, line_total, printed_line_totals, term_months) must be plain JSON numbers copied from the document, never derived`
+- Numeric fields (quantity, unit_price, list_unit_price, line_total, printed_line_totals, term_months, notice_days, escalation percentages, line_items numbers) must be plain JSON numbers copied from the document, never derived
+- Dates (renewal_date, signing_deadline, quote_created, quote_expires, current_sub_end) are copied exactly as printed; never convert or guess a year`
 
 export interface ExtractedFacts {
   vendor: string
@@ -101,6 +126,29 @@ export interface ExtractedFacts {
   printed_line_totals?: number[]
   term_months?: number
   pricing_metric?: string
+  // ── 2026-09-11: line items, quote dates, renewal mechanics, deal-type evidence.
+  //    Raw model output. Renewal/date fields seed the scorer (lib/scoring.ts
+  //    seedFromFacts); line items are cross-checked in lib/quote-facts.ts.
+  line_items?: Array<{
+    description?: string
+    sku?: string
+    quantity?: number
+    list_unit_price?: number
+    discount_pct?: number
+    net_unit_price?: number
+    line_total?: number
+    term_months?: number
+  }>
+  quote_number?: string
+  quote_created?: string
+  quote_expires?: string
+  current_sub_end?: string
+  auto_renew?: boolean
+  notice_days?: number
+  escalation_min_pct?: number
+  escalation_cap_pct?: number
+  extra_increase_allowed?: boolean
+  deal_type_evidence?: string[]
 }
 
 export async function extractFinancialFacts(

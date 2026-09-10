@@ -23,7 +23,61 @@ const RENEWAL_SIGNALS = [
   'renewal', 'renew', 'extension', 'extend', 'existing subscription', 'current customer',
   'co-term', 'coterm', 'renewal date', 'prior subscription', 'previous term', 'uplift',
   'existing contract', 'existing agreement', 'anniversary date',
+  // Current-subscription language (2026-09-11): a quote that names the end of a
+  // running subscription is quoting for what comes after it.
+  'sub end date', 'subscription end date', 'subscription end', 'sub end', 'current sub',
+  'current subscription', 'current term ends', 'existing term', 'term end date', 'current agreement',
 ]
+
+/** Phrases that name a running subscription — the strongest single renewal tell. */
+const CURRENT_SUB_SIGNALS = [
+  'sub end date', 'subscription end date', 'subscription end', 'sub end', 'current sub',
+  'current subscription', 'current term ends', 'existing subscription', 'existing term', 'term end date',
+  'existing contract', 'existing agreement', 'current agreement', 'prior subscription',
+]
+
+/** True when the text names a subscription that is already running. */
+export function hasCurrentSubLanguage(text: string | null | undefined): boolean {
+  if (!text) return false
+  return countSignals(text, CURRENT_SUB_SIGNALS) > 0
+}
+
+/** What gets persisted on the round before the raw text is purged. */
+export interface PersistedDealTypeInference extends DealTypeInference {
+  /** The document names a subscription that is already running. */
+  currentSubLanguage: boolean
+  /** Short spans the extraction copied as deal-type evidence, when any. */
+  evidence: string[]
+  inferred_at: string
+}
+
+/**
+ * Inference over everything the pipeline has at analysis time: the extraction's
+ * own read, the classifier's `recurring`, the raw text and the evidence spans
+ * the extraction copied. Persist the result (output_json.inferred_deal_type)
+ * so nothing downstream ever re-runs inference on purged text.
+ */
+export function inferDealTypeForPersistence(input: {
+  snapshotDealType?: string | null
+  recurring?: boolean
+  extractedText?: string | null
+  evidence?: string[] | null
+  currentSubEnd?: string | null
+  now?: Date
+}): PersistedDealTypeInference {
+  // Spans the extraction copied from the document. "Deal Type: New" is OUR prompt
+  // header, not the document — the model sometimes echoes it; never count it.
+  const evidence = (input.evidence || [])
+    .filter((s): s is string => typeof s === 'string' && s.trim().length > 0 && !/^\s*deal\s*type\s*:/i.test(s))
+    .map((s) => s.trim().slice(0, 120)).slice(0, 3)
+  const corpus = [input.extractedText || '', ...evidence].join('\n')
+  let base = inferDealType(input.snapshotDealType, input.recurring, corpus)
+  const currentSubLanguage = hasCurrentSubLanguage(corpus) || !!input.currentSubEnd
+  // A document that names a running subscription is quoting for what follows it: an
+  // uncorroborated "new purchase" read does not survive that signal.
+  if (currentSubLanguage && base.type === 'new_purchase' && base.confidence === 'low') base = { type: 'renewal', confidence: 'low' }
+  return { ...base, currentSubLanguage, evidence, inferred_at: (input.now ?? new Date()).toISOString() }
+}
 
 const NEW_PURCHASE_SIGNALS = [
   'initial order', 'new subscription', 'implementation fee', 'onboarding fee',
@@ -99,4 +153,22 @@ export function dealTypeLabel(type: InferredDealType): string {
     case 'expansion': return 'Expansion'
     default: return 'Unknown'
   }
+}
+
+/** Snapshot label for a stored deal type. */
+export function dealTypeSnapshotLabel(dealType: 'New' | 'Renewal'): 'New purchase' | 'Renewal' {
+  return dealType === 'Renewal' ? 'Renewal' : 'New purchase'
+}
+
+/**
+ * Make the snapshot's `deal_type` follow the deal's CHOSEN type (form selector,
+ * inference default, or the "Looks like a renewal" switch). The document's own
+ * wording is kept as `deal_type_stated` — evidence, not the deal's type.
+ * Mutates the output in place; idempotent.
+ */
+export function applyChosenDealType(output: { snapshot?: { deal_type?: string; deal_type_stated?: string } | null } | null | undefined, dealType: 'New' | 'Renewal'): void {
+  if (!output?.snapshot) return
+  const stated = output.snapshot.deal_type_stated ?? output.snapshot.deal_type
+  if (stated && !output.snapshot.deal_type_stated) output.snapshot.deal_type_stated = stated
+  output.snapshot.deal_type = dealTypeSnapshotLabel(dealType)
 }

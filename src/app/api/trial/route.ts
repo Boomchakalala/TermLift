@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { resolveRequestLocale } from '@/lib/request-locale'
 import { analyzeDeal } from '@/lib/claude'
+import { inferDealTypeForPersistence, applyChosenDealType } from '@/lib/deal-type-inference'
 import { stripAdvancedOutput, stripFlagDetailForQuick, SHOW_FULL_NEGOTIATION_PLAYBOOK } from '@/lib/negotiation-gating'
 import { runWithAiContext } from '@/lib/ai-telemetry'
 import { createAdminClient, createClient } from '@/lib/supabase/server'
@@ -160,6 +161,11 @@ export async function POST(request: Request) {
     // Determine locale from cookie or request body
     const resolvedLocale = await resolveRequestLocale(locale)
 
+    // Text the browser stashes with the trial so import-trial can persist it —
+    // otherwise an uploaded trial imports with "[Document received]" as its text
+    // and can never run Deep Analysis. Computed first so the classifier reads it.
+    const persistText = await textForPersistence({ extractedText, pdfData: validPdfData ?? null, imageData: validImageData ?? null, allPages: validAllPages ?? null })
+
     // Analyze with V1 (full text analysis — auto-retry on transient failures)
     const output = await runWithAiContext({ ipAddress: clientIP }, () => withRetry(() => analyzeDeal(
       extractedText || '',
@@ -170,19 +176,25 @@ export async function POST(request: Request) {
       validImageData,
       validAllPages && validAllPages.length > 0 ? validAllPages : undefined,
       resolvedLocale,
-      validPdfData
+      validPdfData,
+      undefined,
+      undefined,
+      persistText || undefined,
     )))
+    ;(output as any).inferred_deal_type = inferDealTypeForPersistence({
+      snapshotDealType: (output as any)?.snapshot?.deal_type,
+      recurring: (output as any)?.classification?.recurring,
+      extractedText: persistText,
+      evidence: (output as any)?.deal_type_evidence,
+      currentSubEnd: (output as any)?.snapshot?.current_sub_end,
+    })
+    applyChosenDealType(output as any, dealType === 'Renewal' ? 'Renewal' : 'New')
 
     const playbookOutput = SHOW_FULL_NEGOTIATION_PLAYBOOK
       ? output
       : stripAdvancedOutput(output as DealOutput | DealOutputV2)
     // Trial = quick stage: per-flag asks/fallbacks stay server-side, same rule as /app/deal.
     const responseOutput = { ...stripFlagDetailForQuick(playbookOutput as DealOutput | DealOutputV2), generated_locale: resolvedLocale }
-
-    // Text the browser stashes with the trial so import-trial can persist it —
-    // otherwise an uploaded trial imports with "[Document received]" as its text
-    // and can never run Deep Analysis.
-    const persistText = await textForPersistence({ extractedText, pdfData: validPdfData ?? null, imageData: validImageData ?? null, allPages: validAllPages ?? null })
 
     return NextResponse.json({
       success: true,

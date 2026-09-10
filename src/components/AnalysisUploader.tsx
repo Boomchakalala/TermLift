@@ -43,6 +43,15 @@ export interface AnalysisUploaderProps {
   // Live findings + completion flash, forwarded to AnalysisProgress
   liveFindings?: LiveFindings | null
   completionFlash?: { opportunityCount: number } | null
+
+  // Deal type selector (2026-09-11). Absent = the caller has no selector (e.g. /try keeps New).
+  dealType?: 'New' | 'Renewal'
+  onDealTypeChange?: (v: 'New' | 'Renewal') => void
+  /** What the preview inferred from the document, when it ran. */
+  suggestedDealType?: { type: 'New' | 'Renewal'; reason: 'renewal' | 'expansion' | 'new_purchase' | 'unknown'; confidence: 'high' | 'low' } | null
+  previewing?: boolean
+  /** Fired when the person leaves the paste box — the caller may run the preview early. */
+  onInputSettled?: () => void
 }
 
 function formatBytes(bytes: number) {
@@ -172,6 +181,11 @@ export function AnalysisUploader({
   trustLineText = 'Ready in a couple of minutes · Quote files are never stored',
   liveFindings,
   completionFlash,
+  dealType,
+  onDealTypeChange,
+  suggestedDealType,
+  previewing = false,
+  onInputSettled,
 }: AnalysisUploaderProps) {
   const fileRef = useRef<HTMLInputElement>(null)
   const [dragging, setDragging] = useState(false)
@@ -288,7 +302,37 @@ export function AnalysisUploader({
           className="w-full rounded-[10px] p-4 text-[14px] text-ink-2 bg-ground border border-line resize-none h-28 focus:outline-none  focus:border-green focus:bg-white placeholder:text-ink-3 transition-colors"
           placeholder="Paste your vendor quote, contract email, or renewal terms here..."
           disabled={uploading || analyzing}
+          onBlur={() => onInputSettled?.()}
         />
+        {/* Deal type — chosen here, suggested from the quote, never hard-coded */}
+        {dealType && onDealTypeChange && (
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <span className="text-[12px] text-ink-3">Deal type</span>
+            <div role="radiogroup" aria-label="Deal type" className="inline-flex rounded-lg border border-line bg-surface p-0.5">
+              {(['New', 'Renewal'] as const).map((v) => (
+                <button
+                  key={v}
+                  type="button"
+                  role="radio"
+                  aria-checked={dealType === v}
+                  disabled={analyzing}
+                  onClick={() => onDealTypeChange(v)}
+                  className={`h-7 px-3 rounded-md text-[12.5px] font-semibold transition-colors ${dealType === v ? 'bg-ink text-white' : 'text-ink-2 hover:text-ink'}`}
+                >
+                  {v === 'New' ? 'New purchase' : 'Renewal'}
+                </button>
+              ))}
+            </div>
+            {previewing && <span className="inline-flex items-center gap-1 text-[12px] text-ink-3"><Loader2 className="w-3 h-3 animate-spin" /> Reading the quote…</span>}
+            {!previewing && suggestedDealType && (
+              <span className="text-[12px] text-ink-3">
+                {suggestedDealType.type === 'Renewal'
+                  ? 'The quote names a current subscription, so we suggest Renewal.'
+                  : 'Suggested from the quote.'}
+              </span>
+            )}
+          </div>
+        )}
         <div className="mt-3 flex gap-2 items-center flex-wrap">
           <span className="text-[12px] text-ink-3">Supports</span>
           {['PDF', 'PNG', 'JPG', 'WEBP', 'Text'].map(f => (

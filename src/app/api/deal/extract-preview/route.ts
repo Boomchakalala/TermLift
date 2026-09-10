@@ -2,9 +2,12 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { CreateDealSchema } from '@/lib/schemas'
 import { classifyQuote, extractFinancialFacts, validateTotalCommitment } from '@/lib/claude'
-import { normalizeAmount } from '@/lib/currency'
+import { normalizeAmount, parseMoney } from '@/lib/currency'
 import { checkRateLimit } from '@/lib/rate-limit'
 import { runWithAiContext } from '@/lib/ai-telemetry'
+import { textForPersistence } from '@/lib/extract'
+import { resolveClassification } from '@/lib/claude/classification-guard'
+import { inferDealTypeForPersistence } from '@/lib/deal-type-inference'
 
 // Lightweight preview step ahead of /api/deal/create: runs the SAME
 // classify+extract calls analyzeDeal() runs internally as its Steps 0+1,
@@ -51,18 +54,40 @@ export async function POST(request: Request) {
       : undefined
     const allPages = (body as { allPages?: Array<{ base64: string; mimeType: string }> }).allPages || undefined
 
-    const [classification, facts] = await runWithAiContext({ userId: user.id }, () => Promise.all([
-      classifyQuote(validated.extractedText || '', validated.dealType, validated.imageData, allPages, validPdfData),
+    // The classifier reads TEXT. For a file upload the browser sends no text,
+    // so extract it server-side first (pdf-parse / OCR, best effort) — the
+    // same text the create route persists for the Playbook.
+    const pastedText = (validated.extractedText || '').trim()
+    const classifyText = pastedText.length >= 10 && !/^\[.{0,80}\]$/.test(pastedText)
+      ? pastedText
+      : (await textForPersistence({ extractedText: null, pdfData: validPdfData ?? null, imageData: validated.imageData ?? null, allPages: allPages ?? null })) || ''
+
+    const [classifiedRaw, facts] = await runWithAiContext({ userId: user.id }, () => Promise.all([
+      classifyQuote(classifyText, validated.dealType, validated.imageData, allPages, validPdfData),
       extractFinancialFacts(validated.extractedText || '', validated.dealType, validated.imageData, allPages, validPdfData),
     ]))
 
     facts.total_commitment = normalizeAmount(facts.total_commitment)
-    const validation = validateTotalCommitment(facts.total_commitment, validated.extractedText || '')
+    const validation = validateTotalCommitment(facts.total_commitment, validated.extractedText || classifyText)
     if (validation.wasOverridden) {
       facts.total_commitment = validation.total
     }
 
-    return NextResponse.json({ classification, facts })
+    // Guard: a classification that could not read the document is rebuilt from the facts.
+    const resolved = resolveClassification(classifiedRaw, facts, validated.dealType, parseMoney(facts.total_commitment).amount)
+    const classification = resolved.classification
+
+    // Deal-type suggestion for the form's selector: the extraction's own read,
+    // the classifier's `recurring`, the text and the evidence spans.
+    const inferredDealType = inferDealTypeForPersistence({
+      snapshotDealType: facts.deal_type,
+      recurring: classification.recurring,
+      extractedText: classifyText,
+      evidence: facts.deal_type_evidence,
+      currentSubEnd: facts.current_sub_end,
+    })
+
+    return NextResponse.json({ classification, facts, inferredDealType, classificationSource: resolved.replaced ? 'facts_fallback' : 'model' })
   } catch (error) {
     console.error('Extract preview error:', error)
     return NextResponse.json({ error: 'Failed to preview quote' }, { status: 500 })

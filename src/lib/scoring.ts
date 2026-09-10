@@ -67,6 +67,28 @@ export interface LeverageFactors {
   buyerInsidePenaltyWindow: boolean
 }
 
+/**
+ * Renewal mechanics as fields (2026-09-11). Null = not stated in the document.
+ * Seeded from the extraction call's own fields when it read them, else from
+ * the analysis call's extraction block; both are literal reads, never inferred.
+ */
+export interface RenewalTerms {
+  autoRenew: boolean | null
+  noticeDays: number | null
+  escalationMinPct: number | null
+  escalationCapPct: number | null
+  extraIncreaseAllowed: boolean | null
+}
+
+/** Dates printed on the quote, ISO `YYYY-MM-DD` when parseable, else the printed string. */
+export interface QuoteDates {
+  created: string | null
+  /** Quote validity / signing deadline. */
+  expires: string | null
+  /** End date of a current subscription the quote mentions (renewal signal). */
+  currentSubEnd: string | null
+}
+
 /** Everything computeScores() needs. The persisted extraction is a superset. */
 export interface ExtractionResult {
   /** Total contract value, from the verified financial facts. */
@@ -81,7 +103,19 @@ export interface ExtractionResult {
   vendorRights: VendorRights
   tbdLineItems: TbdLineItem[]
   leverageFactors: LeverageFactors
+  renewalTerms?: RenewalTerms
+  quoteDates?: QuoteDates
 }
+
+export interface ScoreOptions {
+  /** Server date (`YYYY-MM-DD`). When the quote's expiry is before it, the deadline carries no leverage either way. */
+  asOf?: string
+  /** HIGH-severity red flags in the `terms` category (LLM + code). Caps Terms at 75 (one) / 65 (two or more). */
+  highTermsFlagCount?: number
+}
+
+export const EMPTY_RENEWAL_TERMS: RenewalTerms = { autoRenew: null, noticeDays: null, escalationMinPct: null, escalationCapPct: null, extraIncreaseAllowed: null }
+export const EMPTY_QUOTE_DATES: QuoteDates = { created: null, expires: null, currentSubEnd: null }
 
 export interface Deduction {
   category: 'pricing' | 'terms' | 'leverage'
@@ -116,8 +150,40 @@ function sumPoints(deductions: Deduction[], category: Deduction['category']): nu
   return deductions.filter((d) => d.category === category).reduce((s, d) => s + d.points, 0)
 }
 
+// ── dates ───────────────────────────────────────────────────────────────────
+/** `YYYY-MM-DD` from most printed date styles, else null. Pure: no clock. */
+export function toIsoDate(raw: unknown): string | null {
+  if (raw == null) return null
+  const s = String(raw).trim()
+  if (!s || /^(not[_ ]stated|unknown|n\/a|none)$/i.test(s)) return null
+  const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/)
+  if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`
+  // 11/01/2026 or 11-01-2026: ambiguous day/month; treat as D/M/Y when the first part exceeds 12.
+  const dmy = s.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/)
+  if (dmy) {
+    const a = parseInt(dmy[1], 10), b = parseInt(dmy[2], 10)
+    const [d, m] = a > 12 ? [a, b] : [b, a]
+    if (m >= 1 && m <= 12 && d >= 1 && d <= 31) return `${dmy[3]}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+  }
+  // Date.parse gives LOCAL midnight for a printed date; format the local components so the
+  // calendar day never shifts with the server's timezone offset.
+  const t = Date.parse(s.replace(/(\d+)(st|nd|rd|th)\b/g, '$1'))
+  if (Number.isFinite(t)) {
+    const d = new Date(t)
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  }
+  return null
+}
+
+/** True when `expires` is a real date strictly before `asOf` (both `YYYY-MM-DD`). */
+export function isExpired(expires: string | null | undefined, asOf: string | null | undefined): boolean {
+  const e = toIsoDate(expires)
+  const a = toIsoDate(asOf)
+  return !!e && !!a && e < a
+}
+
 // ── main ────────────────────────────────────────────────────────────────────
-export function computeScores(extraction: ExtractionResult): ScoreResult {
+export function computeScores(extraction: ExtractionResult, options: ScoreOptions = {}): ScoreResult {
   const deductions: Deduction[] = []
   const contractTotal = extraction.contractTotal > 0 ? extraction.contractTotal : 0
   const subtotal = extraction.subtotal && extraction.subtotal > 0 ? extraction.subtotal : contractTotal
@@ -187,13 +253,16 @@ export function computeScores(extraction: ExtractionResult): ScoreResult {
 
   const terms = Math.max(FLOOR, 100 + sumPoints(deductions, 'terms'))
 
+
   // ─── LEVERAGE (start 50, neutral) ───────────────────────────────────────────
   const l = extraction.leverageFactors
   if (l?.competingQuoteInHand) deductions.push({ category: 'leverage', label: 'Competing quote in hand', points: 20 })
   if (l?.dealSizeSignificant) deductions.push({ category: 'leverage', label: 'Deal size significant for vendor', points: 10 })
   if (l?.buyerInsidePenaltyWindow) deductions.push({ category: 'leverage', label: 'Buyer inside penalty window', points: -20 })
   if (l?.soleSource) deductions.push({ category: 'leverage', label: 'Sole-source vendor', points: -15 })
-  if (l?.daysToDeadline != null) {
+  // An expired quote carries no deadline leverage either way: the dates are historical.
+  const expired = isExpired(extraction.quoteDates?.expires, options.asOf)
+  if (!expired && l?.daysToDeadline != null) {
     if (l.daysToDeadline > 30) deductions.push({ category: 'leverage', label: 'Over 30 days to deadline', points: 10 })
     else if (l.daysToDeadline < 14) deductions.push({ category: 'leverage', label: 'Under 14 days to deadline', points: -10 })
   }
@@ -296,5 +365,132 @@ export function normalizeExtraction(raw: any, contractTotal: number): Extraction
       dealSizeSignificant: toBool(lf.dealSizeSignificant, false),
       buyerInsidePenaltyWindow: toBool(lf.buyerInsidePenaltyWindow, false),
     },
+    renewalTerms: normalizeRenewalTerms(r.renewalTerms),
+    quoteDates: normalizeQuoteDates(r.quoteDates),
   }
+}
+
+/** Tri-state boolean: true/false when stated, null when the document is silent. */
+function toBoolOrNull(v: unknown): boolean | null {
+  if (typeof v === 'boolean') return v
+  if (v == null || v === '') return null
+  if (typeof v === 'string') {
+    if (/^(true|yes|y|1)$/i.test(v.trim())) return true
+    if (/^(false|no|n|0)$/i.test(v.trim())) return false
+  }
+  return null
+}
+
+export function normalizeRenewalTerms(raw: unknown): RenewalTerms {
+  const r = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>
+  const pct = (v: unknown) => { const n = toNum(v); return n != null && n >= 0 && n <= 100 ? n : null }
+  const days = (v: unknown) => { const n = toNum(v); return n != null && n >= 0 && n <= 365 ? Math.round(n) : null }
+  return {
+    autoRenew: toBoolOrNull(r.autoRenew),
+    noticeDays: days(r.noticeDays),
+    escalationMinPct: pct(r.escalationMinPct),
+    escalationCapPct: pct(r.escalationCapPct),
+    extraIncreaseAllowed: toBoolOrNull(r.extraIncreaseAllowed),
+  }
+}
+
+export function normalizeQuoteDates(raw: unknown): QuoteDates {
+  const r = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>
+  const keep = (v: unknown) => toIsoDate(v) ?? (typeof v === 'string' && v.trim() && !/^(not[_ ]stated|unknown|n\/a|none)$/i.test(v.trim()) ? v.trim().slice(0, 40) : null)
+  return { created: keep(r.created), expires: keep(r.expires), currentSubEnd: keep(r.currentSubEnd) }
+}
+
+/**
+ * Seed the renewal/date fields from the extraction call's own reads (schema A)
+ * when the analysis call left them null. The dedicated extraction is the more
+ * literal read, so its non-null values win.
+ */
+export function seedFromFacts(extraction: ExtractionResult, facts: {
+  auto_renew?: unknown; notice_days?: unknown; escalation_min_pct?: unknown; escalation_cap_pct?: unknown; extra_increase_allowed?: unknown
+  quote_created?: unknown; quote_expires?: unknown; current_sub_end?: unknown; signing_deadline?: unknown
+} | null | undefined): ExtractionResult {
+  if (!facts) return extraction
+  const fromFacts = normalizeRenewalTerms({
+    autoRenew: facts.auto_renew, noticeDays: facts.notice_days, escalationMinPct: facts.escalation_min_pct,
+    escalationCapPct: facts.escalation_cap_pct, extraIncreaseAllowed: facts.extra_increase_allowed,
+  })
+  const dates = normalizeQuoteDates({ created: facts.quote_created, expires: facts.quote_expires ?? facts.signing_deadline, currentSubEnd: facts.current_sub_end })
+  const cur = extraction.renewalTerms ?? EMPTY_RENEWAL_TERMS
+  const curDates = extraction.quoteDates ?? EMPTY_QUOTE_DATES
+  return {
+    ...extraction,
+    renewalTerms: {
+      autoRenew: fromFacts.autoRenew ?? cur.autoRenew,
+      noticeDays: fromFacts.noticeDays ?? cur.noticeDays,
+      escalationMinPct: fromFacts.escalationMinPct ?? cur.escalationMinPct,
+      escalationCapPct: fromFacts.escalationCapPct ?? cur.escalationCapPct,
+      extraIncreaseAllowed: fromFacts.extraIncreaseAllowed ?? cur.extraIncreaseAllowed,
+    },
+    quoteDates: {
+      created: dates.created ?? curDates.created,
+      expires: dates.expires ?? curDates.expires,
+      currentSubEnd: dates.currentSubEnd ?? curDates.currentSubEnd,
+    },
+  }
+}
+
+/**
+ * Merge the Playbook's extraction over the fast pass's. A stated value from
+ * the deeper read replaces a null or default from the fast read; `contractTotal`
+ * always comes from the verified facts and never changes.
+ */
+export function mergeExtractions(fast: ExtractionResult, deep: ExtractionResult | null | undefined): ExtractionResult {
+  if (!deep) return fast
+  const pick = <T>(a: T, b: T): T => (b == null ? a : b)
+  const boolStated = (a: boolean, b: boolean, dflt: boolean) => (b !== dflt ? b : a)
+  return {
+    contractTotal: fast.contractTotal,
+    subtotal: pick(fast.subtotal, deep.subtotal),
+    pricingItemized: boolStated(fast.pricingItemized, deep.pricingItemized, true),
+    fees: deep.fees.length ? deep.fees : fast.fees,
+    cancellationTerms: {
+      refundSchedule: pick(fast.cancellationTerms.refundSchedule, deep.cancellationTerms.refundSchedule),
+      buyerInsideWindow: fast.cancellationTerms.buyerInsideWindow || deep.cancellationTerms.buyerInsideWindow,
+      retentionPctInsideWindow: pick(fast.cancellationTerms.retentionPctInsideWindow, deep.cancellationTerms.retentionPctInsideWindow),
+      forceMajeurePresent: boolStated(fast.cancellationTerms.forceMajeurePresent, deep.cancellationTerms.forceMajeurePresent, true),
+      rescheduleOption: fast.cancellationTerms.rescheduleOption || deep.cancellationTerms.rescheduleOption,
+      rescheduleFeePct: pick(fast.cancellationTerms.rescheduleFeePct, deep.cancellationTerms.rescheduleFeePct),
+    },
+    paymentTerms: {
+      depositPct: pick(fast.paymentTerms.depositPct, deep.paymentTerms.depositPct),
+      balanceDueDaysBeforeDelivery: pick(fast.paymentTerms.balanceDueDaysBeforeDelivery, deep.paymentTerms.balanceDueDaysBeforeDelivery),
+      achOffered: fast.paymentTerms.achOffered || deep.paymentTerms.achOffered,
+      netTerms: pick(fast.paymentTerms.netTerms, deep.paymentTerms.netTerms),
+    },
+    vendorRights: {
+      unilateralSubstitution: fast.vendorRights.unilateralSubstitution || deep.vendorRights.unilateralSubstitution,
+      mandatoryMarketing: fast.vendorRights.mandatoryMarketing || deep.vendorRights.mandatoryMarketing,
+      reciprocalValue: boolStated(fast.vendorRights.reciprocalValue, deep.vendorRights.reciprocalValue, true),
+    },
+    tbdLineItems: deep.tbdLineItems.length ? deep.tbdLineItems : fast.tbdLineItems,
+    leverageFactors: {
+      competingQuoteInHand: fast.leverageFactors.competingQuoteInHand || deep.leverageFactors.competingQuoteInHand,
+      daysToDeadline: pick(fast.leverageFactors.daysToDeadline, deep.leverageFactors.daysToDeadline),
+      soleSource: fast.leverageFactors.soleSource || deep.leverageFactors.soleSource,
+      dealSizeSignificant: fast.leverageFactors.dealSizeSignificant || deep.leverageFactors.dealSizeSignificant,
+      buyerInsidePenaltyWindow: fast.leverageFactors.buyerInsidePenaltyWindow || deep.leverageFactors.buyerInsidePenaltyWindow,
+    },
+    renewalTerms: {
+      autoRenew: pick(fast.renewalTerms?.autoRenew ?? null, deep.renewalTerms?.autoRenew ?? null),
+      noticeDays: pick(fast.renewalTerms?.noticeDays ?? null, deep.renewalTerms?.noticeDays ?? null),
+      escalationMinPct: pick(fast.renewalTerms?.escalationMinPct ?? null, deep.renewalTerms?.escalationMinPct ?? null),
+      escalationCapPct: pick(fast.renewalTerms?.escalationCapPct ?? null, deep.renewalTerms?.escalationCapPct ?? null),
+      extraIncreaseAllowed: pick(fast.renewalTerms?.extraIncreaseAllowed ?? null, deep.renewalTerms?.extraIncreaseAllowed ?? null),
+    },
+    quoteDates: {
+      created: pick(fast.quoteDates?.created ?? null, deep.quoteDates?.created ?? null),
+      expires: pick(fast.quoteDates?.expires ?? null, deep.quoteDates?.expires ?? null),
+      currentSubEnd: pick(fast.quoteDates?.currentSubEnd ?? null, deep.quoteDates?.currentSubEnd ?? null),
+    },
+  }
+}
+
+/** Count of HIGH-severity flags in the terms category — the input to the Terms cap. */
+export function countHighTermsFlags(flags: Array<{ severity?: unknown; score_category?: unknown }> | null | undefined): number {
+  return (flags || []).filter((f) => String(f?.severity || '').toLowerCase() === 'high' && String(f?.score_category || '').toLowerCase() === 'terms').length
 }

@@ -1,14 +1,14 @@
 /**
  * Claude AI Pipeline — v2 architecture
  *
- * 1. Classify the quote type (Haiku, fast)
- * 2. Extract facts into rigid schema (Sonnet, cached by document hash)
- * 3. Run code-based red flag engine (deterministic, no AI)
- * 4. Calculate deterministic score (code, from flags + savings)
- * 5. AI analysis for judgment calls (market fairness, negotiation angle, strategy)
- * 6. Generate emails (uses code flags + AI judgment)
+ * 1. Classify the quote type (Haiku, fast) — from the extracted TEXT, never a blank prompt
+ * 2. Extract facts into rigid schema (Sonnet)
+ * 3. Code checks on the facts (total, line sums, unit price, renewal fields, dates)
+ * 4. Fast AI analysis for judgment calls (verdict, flags, asks, savings)
+ * 5. Code: rule flags on the renewal/date fields, savings normalisation,
+ *    playbook hygiene, deterministic score
  *
- * Same document = same extraction = same flags = same score.
+ * Same document = same extraction = same code flags = same score.
  * AI only handles what code can't: market judgment, writing, strategy.
  */
 
@@ -28,13 +28,20 @@ import { classifyQuote } from './classify'
 import { extractFinancialFacts, type ExtractedFacts } from './extract'
 import { analyzeFastCore } from './fast-analyze'
 import { validateTotalCommitment } from './validate-total'
+import { resolveClassification } from './classification-guard'
 import { buildQuoteFacts, reconcileTotalWithLines } from '@/lib/quote-facts'
+import { stripDeadlineLeverage } from '@/lib/playbook-hygiene'
 import { DealOutputSchema, type DealOutputType, type QuoteClassificationType } from '../schemas'
-import { computeScores, normalizeExtraction, scoreLabel } from '../scoring'
+import { computeScores, isExpired, normalizeExtraction, scoreLabel, seedFromFacts } from '../scoring'
 import { parseMoney, normalizeAmount } from '../currency'
 import type { DealOutput } from '@/types'
 import { ANALYSIS_PIPELINE_V3 } from '../analysis/flag'
 import { runFullAnalysisPipelineV3 } from '../analysis/full-pipeline'
+
+/** Server date as `YYYY-MM-DD` — the one clock the pipeline reads. */
+export function analysisDate(now: Date = new Date()): string {
+  return now.toISOString().slice(0, 10)
+}
 
 /**
  * Main analysis pipeline — v2 with deterministic extraction and scoring.
@@ -55,7 +62,11 @@ export async function analyzeDeal(
   // present, Steps 0+1 reuse it instead of re-calling classifyQuote()/
   // extractFinancialFacts(), so the two-request flow never doubles the
   // LLM calls a single analysis makes.
-  precomputed?: { classification: QuoteClassificationType; rawFacts: ExtractedFacts }
+  precomputed?: { classification: QuoteClassificationType; rawFacts: ExtractedFacts },
+  // Text the classifier reads when the quote arrived as a file (server-side
+  // pdf-parse / OCR output). Haiku cannot take a PDF, so without this it used
+  // to classify "(see attached document)" with nothing attached.
+  textForClassification?: string,
 ): Promise<DealOutputType> {
   if (ANALYSIS_PIPELINE_V3) {
     return runFullAnalysisPipelineV3(
@@ -65,6 +76,7 @@ export async function analyzeDeal(
   }
 
   const pipelineStart = Date.now()
+  const asOf = analysisDate()
   try {
     // ─── Steps 0+1: Classify + extract in parallel (or reuse precomputed) ───
     // Both only read the quote — neither depends on the other, so run them together.
@@ -77,8 +89,9 @@ export async function analyzeDeal(
     } else {
       console.log('[TermLift] Steps 0+1: Classifying + extracting facts (parallel)...')
       const stepsStart = Date.now()
+      const classifyText = (textForClassification && textForClassification.trim().length >= 10 ? textForClassification : extractedText) || ''
       ;[classification, rawFacts] = await Promise.all([
-        classifyQuote(extractedText, dealType, imageData, allPages, pdfData),
+        classifyQuote(classifyText, dealType, imageData, allPages, pdfData),
         extractFinancialFacts(extractedText, dealType, imageData, allPages, pdfData),
       ])
       console.log(`[TermLift timing] Steps 0+1 (classify+extract, parallel): ${Date.now() - stepsStart}ms`)
@@ -97,7 +110,7 @@ export async function analyzeDeal(
     }
     // ─── Step 1c: Cross-check the total against printed line totals ───
     // Overrides only when the document itself prints the line sum as a total; otherwise records the discrepancy.
-    const lineCheck = reconcileTotalWithLines(rawFacts.total_commitment, rawFacts.printed_line_totals, extractedText)
+    const lineCheck = reconcileTotalWithLines(rawFacts.total_commitment, rawFacts.printed_line_totals, extractedText || textForClassification)
     if (lineCheck.corrected) {
       rawFacts.total_commitment = lineCheck.total
       console.warn('[TermLift] Step 1c: Total corrected from printed line totals:', lineCheck.note)
@@ -108,6 +121,14 @@ export async function analyzeDeal(
     const quoteFacts = buildQuoteFacts(rawFacts)
     if (lineCheck.note) quoteFacts.notes.push(lineCheck.note)
     if (lineCheck.corrected) quoteFacts.checks.total = 'corrected'
+
+    // ─── Step 1d: Classification guard ───
+    // A classification that says it could not read the document is rejected and
+    // rebuilt from the extraction's own facts (category, term, pricing model, total).
+    const contractTotal = parseMoney(rawFacts.total_commitment).amount
+    const resolved = resolveClassification(classification, rawFacts, dealType, contractTotal)
+    if (resolved.replaced) console.warn('[TermLift] Step 1d: classifier could not read the document; classification rebuilt from facts:', resolved.classification.quote_type, resolved.classification.savings_strategy.target_percent_min + '-' + resolved.classification.savings_strategy.target_percent_max + '%')
+    classification = resolved.classification
 
     // ─── Step 2: FAST core analysis ───
     // Deliberately trimmed sibling of analyzeDealFacts() (see fast-analyze.ts) —
@@ -128,20 +149,25 @@ export async function analyzeDeal(
       allPages,
       pdfData,
       userPreferences,
+      asOf,
     })
     console.log(`[TermLift timing] Step 2 (fast core analysis): ${Date.now() - fastStepStart}ms`)
     console.log('[TermLift] Step 2 done:', analysis.verdict_type, '|', analysis.red_flags?.length, 'flags | extraction:', analysis.extraction ? 'yes' : 'missing')
 
-    // ─── Step 2b: Sanity check savings ───
-    const ps = analysis.potential_savings as any
-    const commitAmount = parseMoney(rawFacts.total_commitment).amount
-    if (ps?.must_have) {
-      const savingsFromItems = (ps.must_have as any[]).reduce((sum: number, item: any) => sum + (typeof item.amount === 'number' ? item.amount : 0), 0)
-      if (commitAmount > 0 && savingsFromItems > commitAmount) {
-        console.warn(`[TermLift] GUARD: savings (${savingsFromItems}) > total (${commitAmount}).`)
-      }
-      // Always recalculate total from items
-      ps.total = savingsFromItems
+    // ─── Step 2a: Structured extraction, seeded from the extraction call's own fields ───
+    const extraction = seedFromFacts(normalizeExtraction(analysis.extraction, contractTotal), rawFacts)
+    const quoteExpired = isExpired(extraction.quoteDates?.expires, asOf)
+
+    const redFlags = analysis.red_flags || []
+
+    const potentialSavings = analysis.potential_savings
+
+    // ─── Step 2d: expiry hygiene ───
+    let leverage = analysis.negotiation_plan?.leverage_you_have || []
+    if (quoteExpired) {
+      const stripped = stripDeadlineLeverage(leverage)
+      leverage = stripped.kept
+      if (stripped.dropped.length) console.log('[TermLift] Step 2d: quote expired; dropped deadline leverage:', stripped.dropped.join(' | '))
     }
 
     // ─── Step 3: Assemble output ───
@@ -164,16 +190,20 @@ export async function analyzeDeal(
         deal_type: rawFacts.deal_type,
         renewal_date: rawFacts.renewal_date,
         signing_deadline: rawFacts.signing_deadline,
+        quote_number: rawFacts.quote_number,
+        quote_created: rawFacts.quote_created,
+        quote_expires: rawFacts.quote_expires ?? rawFacts.signing_deadline,
+        current_sub_end: rawFacts.current_sub_end,
       },
       title: analysis.title,
       verdict: analysis.verdict,
       verdict_type: analysis.verdict_type,
       price_insight: analysis.price_insight,
       quick_read: analysis.quick_read,
-      red_flags: analysis.red_flags,
-      negotiation_plan: analysis.negotiation_plan,
+      red_flags: redFlags,
+      negotiation_plan: { ...analysis.negotiation_plan, leverage_you_have: leverage },
       what_to_ask_for: analysis.what_to_ask_for,
-      potential_savings: analysis.potential_savings,
+      potential_savings: potentialSavings,
       score_rationale: analysis.score_rationale,
       assumptions: analysis.assumptions,
     }
@@ -187,9 +217,7 @@ export async function analyzeDeal(
     }
 
     // Extract-then-compute: the LLM extracted the facts, the engine sets the numbers.
-    const contractTotal = parseMoney(rawFacts.total_commitment).amount
-    const extraction = normalizeExtraction(analysis.extraction, contractTotal)
-    const scores = computeScores(extraction)
+    const scores = computeScores(extraction, { asOf })
 
     const assembleStart = Date.now()
     // Persist the extraction + deductions alongside the computed scores so the deal
@@ -201,6 +229,7 @@ export async function analyzeDeal(
     // declare, not a new trick.
     const result: any = {
       ...validated,
+      contact_name: rawFacts.contact_name,
       score: scores.overall,
       score_label: scoreLabel(scores.overall),
       score_rationale: analysis.score_rationale || '',
@@ -210,22 +239,30 @@ export async function analyzeDeal(
         leverage: scores.leverage,
         deductions: scores.deductions,
       },
-      extraction: analysis.extraction,
+      // The normalised extraction (renewal fields and dates included) — the exact
+      // input the score was computed from, so a rescore reproduces it.
+      extraction,
       deductions: scores.deductions,
       confidence: analysis.confidence,
+      // Kept as the model's own estimate; the hero tile and the email use
+      // lib/deal-target.ts (total − quantified asks, or the benchmark target).
       target_price_range: analysis.target_price_range,
       // Persisted so deep analysis (triggered later, on demand) can reuse it
       // instead of re-running classifyQuote() — same non-schema attach
       // pattern as everything else above.
       classification,
+      classification_source: resolved.replaced ? 'facts_fallback' : 'model',
       // Validated commercial facts (lib/quote-facts.ts) — persisted with the
       // round so outcomes can be compared later without the quote text.
       quote_facts: quoteFacts,
+      analysis_date: asOf,
+      quote_expired: quoteExpired,
+      deal_type_evidence: rawFacts.deal_type_evidence || [],
       deep_analysis_status: 'idle' as const,
     }
     console.log(`[TermLift timing] Step 4 (validate + score, in-process, no DB): ${Date.now() - assembleStart}ms`)
     console.log(`[TermLift timing] TOTAL analyzeDeal() (excludes DB writes, done by the caller): ${Date.now() - pipelineStart}ms`)
-    console.log('[TermLift] Pipeline complete — score:', scores.overall, `(p${scores.pricing}/t${scores.terms}/l${scores.leverage})`)
+    console.log('[TermLift] Pipeline complete — score:', scores.overall, `(p${scores.pricing}/t${scores.terms}/l${scores.leverage})`, quoteExpired ? '| QUOTE EXPIRED' : '')
 
     return result as DealOutputType
 

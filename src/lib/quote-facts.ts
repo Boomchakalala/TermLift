@@ -28,6 +28,8 @@ export interface QuoteFacts {
   pricing_metric: string | null
   /** Sum of the per-line totals the document prints, when it prints them. */
   printed_lines_sum: number | null
+  /** Every priced line as printed (sanitised, not cross-checked). Absent on facts built before 2026-09-11. */
+  lines?: QuoteLine[]
   checks: {
     quantity: CheckStatus
     unit_price: CheckStatus
@@ -46,6 +48,17 @@ const TOL = 0.05
 const num = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) && v > 0 ? v : null)
 const within = (a: number, b: number, tol = TOL) => b > 0 && Math.abs(a - b) / b <= tol
 
+export interface RawLineItem {
+  description?: string
+  sku?: string
+  quantity?: number
+  list_unit_price?: number
+  discount_pct?: number
+  net_unit_price?: number
+  line_total?: number
+  term_months?: number
+}
+
 export interface RawCommercialFacts {
   total_commitment?: string
   term?: string
@@ -53,6 +66,33 @@ export interface RawCommercialFacts {
   printed_line_totals?: number[]
   term_months?: number
   pricing_metric?: string
+  /** Every priced line as printed (2026-09-11). Kept verbatim on the facts; only the main line is cross-checked. */
+  line_items?: RawLineItem[]
+}
+
+/** A printed line, sanitised: numbers only where the model gave numbers. */
+export interface QuoteLine {
+  description: string | null
+  sku: string | null
+  quantity: number | null
+  list_unit_price: number | null
+  discount_pct: number | null
+  net_unit_price: number | null
+  line_total: number | null
+  term_months: number | null
+}
+
+export function sanitizeLines(raw: RawLineItem[] | undefined): QuoteLine[] {
+  return (raw || []).filter((li) => li && typeof li === 'object').slice(0, 40).map((li) => ({
+    description: typeof li.description === 'string' && li.description.trim() ? li.description.trim().slice(0, 200) : null,
+    sku: typeof li.sku === 'string' && li.sku.trim() ? li.sku.trim().slice(0, 60) : null,
+    quantity: num(li.quantity),
+    list_unit_price: num(li.list_unit_price),
+    discount_pct: typeof li.discount_pct === 'number' && Number.isFinite(li.discount_pct) && li.discount_pct >= 0 && li.discount_pct < 100 ? li.discount_pct : null,
+    net_unit_price: num(li.net_unit_price),
+    line_total: num(li.line_total),
+    term_months: num(li.term_months) ? Math.round(li.term_months as number) : null,
+  }))
 }
 
 /**
@@ -102,6 +142,31 @@ export function buildQuoteFacts(raw: RawCommercialFacts): QuoteFacts {
     else { termMonths = fromText; termCheck = 'verified'; notes.push(`term_months ${fromModel} disagreed with term text "${raw.term}" (${fromText}); used the text`) }
   } else if (fromText) { termMonths = fromText; termCheck = 'verified' }
   else if (fromModel) { termMonths = fromModel; termCheck = 'unchecked' }
+
+  // ── unit price candidates: net before list (2026-09-11) ──
+  // The model sometimes copies the list price into unit_price. Try every net
+  // figure the document offers before the one it gave: the line's own
+  // net_unit_price, list × (1 − discount), then the stated unit_price.
+  const mainLine = (raw.line_items || []).find((li) => li && typeof li === 'object' && ((ml.description && li.description && li.description.trim() === ml.description.trim()) || (lineTotal && num(li.line_total) && within(num(li.line_total) as number, lineTotal))))
+  const unitCandidates: Array<[number, string]> = []
+  const pushCand = (v: unknown, label: string) => { const n = num(v); if (n && !unitCandidates.some(([c]) => within(c, n, 0.001))) unitCandidates.push([n, label]) }
+  pushCand(mainLine?.net_unit_price, 'line net_unit_price')
+  if (mainLine && num(mainLine.list_unit_price) && num(mainLine.discount_pct) && (mainLine.discount_pct as number) < 100) pushCand((mainLine.list_unit_price as number) * (1 - (mainLine.discount_pct as number) / 100), 'list × (1 − discount)')
+  if (list && quantity && lineTotal && within(quantity * list, lineTotal)) { /* the "list" is really the net; handled below via unit */ }
+  pushCand(unit, 'unit_price')
+  if (!list && mainLine && num(mainLine.list_unit_price)) list = num(mainLine.list_unit_price)
+  if (!quantity && mainLine && num(mainLine.quantity)) quantity = num(mainLine.quantity)
+  if (quantity && unitCandidates.length > 1) {
+    // Pick the first candidate that reconciles with a printed figure; the stated unit_price stays the fallback.
+    const targetsPre: number[] = [lineTotal, total].filter((n): n is number => !!n)
+    const mults = [1, termMonths || 0, termMonths ? termMonths / 12 : 0, 12].filter((m) => m > 0)
+    const hitCand = unitCandidates.find(([c]) => targetsPre.some((t) => mults.some((m) => within(quantity! * c * m, t))))
+    if (hitCand && !within(hitCand[0], unit ?? -1, 0.001)) {
+      notes.push(`unit price ${unit ?? 'n/a'} replaced by ${hitCand[0]} (${hitCand[1]}), which reconciles with the printed figures`)
+      if (unit && (!list || list < unit) && !within(unit, hitCand[0], 0.001) && unit > hitCand[0]) { list = unit; notes.push(`stated unit price ${unit} kept as the list price`) }
+      unit = hitCand[0]
+    }
+  }
 
   // ── quantity × unit price must reproduce a printed number ──
   let unitCheck: CheckStatus = 'dropped'
@@ -162,6 +227,7 @@ export function buildQuoteFacts(raw: RawCommercialFacts): QuoteFacts {
     term_months: termMonths,
     pricing_metric: metric,
     printed_lines_sum: printedLinesSum,
+    lines: sanitizeLines(raw.line_items),
     checks: { quantity: qtyCheck, unit_price: unitCheck, list_unit_price: listCheck, term_months: termCheck, total: totalCheck },
     notes,
   }

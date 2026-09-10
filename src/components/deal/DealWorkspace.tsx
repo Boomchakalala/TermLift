@@ -27,6 +27,7 @@ import {
 } from '@/lib/deal-metrics'
 import { normalizeAmount, parseMoney } from '@/lib/currency'
 import { latestConfirmedVendorOffer } from '@/lib/vendor-offer'
+import { isExpired, toIsoDate } from '@/lib/scoring'
 
 export interface DealWorkspaceDeal extends DealLike {
   close_summary?: string | null
@@ -52,6 +53,8 @@ interface DealWorkspaceProps {
   negotiationRequest?: NegotiationRequestLite | null
   addRoundForm?: ReactNode
   inferredDealType?: 'renewal' | 'new_purchase' | 'expansion' | 'unknown'
+  /** Stored type is New but the document reads like a renewal — show the one-click switch (server decides). */
+  renewalSuggestion?: boolean
   /** Already-redacted output when the playbook is hidden (server decides). */
   latestOutputOverride?: unknown
   /** Generated-content language vs UI language (app mode only); drives the translate control. */
@@ -65,11 +68,21 @@ interface DealWorkspaceProps {
  * changes with the stage), stage rail, verdict, stat tiles, then the existing
  * analysis sections, then the hand-off gate. Shared by /app, /demo and /try.
  */
-export function DealWorkspace({ deal, mode, messages, isAdmin, showFullPlaybook, negotiationRequest, addRoundForm, inferredDealType, latestOutputOverride, languageView, playbookAccess }: DealWorkspaceProps) {
+export function DealWorkspace({ deal, mode, messages, isAdmin, showFullPlaybook, negotiationRequest, addRoundForm, inferredDealType, renewalSuggestion = false, latestOutputOverride, languageView, playbookAccess }: DealWorkspaceProps) {
   const { t, locale } = useI18n()
   const router = useRouter()
   // Captured once per mount so render stays pure (react-compiler rule).
   const [now] = useState(() => Date.now())
+  // "Looks like a renewal" one-click switch (PATCH /api/deal/[id] { dealType }).
+  const [switchingType, setSwitchingType] = useState(false)
+  const [typeSwitched, setTypeSwitched] = useState(false)
+  const switchToRenewal = async () => {
+    setSwitchingType(true)
+    try {
+      const res = await fetch(`/api/deal/${deal.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ dealType: 'Renewal' }) })
+      if (res.ok) { setTypeSwitched(true); router.refresh() }
+    } finally { setSwitchingType(false) }
+  }
   const isTrial = mode === 'trial'
   const isDemo = mode === 'demo'
   const linkBase = isDemo ? '/demo' : '/app'
@@ -207,6 +220,12 @@ export function DealWorkspace({ deal, mode, messages, isAdmin, showFullPlaybook,
   const potential = getPotentialSavings(deal)
   const range = getSavingsRange(deal)
   const score = getScore(deal)
+  // Quote validity vs the server clock captured at mount: expired quotes get a banner and a "Historical" chip.
+  const lo = latestOutput as unknown as { quote_expired?: boolean; extraction?: { quoteDates?: { expires?: string | null } }; snapshot?: { quote_expires?: string; signing_deadline?: string } }
+  const quoteExpiresRaw = lo.extraction?.quoteDates?.expires ?? lo.snapshot?.quote_expires ?? lo.snapshot?.signing_deadline ?? null
+  const quoteExpiresIso = toIsoDate(quoteExpiresRaw)
+  const quoteExpired = !closed && (lo.quote_expired === true || isExpired(quoteExpiresIso, new Date(now).toISOString().slice(0, 10)))
+  const quoteExpiredLabel = quoteExpiresIso ? new Date(`${quoteExpiresIso}T00:00:00Z`).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' }) : String(quoteExpiresRaw || '')
   // Headline from the score band, localised — not the stored score_label ("Low risk, minor improvements possible").
   const scoreLabel = score != null ? scoreHeadline(score, locale) : latestOutput.score_label
   const scoreRationale = latestOutput.score_rationale
@@ -378,6 +397,20 @@ export function DealWorkspace({ deal, mode, messages, isAdmin, showFullPlaybook,
             {checkoutNotice === 'confirming' ? t('billing.confirming') : t('billing.cancelled')}
           </p>
         )}
+        {/* ── Quote hygiene banners (code-decided, never model prose) ── */}
+        {quoteExpired && (
+          <div role="status" className="rounded-[14px] border border-warn-line bg-warn-soft px-4 py-3 sm:px-5 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+            <Chip tone="warn" mono>{t('dealPage.historicalChip')}</Chip>
+            <p className="text-[13px] text-ink leading-snug flex-1 min-w-[16rem]">{t('dealPage.quoteExpiredBanner', { date: quoteExpiredLabel })}</p>
+          </div>
+        )}
+        {renewalSuggestion && !typeSwitched && mode === 'app' && (
+          <div role="status" className="rounded-[14px] border border-line bg-surface px-4 py-3 sm:px-5 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+            <p className="text-[13px] text-ink leading-snug flex-1 min-w-[16rem]"><b className="font-semibold">{t('dealPage.looksLikeRenewalTitle')}</b> {t('dealPage.looksLikeRenewalBody')}</p>
+            <Btn size="sm" variant="ghost" onClick={switchToRenewal} disabled={switchingType}>{switchingType ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}{t('dealPage.looksLikeRenewalCta')}</Btn>
+          </div>
+        )}
+
         {/* ── Verdict ─────────────────────────────────────────── */}
         <div className={cn('rounded-[14px] border px-4 py-4 sm:px-5 grid grid-cols-1 sm:grid-cols-[auto_1fr] gap-4 sm:gap-5 items-start', won ? 'bg-green-soft border-green-line' : waitingOnClient ? 'bg-warn-soft border-warn-line' : 'bg-surface border-line')}>
           {/* Top-aligned with the verdict text (not centred on the whole card, which left it floating between the verdict and the reasons list). */}

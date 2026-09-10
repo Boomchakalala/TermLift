@@ -76,8 +76,18 @@ export default async function DealPage({ params, searchParams }: { params: Promi
   // Quick stage: per-flag asks/fallbacks stay server-side until Deep Analysis has run (admins included, so the gated view is what we QA).
   const latestOutput = playbookOutput && !deepComplete ? stripFlagDetailForQuick(playbookOutput) : playbookOutput
 
-  // Deal-type inference — server-side from extracted_text (never sent to the client).
-  const inferred = inferDealType((latestOutput as DealOutput | undefined)?.snapshot?.deal_type, undefined, latestRound?.extracted_text)
+  // Deal-type inference: the value persisted at analysis time (before any purge) wins.
+  // Inference on text is only run for deals analysed before it was persisted, and
+  // only while their text still exists — never on a purged round.
+  const persistedInference = (rawLatestOutput as { inferred_deal_type?: { type?: string; confidence?: string; currentSubLanguage?: boolean; user_confirmed_type?: string } } | undefined)?.inferred_deal_type
+  const inferred = persistedInference?.type
+    ? { type: persistedInference.type as ReturnType<typeof inferDealType>['type'], confidence: (persistedInference.confidence === 'high' ? 'high' : 'low') as 'high' | 'low' }
+    : latestRound?.extracted_text
+      ? inferDealType(((latestOutput as DealOutput | undefined)?.snapshot as { deal_type_stated?: string } | undefined)?.deal_type_stated ?? (latestOutput as DealOutput | undefined)?.snapshot?.deal_type, (rawLatestOutput as { classification?: { recurring?: boolean } } | undefined)?.classification?.recurring, latestRound.extracted_text)
+      : { type: 'unknown' as const, confidence: 'low' as const }
+  const currentSubLanguage = !!persistedInference?.currentSubLanguage || !!(rawLatestOutput as { snapshot?: { current_sub_end?: string } } | undefined)?.snapshot?.current_sub_end
+  // "Looks like a renewal": stored type is New, nobody confirmed it, and the document reads like a renewal.
+  const renewalSuggestion = deal.deal_type === 'New' && !persistedInference?.user_confirmed_type && (inferred.type === 'renewal' || inferred.type === 'expansion' || currentSubLanguage)
 
   // Strip extracted_text from what goes to the client.
   const clientDeal = {
@@ -96,6 +106,7 @@ export default async function DealPage({ params, searchParams }: { params: Promi
       showFullPlaybook={showFullPlaybook}
       negotiationRequest={negotiationRequest ?? null}
       inferredDealType={inferred.type}
+      renewalSuggestion={renewalSuggestion}
       languageView={languageView}
       playbookAccess={playbookAccess}
       addRoundForm={deepComplete ? <AddRoundForm dealId={dealId} roundNumber={sortedRounds.length + 1} /> : null}

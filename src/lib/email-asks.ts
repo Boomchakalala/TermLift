@@ -26,7 +26,7 @@ function tokens(s: string): Set<string> {
 }
 
 /** Topic similarity 0-1 by shared significant tokens (Szymkiewicz–Simpson). */
-function topicOverlap(a: string, b: string): number {
+export function topicOverlap(a: string, b: string): number {
   const A = tokens(a)
   const B = tokens(b)
   if (!A.size || !B.size) return 0

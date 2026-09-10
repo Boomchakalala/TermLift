@@ -1298,7 +1298,12 @@
     "translating": "Translating…",
     "translateFailed": "Translation failed. The original is unchanged.",
     "translateRetry": "Try again",
-    "translateNote": "Figures, asks and structure are the original; only the wording is translated."
+    "translateNote": "Figures, asks and structure are the original; only the wording is translated.",
+    "historicalChip": "Historical",
+    "quoteExpiredBanner": "Quote expired on {date}. Ask for a re-quote before treating these numbers as live.",
+    "looksLikeRenewalTitle": "Looks like a renewal.",
+    "looksLikeRenewalBody": "The document names a current subscription, but this deal is filed as a new purchase. Switch it so the playbook and emails use retention leverage.",
+    "looksLikeRenewalCta": "Mark as renewal"
   },
   "tryPage": {
     "eyebrow": "Step 1 · free · no signup",
@@ -1330,7 +1335,12 @@
     "sub": "Upload a vendor quote — you’ll get the quick analysis in a couple of minutes.",
     "freeUsed": "{used} of {limit} free used",
     "tailored": "Tailored to your negotiation profile",
-    "edit": "edit"
+    "edit": "edit",
+    "dealTypeLabel": "Deal type",
+    "dealTypeNew": "New purchase",
+    "dealTypeRenewal": "Renewal",
+    "dealTypeSuggested": "Suggested from the quote",
+    "dealTypeSuggestedRenewal": "The quote names a current subscription, so we set this to Renewal. Change it if that is wrong."
   },
   "negotiationPage": {
     "crumb": "TermLift negotiation",

@@ -7,6 +7,7 @@ import { analyzeDeal } from '@/lib/claude'
 import { compareRounds } from '@/lib/claude/round-delta'
 import { toStructuredExtraction } from '@/lib/structured-extraction'
 import { extractVendorOffer, type VendorOffer } from '@/lib/vendor-offer'
+import { applyChosenDealType } from '@/lib/deal-type-inference'
 import { checkRateLimit } from '@/lib/rate-limit'
 import { stripAdvancedOutput, SHOW_FULL_NEGOTIATION_PLAYBOOK } from '@/lib/negotiation-gating'
 import { MAX_ROUNDS_PER_DEAL } from '@/lib/ai-limits'
@@ -150,6 +151,9 @@ export async function POST(
       undefined,
       (profile as any)?.negotiation_preferences || undefined
     )))
+
+    // The snapshot's deal type is the deal's stored type; the reply's own wording stays as evidence.
+    applyChosenDealType(output as any, deal.deal_type as 'New' | 'Renewal')
 
     // Round 2+: what did the vendor's reply actually change? Optional — a
     // failure here never costs the user the round they just paid a call for.

@@ -162,10 +162,17 @@ export function getDealCurrency(deal: DealLike): Currency {
   return detectCurrency(getTotalCommitment(deal) || '')
 }
 
+/**
+ * The deal's type for chips and lists. The STORED type wins (chosen on the form,
+ * suggested by inference, or switched from the "Looks like a renewal" banner);
+ * the model's free-text `snapshot.deal_type` is only a fallback for rows that
+ * predate the selector. The snapshot card still shows what the document said.
+ */
 export function getDealType(deal: DealLike): string | undefined {
+  if (deal.deal_type === 'Renewal') return 'Renewal'
+  if (deal.deal_type === 'New') return 'New purchase'
   const fromOutput = str(getLatestOutput(deal).snapshot?.deal_type)
-  if (fromOutput) return fromOutput
-  return deal.deal_type === 'New' ? 'New purchase' : deal.deal_type === 'Renewal' ? 'Renewal' : undefined
+  return fromOutput || undefined
 }
 
 export function getRenewalDate(deal: DealLike): Date | null {

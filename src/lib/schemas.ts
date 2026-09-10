@@ -9,6 +9,8 @@ export const RedFlagSchema = z.object({
   why_it_matters: z.string(),
   what_to_ask_for: z.string(),
   if_they_push_back: z.string(),
+  /** Set on flags produced (or lifted) by lib/claude/code-flags.ts rules; absent on pure model flags. */
+  source_rule: z.string().optional(),
 })
 
 export const EmailDraftSchema = z.object({
@@ -41,12 +43,20 @@ export const DealOutputSchema = z.object({
     vendor_product: z.string(),
     term: z.string(),
     total_commitment: z.string(),
-    currency: z.enum(['USD', 'EUR', 'GBP', 'CAD', 'AUD']).optional().default('USD'),
+    // Widened 2026-09-11: a CHF/JPY quote used to fail validation (HTTP 500) here.
+    currency: z.enum(['USD', 'EUR', 'GBP', 'CAD', 'AUD', 'CHF', 'JPY']).optional().default('USD'),
     billing_payment: z.string(),
     pricing_model: z.string(),
     deal_type: z.string(),
+    /** What the document itself said (evidence). `deal_type` above follows the deal's chosen type. */
+    deal_type_stated: z.string().optional(),
     renewal_date: z.string().optional(),
     signing_deadline: z.string().optional(),
+    // 2026-09-11: printed on the quote, copied as-is (see extract.ts fields 18-21).
+    quote_number: z.string().optional(),
+    quote_created: z.string().optional(),
+    quote_expires: z.string().optional(),
+    current_sub_end: z.string().optional(),
   }),
   quick_read: z.object({
     whats_solid: z.array(z.string()).default([]),
