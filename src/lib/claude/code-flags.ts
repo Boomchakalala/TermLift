@@ -1,6 +1,7 @@
 import type { ExtractionResult } from '@/lib/scoring'
 import { isExpired, toIsoDate } from '@/lib/scoring'
 import { topicOverlap } from '@/lib/email-asks'
+import { upliftAskText, upliftFallbackText } from '@/lib/ask-policy'
 
 /**
  * Rule-based red flags on the renewal / date fields. These are the dormant
@@ -85,8 +86,9 @@ export function detectCodeFlags(extraction: ExtractionResult, asOf: string | und
         type: 'Renewal', severity: 'high', score_category: 'terms', source_rule: 'escalation.no_cap',
         issue: `Renewal pricing rises by ${stated} per year with no cap${rt.extraIncreaseAllowed ? ', and the vendor may increase beyond that' : ''}`,
         why_it_matters: `There is no ceiling on what the next term costs. On ${total} every uncapped point compounds over the renewal term.`,
-        what_to_ask_for: `Change "minimum of ${min ?? 'X'}%" to "not to exceed ${min ?? 3}%" and remove the vendor's right to increase beyond it, in the order form.`,
-        if_they_push_back: 'Accept a hard cap at CPI or 4%, whichever is lower, with no discretionary increase.',
+        // Ask policy (lib/ask-policy.ts): CPI or 3%; fallback a hard cap never above the stated minimum.
+        what_to_ask_for: upliftAskText(),
+        if_they_push_back: upliftFallbackText(rt),
       })
     } else if (cap > 5) {
       flags.push({
@@ -153,6 +155,8 @@ export function mergeCodeFlags<T extends LlmFlag>(modelFlags: T[], codeFlags: Co
       const cur = SEV[(String(existing.severity || 'medium').toLowerCase() as keyof typeof SEV)] ?? 2
       if (SEV[cf.severity] > cur) out[idx] = { ...existing, severity: cf.severity } as T
       if (!existing.source_rule) out[idx] = { ...(out[idx] as object), source_rule: `model+${cf.source_rule}` } as unknown as T
+      // The escalation ask and fallback are policy (lib/ask-policy.ts), not the model's to set.
+      if (cf.source_rule.startsWith('escalation')) out[idx] = { ...(out[idx] as object), what_to_ask_for: cf.what_to_ask_for, if_they_push_back: cf.if_they_push_back } as unknown as T
       continue
     }
     out.push(cf)

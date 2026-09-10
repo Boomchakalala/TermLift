@@ -31,7 +31,9 @@ import { validateTotalCommitment } from './validate-total'
 import { resolveClassification } from './classification-guard'
 import { detectCodeFlags, mergeCodeFlags } from './code-flags'
 import { buildQuoteFacts, reconcileTotalWithLines } from '@/lib/quote-facts'
-import { stripDeadlineLeverage } from '@/lib/playbook-hygiene'
+import { normalizeSavings } from '@/lib/savings-normalize'
+import { filterSolidAgainstFlags, stripDeadlineLeverage } from '@/lib/playbook-hygiene'
+import { enforceUpliftPolicy } from '@/lib/ask-policy'
 import { DealOutputSchema, type DealOutputType, type QuoteClassificationType } from '../schemas'
 import { computeScores, countHighTermsFlags, isExpired, normalizeExtraction, scoreLabel, seedFromFacts } from '../scoring'
 import { parseMoney, normalizeAmount } from '../currency'
@@ -164,9 +166,22 @@ export async function analyzeDeal(
     const redFlags = mergeCodeFlags(analysis.red_flags || [], codeFlags)
     if (codeFlags.length) console.log('[TermLift] Step 2b: code flags:', codeFlags.map((f) => f.source_rule).join(', '))
 
-    const potentialSavings = analysis.potential_savings
+    // ─── Step 2c: Savings normalisation (conditional asks unquantified, headline % net of line asks) ───
+    const potentialSavings = normalizeSavings(analysis.potential_savings, contractTotal) ?? analysis.potential_savings
+    if (potentialSavings && contractTotal > 0 && (potentialSavings as { total?: number }).total! > contractTotal) {
+      console.warn(`[TermLift] GUARD: savings (${(potentialSavings as { total?: number }).total}) > total (${contractTotal}).`)
+    }
 
-    // ─── Step 2d: expiry hygiene ───
+    // ─── Step 2d: Playbook hygiene ───
+    // Uplift cap policy: any proposed cap above the ceiling (4%, never above the vendor's stated minimum) is rewritten.
+    const policed = enforceUpliftPolicy({ red_flags: redFlags, what_to_ask_for: analysis.what_to_ask_for, potential_savings: potentialSavings }, extraction.renewalTerms)
+    if (policed.rewrites.length) console.log('[TermLift] Step 2d: uplift policy rewrites:', policed.rewrites.join(' | '))
+    const policedFlags = policed.output.red_flags as typeof redFlags
+    const policedAsks = policed.output.what_to_ask_for as typeof analysis.what_to_ask_for
+    const policedSavings = policed.output.potential_savings
+    const mustHave = policedAsks?.must_have || []
+    const solid = filterSolidAgainstFlags(analysis.quick_read?.whats_solid, policedFlags, mustHave)
+    if (solid.dropped.length) console.log('[TermLift] Step 2d: dropped "solid" bullets that contradict a flag/ask:', solid.dropped.map((d) => d.bullet).join(' | '))
     let leverage = analysis.negotiation_plan?.leverage_you_have || []
     if (quoteExpired) {
       const stripped = stripDeadlineLeverage(leverage)
@@ -203,11 +218,11 @@ export async function analyzeDeal(
       verdict: analysis.verdict,
       verdict_type: analysis.verdict_type,
       price_insight: analysis.price_insight,
-      quick_read: analysis.quick_read,
-      red_flags: redFlags,
+      quick_read: { ...analysis.quick_read, whats_solid: solid.kept },
+      red_flags: policedFlags,
       negotiation_plan: { ...analysis.negotiation_plan, leverage_you_have: leverage },
-      what_to_ask_for: analysis.what_to_ask_for,
-      potential_savings: potentialSavings,
+      what_to_ask_for: policedAsks,
+      potential_savings: policedSavings,
       score_rationale: analysis.score_rationale,
       assumptions: analysis.assumptions,
     }

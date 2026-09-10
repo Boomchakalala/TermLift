@@ -27,6 +27,7 @@ import {
 } from '@/lib/deal-metrics'
 import { normalizeAmount, parseMoney } from '@/lib/currency'
 import { latestConfirmedVendorOffer } from '@/lib/vendor-offer'
+import { computeDealTarget } from '@/lib/deal-target'
 import { isExpired, toIsoDate } from '@/lib/scoring'
 
 export interface DealWorkspaceDeal extends DealLike {
@@ -220,6 +221,8 @@ export function DealWorkspace({ deal, mode, messages, isAdmin, showFullPlaybook,
   const potential = getPotentialSavings(deal)
   const range = getSavingsRange(deal)
   const score = getScore(deal)
+  // One target in code (lib/deal-target.ts): benchmark target when published, else quote minus quantified must-have asks.
+  const dealTarget = computeDealTarget(latestOutput as unknown as Parameters<typeof computeDealTarget>[0], totalNum)
   // Quote validity vs the server clock captured at mount: expired quotes get a banner and a "Historical" chip.
   const lo = latestOutput as unknown as { quote_expired?: boolean; extraction?: { quoteDates?: { expires?: string | null } }; snapshot?: { quote_expires?: string; signing_deadline?: string } }
   const quoteExpiresRaw = lo.extraction?.quoteDates?.expires ?? lo.snapshot?.quote_expires ?? lo.snapshot?.signing_deadline ?? null
@@ -449,12 +452,12 @@ export function DealWorkspace({ deal, mode, messages, isAdmin, showFullPlaybook,
             <StatTile label={t('dealPage.statFinal')} tone="money" value={finalTotalRecorded != null ? fmtMoney(finalTotalRecorded, currency) : achieved > 0 && originalTotal ? fmtMoney(parseMoney(originalTotal).amount - achieved, currency) : totalCommitment ? normalizeAmount(totalCommitment) : '—'} sub={initialTotalRecorded != null ? t('dealPage.statWas', { v: fmtMoney(initialTotalRecorded, currency) }) : achieved > 0 && originalTotal ? t('dealPage.statWas', { v: normalizeAmount(originalTotal) }) : term || undefined} />
           ) : benchTile ? (
             <StatTile label={t('dealPage.statTargetLabel')} value={benchTile.value} sub={benchTile.sub} />
-          ) : deepDone && totalNum > 0 && potential > 0 ? (
-            /* Playbook exists: one exact target, quote minus the must-have asks — the same figure the savings-impact card shows. */
-            <StatTile label={t('dealPage.statTargetLabel')} value={fmtMoney(totalNum - potential, currency)} sub={t('dealPage.statTargetSub', { v: normalizeAmount(totalCommitment || '') })} />
-          ) : totalNum > 0 && (range?.high || potential) > 0 ? (
-            /* Quick stage: one rounded estimate, not a second range. Exact once the Playbook is built. */
-            <StatTile label={t('dealPage.statEstimatedTargetLabel')} value={`≈ ${fmtMoney(roundAnchor(totalNum - (range?.high || potential)), currency)}`} sub={t('dealPage.statEstimatedTargetSub')} />
+          ) : dealTarget && deepDone ? (
+            /* Playbook exists: ONE target, quote minus the quantified must-have asks, rounded the way the email states it (lib/deal-target.ts). */
+            <StatTile label={t('dealPage.statTargetLabel')} value={fmtMoney(dealTarget.anchor, currency)} sub={t('dealPage.statTargetSub', { v: normalizeAmount(totalCommitment || '') })} />
+          ) : dealTarget ? (
+            /* Quick stage: the same target, marked as an estimate until the Playbook is built. */
+            <StatTile label={t('dealPage.statEstimatedTargetLabel')} value={`≈ ${fmtMoney(dealTarget.anchor, currency)}`} sub={t('dealPage.statEstimatedTargetSub')} />
           ) : (
             <StatTile label={t('dealPage.statTotal')} value={totalCommitment ? normalizeAmount(totalCommitment) : '—'} sub={[term, latestOutput.snapshot?.billing_payment].filter(Boolean).join(' · ') || undefined} />
           )}

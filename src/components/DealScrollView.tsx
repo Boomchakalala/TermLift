@@ -217,8 +217,10 @@ export function DealScrollView(props: DealScrollViewProps) {
     const ps = pb?.potential_savings as any
     if (!ps) return { total: 0, mustHave: [] as any[], niceToHave: [] as any[] }
     if (ps.must_have !== undefined) {
-      const mh = (ps.must_have || []).map((i: any) => ({ ask: i.ask, amount: typeof i.amount === 'number' ? i.amount : parseMoney(String(i.amount || '0')).amount, rationale: i.rationale || '' }))
-      const nth = (ps.nice_to_have || []).map((i: any) => ({ ask: i.ask, amount: typeof i.amount === 'number' ? i.amount : parseMoney(String(i.amount || '0')).amount, rationale: i.rationale || '' }))
+      // `quantified: false` = a conditional ask whose amount was removed in code (lib/savings-normalize.ts); shown as "Not quantified".
+      const amt = (i: any) => (i.quantified === false || i.amount == null ? 0 : typeof i.amount === 'number' ? i.amount : parseMoney(String(i.amount || '0')).amount)
+      const mh = (ps.must_have || []).map((i: any) => ({ ask: i.ask, amount: amt(i), rationale: i.rationale || '', quantified: i.quantified !== false && i.amount != null }))
+      const nth = (ps.nice_to_have || []).map((i: any) => ({ ask: i.ask, amount: amt(i), rationale: i.rationale || '', quantified: i.quantified !== false && i.amount != null }))
       return { total: mh.reduce((s: number, i: any) => s + (i.amount || 0), 0), mustHave: mh, niceToHave: nth }
     }
     if (Array.isArray(ps)) {
@@ -310,9 +312,8 @@ export function DealScrollView(props: DealScrollViewProps) {
           canOffer: getCanOffer(o),
           conclusion: o?.quick_read?.conclusion,
           dealType: inferredDealType && inferredDealType !== 'unknown' ? inferredDealType : undefined,
-          // Automatic context (Part 1) — pulled from the existing analysis, never re-asked of the user.
-          targetPriceLow: (o as any)?.target_price_range?.low,
-          targetPriceHigh: (o as any)?.target_price_range?.high,
+          // Automatic context — the route now reads asks, target, deal type and
+          // flags from the stored round itself; these are kept for older builds only.
           potentialSavingsTotal: savingsData.total > 0 ? fmtSav(savingsData.total) : undefined,
           leverageYouHave: pb?.negotiation_plan?.leverage_you_have || [],
           paymentTerms: o?.snapshot?.billing_payment,
@@ -661,7 +662,11 @@ export function DealScrollView(props: DealScrollViewProps) {
                           {savingsData.mustHave.map((item: any, i: number) => (
                             <li key={i} className="flex items-start justify-between gap-4 py-3">
                               <span className="flex items-start gap-2.5 min-w-0"><span className="w-5 h-5 rounded-full bg-green text-white tl-label text-[10px] grid place-items-center shrink-0">{i + 1}</span><span className="min-w-0"><span className="block text-[13.5px] font-medium text-ink">{item.ask}</span>{item.rationale && <span className="block text-[12.5px] text-ink-2 mt-0.5">{item.rationale}</span>}</span></span>
-                              <span className="font-display font-bold text-[14px] text-green-deep shrink-0 tl-num">{fmtSav(item.amount)}</span>
+                              {item.amount > 0 ? (
+                                <span className="font-display font-bold text-[14px] text-green-deep shrink-0 tl-num">{fmtSav(item.amount)}</span>
+                              ) : (
+                                <span className="text-[12px] text-ink-3 shrink-0 whitespace-nowrap">{fr ? 'Non chiffré' : 'Not quantified'}</span>
+                              )}
                             </li>
                           ))}
                         </ol>

@@ -18,7 +18,9 @@ import { deepAnalysisPriceLabel } from '@/lib/pricing'
 import { analysisDate } from '@/lib/claude'
 import { isUnreadableClassification, resolveClassification } from '@/lib/claude/classification-guard'
 import { detectCodeFlags, mergeCodeFlags } from '@/lib/claude/code-flags'
-import { stripDeadlineLeverage } from '@/lib/playbook-hygiene'
+import { normalizeSavings } from '@/lib/savings-normalize'
+import { filterSolidAgainstFlags, stripDeadlineLeverage } from '@/lib/playbook-hygiene'
+import { enforceUpliftPolicy } from '@/lib/ask-policy'
 import { computeScores, countHighTermsFlags, isExpired, mergeExtractions, normalizeExtraction, scoreLabel } from '@/lib/scoring'
 import { parseMoney } from '@/lib/currency'
 
@@ -228,7 +230,14 @@ export async function POST(request: Request, { params }: { params: Promise<{ dea
       const redFlags = mergeCodeFlags(deep.red_flags || [], codeFlags)
       const highTermsFlagCount = countHighTermsFlags(redFlags)
       const scores = computeScores(mergedExtraction, { asOf, highTermsFlagCount })
-      const potentialSavings = deep.potential_savings
+      const normalizedSavings = normalizeSavings(deep.potential_savings, contractTotal) ?? deep.potential_savings
+      // Uplift cap policy (lib/ask-policy.ts): no proposed cap above 4%, never above the vendor's stated minimum.
+      const policed = enforceUpliftPolicy({ red_flags: redFlags, what_to_ask_for: deep.what_to_ask_for, potential_savings: normalizedSavings }, mergedExtraction.renewalTerms)
+      if (policed.rewrites.length) console.log('[TermLift] Deep: uplift policy rewrites:', policed.rewrites.join(' | '))
+      const policedFlags = policed.output.red_flags as typeof redFlags
+      const policedAsks = policed.output.what_to_ask_for as typeof deep.what_to_ask_for
+      const potentialSavings = policed.output.potential_savings
+      const solid = filterSolidAgainstFlags(deep.quick_read?.whats_solid, policedFlags, policedAsks?.must_have)
       let leverage = deep.negotiation_plan?.leverage_you_have || []
       if (quoteExpired) leverage = stripDeadlineLeverage(leverage).kept
       console.log(`[TermLift] Deep rescore: ${output.score} → ${scores.overall} (p${scores.pricing}/t${scores.terms}/l${scores.leverage}); code flags: ${codeFlags.map((f) => f.source_rule).join(', ') || 'none'}${quoteExpired ? '; QUOTE EXPIRED' : ''}`)
@@ -239,10 +248,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ dea
       const merged = {
         generated_locale: locale,
         ...output,
-        quick_read: deep.quick_read,
-        red_flags: redFlags,
+        quick_read: { ...deep.quick_read, whats_solid: solid.kept },
+        red_flags: policedFlags,
         negotiation_plan: { ...deep.negotiation_plan, leverage_you_have: leverage },
-        what_to_ask_for: deep.what_to_ask_for,
+        what_to_ask_for: policedAsks,
         potential_savings: potentialSavings,
         cash_flow_improvements: deep.cash_flow_improvements,
         watchItems: deep.watchItems,

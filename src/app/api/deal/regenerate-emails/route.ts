@@ -1,13 +1,20 @@
 import { createClient } from '@/lib/supabase/server'
-import { getClaudeResponse, getLanguageInstruction, KEVIN_SYSTEM_PROMPT, EMAIL_RULES } from '@/lib/claude'
+import { getClaudeResponse, getLanguageInstruction, KEVIN_SYSTEM_PROMPT, EMAIL_RULES, analysisDate } from '@/lib/claude'
 import { NextResponse } from 'next/server'
 import { outputLocale } from '@/lib/output-language'
 
 import { SHOW_FULL_NEGOTIATION_PLAYBOOK } from '@/lib/negotiation-gating'
 import { FULL_ANALYSIS_EMAIL_REGEN_LIMIT } from '@/lib/pricing'
-import { dealHasFullAnalysis } from '@/lib/deep-analysis-status'
+import { dealHasFullAnalysis, hasDeepContent } from '@/lib/deep-analysis-status'
 import { runWithAiContext } from '@/lib/ai-telemetry'
 import { recommendTone, type EmailTone } from '@/lib/tone-recommend'
+import { selectEmailAsks } from '@/lib/email-asks'
+import { computeDealTarget } from '@/lib/deal-target'
+import { isExpired, toIsoDate } from '@/lib/scoring'
+import { fmtMoney } from '@/lib/deal-metrics'
+import { detectCurrency, type Currency } from '@/lib/currency'
+import { sanitizeEmailBody } from '@/lib/email-guard'
+import { UPLIFT_ASK_PCT, upliftCapCeiling } from '@/lib/ask-policy'
 
 // Email generation regularly takes 15-25s (single Claude call producing 3
 // variants) — matches the explicit maxDuration set on every other AI-calling
@@ -15,6 +22,14 @@ import { recommendTone, type EmailTone } from '@/lib/tone-recommend'
 // route falls back to the platform default, which is too short and would
 // time out under real generation latency.
 export const maxDuration = 120
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 2026-09-11: the asks, the target, the deal-type framing and the wording
+// guards are decided HERE, in code, from the stored round — not by the model
+// from a dump of every ask the client happened to send. The client still
+// supplies the optional negotiation context a person typed (objective, budget,
+// competing quote, walk-away, deadline, extra instructions).
+// ─────────────────────────────────────────────────────────────────────────────
 
 export async function POST(request: Request) {
   try {
@@ -25,10 +40,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get user plan for regen limit
-    // NB: profiles has no first_name/last_name (verified against information_schema);
-    // selecting them made this whole query fail, so profile was always null → every
-    // user, admins included, hit the hard cap of 3 and never got a sender name.
+    // NB: profiles has no first_name/last_name (verified against information_schema).
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('plan, is_admin, contact_name')
@@ -37,10 +49,7 @@ export async function POST(request: Request) {
     if (profileError) console.error('[TermLift] regenerate-emails: profile lookup failed:', profileError.message)
 
     const senderName = profile?.contact_name?.trim() || undefined
-    // Email generation belongs to Deep Analysis now, not a subscription tier —
-    // the cap here is a flat abuse safeguard, not a paywall. Per-deal
-    // entitlement (has this round's Deep Analysis been unlocked) is checked
-    // below, once the round is fetched.
+    // A flat abuse safeguard, not a paywall. Per-deal entitlement is checked below.
     const maxRegens = profile?.is_admin ? 99 : FULL_ANALYSIS_EMAIL_REGEN_LIMIT
 
     if (!profile?.is_admin && !SHOW_FULL_NEGOTIATION_PLAYBOOK) {
@@ -51,28 +60,6 @@ export async function POST(request: Request) {
     const {
       roundId,
       customPrompt,
-      vendor,
-      contactName,
-      totalCommitment,
-      term,
-      currency,
-      mustHaveAsks,
-      niceToHaveAsks,
-      redFlagAsks,
-      canOffer,
-      conclusion,
-      dealType,
-      // Automatic deal context (already known from analysis — the model
-      // should never ask the user to re-supply any of this).
-      targetPriceLow,
-      targetPriceHigh,
-      potentialSavingsTotal,
-      leverageYouHave,
-      paymentTerms,
-      pricingModel,
-      leverageLevel,
-      highSeverityFlagCount,
-      isRenewal,
       // Optional user-supplied context — only what the quote/analysis can't
       // reliably know. Every field is optional and omitted from the prompt
       // entirely when not provided.
@@ -82,26 +69,12 @@ export async function POST(request: Request) {
       walkAwayFlexibility,
       internalDeadline,
       additionalInstructions,
-      // Market Benchmark (deterministic engine + clamped model target) — internal numbers.
-      benchmarkAvailable,
-      benchmarkTarget,
-      benchmarkOpeningAsk,
-      benchmarkFairLow,
-      benchmarkFairHigh,
-      benchmarkConfidence,
-      benchmarkPositionPct,
     } = body
-
-    const dealTypeContext: Record<string, string> = {
-      renewal: 'This is a RENEWAL — the buyer is already a customer. Frame asks around retention leverage (the vendor doesn\'t want to lose an existing account) rather than new-logo competitive pressure.',
-      new_purchase: 'This is a NEW PURCHASE — the buyer is not yet a customer. Frame asks around new-logo competitive pressure and fast-signature leverage.',
-      expansion: 'This is an EXPANSION of an existing agreement (additional seats/usage) — frame asks around volume/loyalty leverage from the existing relationship, not a fresh competitive evaluation.',
-    }
 
     // Check if round exists and belongs to user
     const { data: round, error: roundError } = await supabase
       .from('rounds')
-      .select('email_regeneration_count, schema_version, output_json, deal_id')
+      .select('email_regeneration_count, schema_version, output_json, deal_id, round_number')
       .eq('id', roundId)
       .eq('user_id', user.id)
       .single()
@@ -117,15 +90,11 @@ export async function POST(request: Request) {
       }, { status: 400 })
     }
 
-    // Email generation is part of Full Analysis — require it to be unlocked
-    // for this DEAL before drafting (the round being emailed may be a vendor
-    // reply analysed at quick depth; the entitlement lives on the round Full
-    // Analysis ran on). Same signal the deal page gates its CTA on.
-    const { data: dealRounds } = await supabase
-      .from('rounds')
-      .select('output_json')
-      .eq('deal_id', round.deal_id)
-      .eq('user_id', user.id)
+    // Email generation is part of the Playbook — require it for this DEAL.
+    const [{ data: dealRounds }, { data: deal }] = await Promise.all([
+      supabase.from('rounds').select('id, round_number, output_json').eq('deal_id', round.deal_id).eq('user_id', user.id).order('round_number', { ascending: false }),
+      supabase.from('deals').select('id, deal_type, vendor').eq('id', round.deal_id).eq('user_id', user.id).single(),
+    ])
     if (!profile?.is_admin && !dealHasFullAnalysis(dealRounds)) {
       return NextResponse.json({ error: 'Build the Negotiation Playbook for this deal before generating a negotiation email.' }, { status: 403 })
     }
@@ -137,13 +106,49 @@ export async function POST(request: Request) {
       }, { status: 429 })
     }
 
-    const allAsks: string[] = [
-      ...(Array.isArray(mustHaveAsks) ? mustHaveAsks : []),
-      ...(Array.isArray(niceToHaveAsks) ? niceToHaveAsks : []),
-      ...(Array.isArray(redFlagAsks) ? redFlagAsks : []),
-    ].filter(Boolean)
-    const offers: string[] = Array.isArray(canOffer) ? canOffer : []
-    const leverage: string[] = Array.isArray(leverageYouHave) ? leverageYouHave : []
+    // ── Everything below is read from the stored round, never from the client ──
+    const o = (round.output_json || {}) as any
+    // The strategy (asks, leverage, savings, benchmark) lives on the round the Playbook ran on;
+    // a vendor-reply round analysed at quick depth inherits it.
+    const pb = (hasDeepContent(o) ? o : (dealRounds || []).find((r) => hasDeepContent(r.output_json))?.output_json ?? o) as any
+    const snapshot = o.snapshot || {}
+    const currency = (snapshot.currency ? detectCurrency(String(snapshot.currency)) : detectCurrency(String(snapshot.total_commitment || ''))) as Currency
+    const fmt = (n: number) => fmtMoney(n, currency)
+
+    const today = analysisDate()
+    const expiresRaw = o.extraction?.quoteDates?.expires ?? snapshot.quote_expires ?? snapshot.signing_deadline ?? null
+    const quoteExpired = o.quote_expired === true || isExpired(expiresRaw, today)
+    const expiredOn = quoteExpired ? (toIsoDate(expiresRaw) || String(expiresRaw || '')) : null
+
+    // Asks: code-selected (refreshed quote first when expired, then every HIGH flag ask, then the largest quantified must-have; cap 3).
+    const selection = selectEmailAsks({ ...pb, red_flags: o.red_flags?.length ? o.red_flags : pb.red_flags }, { quoteExpired, expiredOn, cap: 3 })
+
+    // One target, the same number the hero tile shows.
+    const target = computeDealTarget(pb)
+    const targetAnchor = target ? fmt(target.anchor) : null
+
+    // Deal-type framing: "new customer / new logo" only when the stored type is New, the
+    // inference is high-confidence, and the document never names a running subscription.
+    const inferred = (o.inferred_deal_type || pb.inferred_deal_type || null) as { type?: string; confidence?: string; currentSubLanguage?: boolean; user_confirmed_type?: string } | null
+    const storedType = (inferred?.user_confirmed_type as string | undefined) || deal?.deal_type || 'New'
+    const isRenewal = storedType === 'Renewal' || inferred?.type === 'renewal'
+    const allowNewLogo = storedType === 'New' && inferred?.confidence === 'high' && !inferred?.currentSubLanguage && inferred?.type !== 'renewal' && inferred?.type !== 'expansion'
+    const allowAlternatives = typeof competingQuote === 'string' && competingQuote.trim().length > 0
+
+    const contactName: string | undefined = (o.contact_name || snapshot.contact_name || undefined) as string | undefined
+    const quoteNumber: string | undefined = snapshot.quote_number || undefined
+    const vendorName: string = deal?.vendor || o.vendor || snapshot.vendor_product || 'the vendor'
+    const leverage: string[] = pb.negotiation_plan?.leverage_you_have || []
+    const offers: string[] = pb.negotiation_plan?.trades_you_can_offer || []
+    const highSeverityFlagCount = (o.red_flags || []).filter((f: any) => String(f?.severity || '').toLowerCase() === 'high').length
+
+    const dealTypeContext = isRenewal
+      ? 'This is a RENEWAL — the buyer is already a customer. Frame asks around retention leverage (the vendor does not want to lose an existing account). Never describe the buyer as new.'
+      : inferred?.type === 'expansion'
+        ? 'This is an EXPANSION of an existing agreement — frame asks around volume/loyalty leverage from the existing relationship. Never describe the buyer as new.'
+        : allowNewLogo
+          ? 'This is a NEW PURCHASE — the buyer is not yet a customer. Frame asks around competitive pressure and fast-signature leverage.'
+          : 'Treat the relationship as neutral: do NOT describe the buyer as a new customer, a new logo or a first-time buyer, and do not describe them as an existing customer either.'
 
     const walkAwayContext: Record<string, string> = {
       flexible: 'The buyer is genuinely flexible on this deal — no urgency to force a compromise, but open to pushing.',
@@ -151,30 +156,44 @@ export async function POST(request: Request) {
       can_walk: 'The buyer has real alternatives and is willing to walk away from this deal if the asks are not met — this is genuine leverage, but stay professional, do not bluff or exaggerate it.',
     }
 
+    const bench = pb.market_benchmark
+    const benchInterp = pb.benchmark_interpretation
+    const benchLine = bench?.benchmark_available && (benchInterp?.target_price != null || bench.fair_market_low != null)
+      ? `INTERNAL PRICE EVIDENCE (from TermLift's market benchmark — ${bench.confidence || 'medium'} confidence${typeof bench.quote_vs_market_percent === 'number' ? `, quote sits ${bench.quote_vs_market_percent > 0 ? '+' : ''}${bench.quote_vs_market_percent}% vs observed market` : ''}). NEVER write "TermLift", "benchmark", "our data" or "the market price is X" — if it genuinely helps, phrase it as the buyer's expectation ("we'd expect to be closer to X") and only when confidence is medium or high.`
+      : ''
+
+    const asksBlock = selection.asks.length
+      ? selection.asks.map((a, i) => `${i + 1}. ${a.label}${a.savings ? ` (worth about ${fmt(a.savings)})` : ''}${a.reason === 'refreshed_quote' ? ' — THIS MUST BE THE FIRST ASK IN EVERY VARIANT' : ''}`).join('\n')
+      : '- (none — write a short, friendly note that the buyer is happy with the quote and ready to proceed)'
+    const stretchBlock = selection.stretch.length
+      ? `\nSTRETCH (optional, mention at most one, only where it fits naturally, NEVER as a condition of signing):\n${selection.stretch.map((s) => `- ${s}`).join('\n')}`
+      : ''
+
     const basePrompt = `Write 3 supplier-facing email variations in Kevin's style.
 
 ${EMAIL_RULES}
 
 DEAL CONTEXT (already known from the analysis — do not ask the user for any of this):
-Vendor: ${vendor || 'the vendor'}
+Vendor: ${vendorName}
 Contact Name: ${contactName || 'NOT AVAILABLE — use "Hi," as greeting'}
-Total Commitment: ${totalCommitment || 'not specified'}
-Term: ${term || 'not specified'}
-Currency: ${currency || 'match the source quote'}
-Payment terms: ${paymentTerms || 'not specified'}
-Pricing model: ${pricingModel || 'not specified'}
-${benchmarkAvailable && (benchmarkTarget || benchmarkFairLow) ? `INTERNAL PRICE TARGET (from TermLift's market benchmark — ${benchmarkConfidence || 'medium'} confidence${typeof benchmarkPositionPct === 'number' ? `, quote sits ${benchmarkPositionPct > 0 ? '+' : ''}${benchmarkPositionPct}% vs observed market` : ''}):
-- Target to land at: ${benchmarkTarget ?? `${benchmarkFairLow}–${benchmarkFairHigh}`}${benchmarkOpeningAsk ? `\n- Opening ask: ${benchmarkOpeningAsk}` : ''}${benchmarkFairLow && benchmarkFairHigh ? `\n- Fair market band: ${benchmarkFairLow}–${benchmarkFairHigh}` : ''}
-Use these to set the ask and the posture. Open at the opening ask (or the target if none), hold toward the target. NEVER write "TermLift", "benchmark", "our data" or "the market price is X" — if it genuinely helps, phrase it as the buyer's expectation ("we'd expect to be closer to X", "comparable renewals we've seen land around X") and only when confidence is medium or high.` : targetPriceLow && targetPriceHigh ? `Realistic target price range: ${targetPriceLow}–${targetPriceHigh} — push toward this range, do not just ask for an unspecified "discount."` : ''}
-${potentialSavingsTotal ? `Estimated savings opportunity identified: ${potentialSavingsTotal} — this is the internal estimate, not a number to quote directly to the supplier.` : ''}
-Situation: ${conclusion || 'Negotiation in progress'}
-${dealType && dealTypeContext[dealType] ? `\n${dealTypeContext[dealType]}\n` : ''}
+${quoteNumber ? `Quote reference: ${quoteNumber} — include it in the subject line and once in the body.` : ''}
+Total Commitment: ${snapshot.total_commitment || 'not specified'}
+Term: ${snapshot.term || 'not specified'}
+Currency: ${currency}
+Payment terms: ${snapshot.billing_payment || 'not specified'}
+Pricing model: ${snapshot.pricing_model || 'not specified'}
+${quoteExpired ? `QUOTE STATUS: the quote expired on ${expiredOn}. Its prices are historical. Every variant opens by asking for a refreshed quote that keeps the printed pricing and discounts as the starting point; nothing else is agreed until that arrives. Do not mention the old deadline as pressure.` : ''}
+${targetAnchor ? `TARGET TOTAL: ${targetAnchor}. This is the ONE number to anchor on when you state a target (already rounded — use it exactly as written). Do not state any other total.` : ''}
+${benchLine}
+Situation: ${o.quick_read?.conclusion || o.verdict || 'Negotiation in progress'}
+${dealTypeContext}
 
 ${contactName ? `The contact's first name is "${contactName}". Use "Hi ${contactName}," as the greeting in every email.` : ''}
 SENDER NAME: ${senderName || '[Your Name]'}
 
-ALL AVAILABLE ASKS (apply the selection logic above — pick the 3-4 most commercially important ones, in order of priority):
-${allAsks.map((a: string) => `- ${a}`).join('\n') || '- (none — write a short, friendly note that the buyer is happy with the quote and ready to proceed)'}
+THE ASKS TO RAISE — raise ALL of these, in THIS order, and no others. The first ask gets the most space:
+${asksBlock}
+${stretchBlock}
 
 WHAT THE BUYER CAN OFFER IN RETURN (trade these against the asks where they fit naturally):
 ${offers.map((c: string) => `- ${c}`).join('\n') || '- fast signature once the points above are settled'}
@@ -182,7 +201,13 @@ ${offers.map((c: string) => `- ${c}`).join('\n') || '- fast signature once the p
 LEVERAGE THE BUYER HAS (use the strongest one or two naturally — never state them as a list to the vendor):
 ${leverage.map((l: string) => `- ${l}`).join('\n') || '- (none specific — keep the tone collaborative rather than pushing hard on leverage)'}
 
-${negotiationObjective ? `BUYER'S STATED OBJECTIVE FOR THIS NEGOTIATION: ${negotiationObjective}\n` : ''}${budgetCeiling ? `BUYER'S BUDGET CEILING: ${budgetCeiling} — negotiate toward this, but do not reveal the exact ceiling number to the supplier unless it naturally helps close (e.g. "we have budget approved up to X" only if that serves the ask).\n` : ''}${competingQuote ? `COMPETING QUOTE / ALTERNATIVE THE BUYER HAS: ${competingQuote} — this is real leverage; reference it naturally and factually, do not exaggerate or invent details beyond what's given.\n` : ''}${walkAwayFlexibility && walkAwayContext[walkAwayFlexibility] ? `WALK-AWAY POSITION: ${walkAwayContext[walkAwayFlexibility]}\n` : ''}${internalDeadline ? `INTERNAL DEADLINE: ${internalDeadline} — use this to create realistic urgency where it fits.\n` : ''}${additionalInstructions ? `ADDITIONAL INSTRUCTIONS FROM THE BUYER (honor these):\n${additionalInstructions}\n` : ''}
+WORDING GUARDS:
+- RENEWAL UPLIFT POLICY: when an ask concerns renewal price increases, ask for CPI or ${UPLIFT_ASK_PCT}% whichever is lower; the only acceptable fallback is a hard cap of ${upliftCapCeiling(o.extraction?.renewalTerms)}%. Never write a cap higher than ${upliftCapCeiling(o.extraction?.renewalTerms)}%.
+${allowNewLogo ? '- You may refer to the buyer as a new customer.' : '- NEVER write "new customer", "new logo", "first-time buyer" or any equivalent.'}
+${allowAlternatives ? '- The competing quote / alternative below is real; you may reference it factually.' : '- NEVER claim the buyer is looking at alternatives, other vendors or competing quotes. None were provided.'}
+- Never invent a budget figure, a deadline or a competing offer that is not in this context.
+
+${negotiationObjective ? `BUYER'S STATED OBJECTIVE FOR THIS NEGOTIATION: ${negotiationObjective}\n` : ''}${budgetCeiling ? `BUYER'S BUDGET CEILING: ${budgetCeiling} — negotiate toward this, but do not reveal the exact ceiling number to the supplier unless it naturally helps close (e.g. "we have budget approved up to X" only if that serves the ask).\n` : ''}${allowAlternatives ? `COMPETING QUOTE / ALTERNATIVE THE BUYER HAS: ${competingQuote} — this is real leverage; reference it naturally and factually, do not exaggerate or invent details beyond what's given.\n` : ''}${walkAwayFlexibility && walkAwayContext[walkAwayFlexibility] ? `WALK-AWAY POSITION: ${walkAwayContext[walkAwayFlexibility]}\n` : ''}${internalDeadline ? `INTERNAL DEADLINE: ${internalDeadline} — use this to create realistic urgency where it fits.\n` : ''}${additionalInstructions ? `ADDITIONAL INSTRUCTIONS FROM THE BUYER (honor these):\n${additionalInstructions}\n` : ''}
 ${customPrompt ? `USER'S CUSTOM REQUEST (honor this above all else):\n${customPrompt}\n` : ''}
 Return ONLY valid JSON (no markdown, no code fences):
 {
@@ -194,10 +219,10 @@ Return ONLY valid JSON (no markdown, no code fences):
 }`
 
     const recommendedTone: EmailTone = recommendTone({
-      leverageLevel: leverageLevel || null,
-      highSeverityFlagCount: typeof highSeverityFlagCount === 'number' ? highSeverityFlagCount : 0,
+      leverageLevel: (pb.classification?.leverage_level as 'high' | 'medium' | 'low' | 'unclear' | undefined) || null,
+      highSeverityFlagCount,
       walkAwayFlexibility: walkAwayFlexibility || null,
-      isRenewal: dealType === 'renewal',
+      isRenewal,
       hasInternalDeadline: !!internalDeadline,
     })
 
@@ -209,7 +234,7 @@ Return ONLY valid JSON (no markdown, no code fences):
       action: 'email_regenerate',
       system: KEVIN_SYSTEM_PROMPT + '\n' + langInstruction,
       userContent: basePrompt,
-      temperature: 0.7,
+      temperature: 0.3,
       max_tokens: 2000,
     }))).trim() || '{}'
 
@@ -227,20 +252,17 @@ Return ONLY valid JSON (no markdown, no code fences):
     }
 
     // ── Persist ───────────────────────────────────────────────────────────
-    // Root cause of the "email vanishes on refresh" bug: this route only bumped
-    // the counter and returned the drafts. Nothing ever wrote them to
-    // output_json.email_drafts, so the page (hasEmail), the stage derivation
-    // (Negotiate), the Rounds section and Round 2's previous-round context all
-    // saw "no email". Now the three variants, the context they were built from
-    // and the recommended tone are stored on the round. No schema change:
-    // email_drafts has always been an output_json key (the old pipeline wrote it).
     const byLabel = (label: string) => result.emails.find((e: { label?: string }) => e?.label === label)
     const pick = (label: string, idx: number) => byLabel(label) ?? result.emails[idx]
-    const emailDrafts = {
-      neutral: { subject: String(pick('neutral', 0)?.subject ?? ''), body: String(pick('neutral', 0)?.body ?? '') },
-      firm: { subject: String(pick('firm', 1)?.subject ?? ''), body: String(pick('firm', 1)?.body ?? '') },
-      final_push: { subject: String(pick('final_push', 2)?.subject ?? ''), body: String(pick('final_push', 2)?.body ?? '') },
+    const removed: string[] = []
+    const clean = (label: string, idx: number) => {
+      const e = pick(label, idx)
+      const s = sanitizeEmailBody(String(e?.body ?? ''), { newLogo: allowNewLogo, alternatives: allowAlternatives })
+      removed.push(...s.removed)
+      return { subject: String(e?.subject ?? ''), body: s.body }
     }
+    const emailDrafts = { neutral: clean('neutral', 0), firm: clean('firm', 1), final_push: clean('final_push', 2) }
+    if (removed.length) console.warn('[TermLift] email guard removed sentences:', removed.join(' | '))
     const emailContext = {
       negotiationObjective: negotiationObjective || null,
       budgetCeiling: budgetCeiling || null,
@@ -248,7 +270,16 @@ Return ONLY valid JSON (no markdown, no code fences):
       walkAwayFlexibility: walkAwayFlexibility || null,
       internalDeadline: internalDeadline || null,
       additionalInstructions: additionalInstructions || customPrompt || null,
-      benchmarkUsed: !!(benchmarkAvailable && (benchmarkTarget || benchmarkFairLow)),
+      benchmarkUsed: !!benchLine,
+      // 2026-09-11: what the code decided, so the draft can be audited.
+      selectedAsks: selection.asks,
+      stretchAsks: selection.stretch,
+      targetAnchor: target ? target.anchor : null,
+      targetSource: target?.source ?? null,
+      quoteExpired,
+      allowNewLogo,
+      allowAlternatives,
+      guardRemoved: removed.length,
       generatedAt: new Date().toISOString(),
     }
     const { error: persistError } = await supabase
@@ -271,6 +302,8 @@ Return ONLY valid JSON (no markdown, no code fences):
         { label: 'final_push', ...emailDrafts.final_push },
       ],
       recommendedTone,
+      selectedAsks: selection.asks.map((a) => a.label),
+      targetAnchor: target?.anchor ?? null,
       remainingRegenerations: maxRegens - round.email_regeneration_count - 1
     })
   } catch (error) {
