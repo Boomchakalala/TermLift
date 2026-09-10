@@ -14,6 +14,8 @@ describe('detectCodeFlags (rules 1, 2, 10/11 on the renewal/date fields)', () =>
     expect(rules).toEqual(['auto_renew.notice_long', 'escalation.no_cap', 'quote.expired'])
     expect(flags[0].severity).toBe('high')
     expect(flags[0].score_category).toBe('terms')
+    expect(flags[0].what_to_ask_for).toBe('Reduce the non-renewal notice window to 45 days.')
+    expect(flags[0].if_they_push_back).toMatch(/^Accept 60 days/)
     expect(flags[1].severity).toBe('high')
     expect(flags[1].issue).toMatch(/minimum of 4% per year with no cap, and the vendor may increase beyond that/)
     expect(flags[2].issue).toBe('Quote expired on January 31, 2026')
@@ -54,6 +56,8 @@ describe('mergeCodeFlags', () => {
     expect(out[0].issue).toBe(model[0].issue)
     expect(out[0].severity).toBe('high')
     expect((out[0] as { source_rule?: string }).source_rule).toBe('model+auto_renew.notice_long')
+    // policy wording replaces the model's ask for notice, as for the uplift
+    expect((out[0] as { what_to_ask_for?: string }).what_to_ask_for).toBe('Reduce the non-renewal notice window to 45 days.')
     expect(out.map((f) => (f as { source_rule?: string }).source_rule)).toContain('escalation.no_cap')
   })
 

@@ -82,6 +82,16 @@ export function NewAnalysisClient({ billing, locked }: { billing?: ReactNode; lo
     void runPreview(dealType)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pdfData, imageData])
+  // Pasted text: read it once typing settles, so the detected deal type and the live findings
+  // appear without the person having to click anything.
+  useEffect(() => {
+    if (pdfData || imageData || uploadedFileName) return
+    const text = input.trim()
+    if (text.length < 200 || text.startsWith('[')) return
+    const id = setTimeout(() => { void runPreview(dealType) }, 1500)
+    return () => clearTimeout(id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [input, pdfData, imageData, uploadedFileName])
 
   const handleFile = async (file: File) => {
     setUploading(true); setError(null); setUploadedFileSize(formatBytes(file.size))

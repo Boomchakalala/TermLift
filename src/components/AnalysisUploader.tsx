@@ -190,6 +190,8 @@ export function AnalysisUploader({
   const fileRef = useRef<HTMLInputElement>(null)
   const [dragging, setDragging] = useState(false)
   const [showContextField, setShowContextField] = useState(false)
+  // The detected deal type is shown as a fact; the switch only appears on "Change".
+  const [changingType, setChangingType] = useState(false)
 
   const hasContent = !!(input.trim() || uploadedFileName)
   const canShowContext = showContext && typeof context === 'string' && !!setContext
@@ -304,32 +306,39 @@ export function AnalysisUploader({
           disabled={uploading || analyzing}
           onBlur={() => onInputSettled?.()}
         />
-        {/* Deal type — chosen here, suggested from the quote, never hard-coded */}
-        {dealType && onDealTypeChange && (
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            <span className="text-[12px] text-ink-3">Deal type</span>
-            <div role="radiogroup" aria-label="Deal type" className="inline-flex rounded-lg border border-line bg-surface p-0.5">
-              {(['New', 'Renewal'] as const).map((v) => (
-                <button
-                  key={v}
-                  type="button"
-                  role="radio"
-                  aria-checked={dealType === v}
-                  disabled={analyzing}
-                  onClick={() => onDealTypeChange(v)}
-                  className={`h-7 px-3 rounded-md text-[12.5px] font-semibold transition-colors ${dealType === v ? 'bg-ink text-white' : 'text-ink-2 hover:text-ink'}`}
-                >
-                  {v === 'New' ? 'New purchase' : 'Renewal'}
-                </button>
-              ))}
-            </div>
-            {previewing && <span className="inline-flex items-center gap-1 text-[12px] text-ink-3"><Loader2 className="w-3 h-3 animate-spin" /> Reading the quote…</span>}
-            {!previewing && suggestedDealType && (
-              <span className="text-[12px] text-ink-3">
-                {suggestedDealType.type === 'Renewal'
-                  ? 'The quote names a current subscription, so we suggest Renewal.'
-                  : 'Suggested from the quote.'}
-              </span>
+        {/* Deal type — detected from the quote, never asked. A "Change" link reveals the switch for the rare miss. */}
+        {dealType && onDealTypeChange && (previewing || suggestedDealType || changingType) && (
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-[12px]">
+            {previewing && !suggestedDealType && (
+              <span className="inline-flex items-center gap-1 text-ink-3"><Loader2 className="w-3 h-3 animate-spin" /> Reading the quote…</span>
+            )}
+            {!changingType && suggestedDealType && (
+              <>
+                <span className="text-ink-3">Detected:</span>
+                <span className="font-semibold text-ink">{dealType === 'Renewal' ? 'Renewal' : 'New purchase'}</span>
+                <span className="text-ink-3">{suggestedDealType.type === 'Renewal' ? '· the quote names a current subscription' : '· from the quote'}</span>
+                <button type="button" onClick={() => setChangingType(true)} disabled={analyzing} className="text-green-deep font-semibold hover:underline disabled:opacity-50">Change</button>
+              </>
+            )}
+            {changingType && (
+              <>
+                <span className="text-ink-3">Deal type</span>
+                <div role="radiogroup" aria-label="Deal type" className="inline-flex rounded-lg border border-line bg-surface p-0.5">
+                  {(['New', 'Renewal'] as const).map((v) => (
+                    <button
+                      key={v}
+                      type="button"
+                      role="radio"
+                      aria-checked={dealType === v}
+                      disabled={analyzing}
+                      onClick={() => { onDealTypeChange(v); setChangingType(false) }}
+                      className={`h-7 px-3 rounded-md text-[12.5px] font-semibold transition-colors ${dealType === v ? 'bg-ink text-white' : 'text-ink-2 hover:text-ink'}`}
+                    >
+                      {v === 'New' ? 'New purchase' : 'Renewal'}
+                    </button>
+                  ))}
+                </div>
+              </>
             )}
           </div>
         )}

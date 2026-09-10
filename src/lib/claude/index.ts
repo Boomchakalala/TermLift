@@ -32,8 +32,9 @@ import { resolveClassification } from './classification-guard'
 import { detectCodeFlags, mergeCodeFlags } from './code-flags'
 import { buildQuoteFacts, reconcileTotalWithLines } from '@/lib/quote-facts'
 import { normalizeSavings } from '@/lib/savings-normalize'
-import { filterSolidAgainstFlags, stripDeadlineLeverage } from '@/lib/playbook-hygiene'
+import { filterSolidAgainstFlags, stripDeadlineLeverage, stripPastDated, stripLongerTermOffers, longerTermOptedIn } from '@/lib/playbook-hygiene'
 import { enforceUpliftPolicy } from '@/lib/ask-policy'
+import { attachTargetPrice } from '@/lib/deal-target'
 import { DealOutputSchema, type DealOutputType, type QuoteClassificationType } from '../schemas'
 import { computeScores, countHighTermsFlags, isExpired, normalizeExtraction, scoreLabel, seedFromFacts } from '../scoring'
 import { parseMoney, normalizeAmount } from '../currency'
@@ -179,10 +180,17 @@ export async function analyzeDeal(
     const policedFlags = policed.output.red_flags as typeof redFlags
     const policedAsks = policed.output.what_to_ask_for as typeof analysis.what_to_ask_for
     const policedSavings = policed.output.potential_savings
-    const mustHave = policedAsks?.must_have || []
+    // Concessions and asks that hinge on a date already behind today are dead; a longer term is only offered when the person opted in.
+    const optedLonger = longerTermOptedIn(userPreferences)
+    const hygienicAsks = {
+      must_have: stripLongerTermOffers(stripPastDated(policedAsks?.must_have, asOf).kept, optedLonger).kept,
+      nice_to_have: stripLongerTermOffers(stripPastDated(policedAsks?.nice_to_have, asOf).kept, optedLonger).kept,
+    }
+    const trades = stripLongerTermOffers(stripPastDated(analysis.negotiation_plan?.trades_you_can_offer, asOf).kept, optedLonger).kept
+    const mustHave = hygienicAsks.must_have
     const solid = filterSolidAgainstFlags(analysis.quick_read?.whats_solid, policedFlags, mustHave)
     if (solid.dropped.length) console.log('[TermLift] Step 2d: dropped "solid" bullets that contradict a flag/ask:', solid.dropped.map((d) => d.bullet).join(' | '))
-    let leverage = analysis.negotiation_plan?.leverage_you_have || []
+    let leverage = stripPastDated(analysis.negotiation_plan?.leverage_you_have, asOf).kept
     if (quoteExpired) {
       const stripped = stripDeadlineLeverage(leverage)
       leverage = stripped.kept
@@ -220,8 +228,8 @@ export async function analyzeDeal(
       price_insight: analysis.price_insight,
       quick_read: { ...analysis.quick_read, whats_solid: solid.kept },
       red_flags: policedFlags,
-      negotiation_plan: { ...analysis.negotiation_plan, leverage_you_have: leverage },
-      what_to_ask_for: policedAsks,
+      negotiation_plan: { ...analysis.negotiation_plan, leverage_you_have: leverage, trades_you_can_offer: trades },
+      what_to_ask_for: hygienicAsks,
       potential_savings: policedSavings,
       score_rationale: analysis.score_rationale,
       assumptions: analysis.assumptions,
@@ -284,7 +292,8 @@ export async function analyzeDeal(
     console.log(`[TermLift timing] TOTAL analyzeDeal() (excludes DB writes, done by the caller): ${Date.now() - pipelineStart}ms`)
     console.log('[TermLift] Pipeline complete — score:', scores.overall, `(p${scores.pricing}/t${scores.terms}/l${scores.leverage})`, quoteExpired ? '| QUOTE EXPIRED' : '')
 
-    return result as DealOutputType
+    // The single stored target: quote − quantified must-have savings (benchmark target once the Playbook has one).
+    return attachTargetPrice(result, contractTotal) as DealOutputType
 
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error)

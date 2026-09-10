@@ -1,83 +1,77 @@
 import { describe, it, expect } from 'vitest'
-import { selectEmailAsks, isGenericDiscountAsk } from './email-asks'
+import { selectEmailAsks, buildCandidateAsks } from './email-asks'
 
-// The stored KnowBe4 Playbook (round b1781f07…) after savings normalisation.
+// The KnowBe4 Playbook after savings normalisation (live run 5), with the
+// rule-backed flags the code merged in.
 const fixture = {
   red_flags: [
-    { type: 'Renewal', severity: 'high', score_category: 'terms', issue: '90-day written cancellation notice required to avoid auto-renewal', why_it_matters: '', what_to_ask_for: 'Reduce the cancellation notice window to 30 days. If KnowBe4 refuses, require them to send a written renewal reminder no later than 120 days before the renewal date.', if_they_push_back: '' },
-    { type: 'Renewal', severity: 'high', score_category: 'terms', issue: 'Minimum 4% compounded annual fee escalation on renewal', why_it_matters: '', what_to_ask_for: 'Cap renewal escalation at CPI or 3%, whichever is lower, and remove the unilateral right to increase beyond the stated minimum.', if_they_push_back: '' },
-    { type: 'Commercial', severity: 'medium', score_category: 'pricing', issue: 'Compliance Plus discount (30.85%) is materially lower than the KSAT discount (38.1%)', why_it_matters: '', what_to_ask_for: 'Match the Compliance Plus discount to the KSAT rate of 38.1%', if_they_push_back: '' },
-    { type: 'Usage Risk', severity: 'medium', score_category: 'pricing', issue: '750 seats provisioned with no confirmation of actual headcount', why_it_matters: '', what_to_ask_for: 'Confirm actual headcount before signing.', if_they_push_back: '' },
-    { type: 'Commercial', severity: 'medium', score_category: 'pricing', issue: 'No additional discount requested for the 24-month commitment length', why_it_matters: '', what_to_ask_for: 'Request an explicit multi-year discount of 5% applied to the total contract value', if_they_push_back: '' },
+    { type: 'Renewal', severity: 'high', score_category: 'terms', source_rule: 'model+escalation.no_cap', issue: 'Renewal escalation is uncapped', why_it_matters: '', what_to_ask_for: 'Cap renewal price increases at CPI or 3%, whichever is lower, and remove the vendor right to increase beyond the cap, in the order form.', if_they_push_back: '' },
+    { type: 'Renewal', severity: 'high', score_category: 'terms', source_rule: 'model+auto_renew.notice_long', issue: 'Auto-renewal with 90-day non-renewal notice window', why_it_matters: '', what_to_ask_for: 'Reduce auto-renewal notice period from 90 days to 60 days', if_they_push_back: '' },
+    { type: 'Scope', severity: 'high', score_category: 'terms', issue: 'Seat counts are contractually frozen', why_it_matters: '', what_to_ask_for: 'Mid-term seat reduction right of up to 15% at month 12 with 30 days notice', if_they_push_back: '' },
+    { type: 'Commercial', severity: 'medium', score_category: 'pricing', issue: 'Compliance Plus discount (31%) is lower than KSAT (38%)', why_it_matters: '', what_to_ask_for: 'Match the Compliance Plus discount to the KSAT rate of 38%', if_they_push_back: '' },
+    { type: 'Commercial', severity: 'medium', score_category: 'pricing', source_rule: 'model+quote.expired', issue: 'Quote expired January 31, 2026', why_it_matters: '', what_to_ask_for: 'Ask for a refreshed quote', if_they_push_back: '' },
   ],
   what_to_ask_for: {
     must_have: [
-      'Additional 5% discount on total contract value in recognition of the 24-month commitment — target $34,514',
-      'Match Compliance Plus discount to KSAT rate of 38.1%',
-      'Cap renewal fee escalation at 4% maximum (not minimum) with no additional discretionary increase',
-      'Reduce auto-renewal cancellation notice from 90 days to 30 days, or require vendor to send a written renewal reminder at 120 days',
-      'Confirm and lock seat count to verified headcount before signing',
+      'Reduce auto-renewal notice period from 90 days to 60 days',
+      '5% additional discount on total contract value',
+      'Mid-term seat reduction right of up to 15% at month 12 with 30 days notice',
+      'Match the Compliance Plus discount to the KSAT rate of 38%',
     ],
-    nice_to_have: ['True-down clause allowing up to 10% seat reduction at the 12-month anniversary'],
+    nice_to_have: ['Prepayment discount of 3% for paying the full term upfront'],
   },
   potential_savings: {
     must_have: [
-      { ask: '5% discount on total contract value for 24-month commitment', amount: 1763, quantified: true },
-      { ask: 'Match Compliance Plus discount to KSAT rate of 38.1%, reducing unit price from $13.53 to approximately $12.10', amount: 1073, quantified: true },
+      { ask: '5% additional discount on total contract value', amount: 1763, quantified: true },
+      { ask: 'Compliance Plus discount improvement from 31% to 38%', amount: 1073, quantified: true },
     ],
-    nice_to_have: [{ ask: 'Right-size seat count if headcount is below 750', amount: null, quantified: false }],
+    nice_to_have: [{ ask: 'Right-size seat count if prior-term utilization was below 750', amount: null, quantified: false }],
   },
 }
+const fmt = (n: number) => `$${n.toLocaleString('en-US')}`
 
-describe('selectEmailAsks (KnowBe4 fixture)', () => {
-  it('opens with the refreshed quote, then the two HIGH flag asks; the 5% headline becomes a stretch', () => {
-    const s = selectEmailAsks(fixture, { quoteExpired: true, expiredOn: '2026-01-31' })
+describe('selectEmailAsks — policy v2 ranking', () => {
+  it('expired quote: reopen line → target → uplift cap → notice; shape asks stay in the playbook', () => {
+    const s = selectEmailAsks(fixture, { quoteExpired: true, expiredOn: '2026-01-31', targetPrice: 33494, formatMoney: fmt })
+    expect(s.asks.map((a) => a.reason)).toEqual(['refreshed_quote', 'target_price', 'term', 'term'])
+    expect(s.asks[1].label).toBe('Target total: $33,494')
+    expect(s.asks[2].rule).toMatch(/escalation/)
+    expect(s.asks[3].rule).toMatch(/auto_renew/)
+    // Shape asks never reach the email as asks…
+    expect(s.asks.some((a) => /seat reduction|Compliance Plus|5%/.test(a.label))).toBe(false)
+    expect(s.playbookOnly).toContain('Mid-term seat reduction right of up to 15% at month 12 with 30 days notice')
+    expect(s.playbookOnly).toContain('Prepayment discount of 3% for paying the full term upfront')
+    // …but the quantified ones explain how the target is built.
+    expect(s.justification).toEqual(['5% additional discount on total contract value', 'Compliance Plus discount improvement from 31% to 38%'])
+  })
+
+  it('live quote: no reopen line; target then the two term asks', () => {
+    const s = selectEmailAsks(fixture, { quoteExpired: false, targetPrice: 33494, formatMoney: fmt })
+    expect(s.asks.map((a) => a.reason)).toEqual(['target_price', 'term', 'term'])
     expect(s.asks.length).toBe(3)
-    expect(s.asks[0].reason).toBe('refreshed_quote')
-    expect(s.asks[0].label).toMatch(/refreshed quote/)
-    expect(s.asks[1].reason).toBe('high_flag')
-    expect(s.asks[2].reason).toBe('high_flag')
-    expect(s.asks.map((a) => a.label).join(' ')).toMatch(/notice/)
-    expect(s.asks.map((a) => a.label).join(' ')).toMatch(/escalation/)
-    expect(s.asks.some((a) => /5%/.test(a.label))).toBe(false)
-    expect(s.stretch.some((m) => m.startsWith('Additional 5% discount'))).toBe(true)
   })
 
-  it('without an expiry, HIGH flags come first and the largest quantified must-have fills the third slot', () => {
-    const s = selectEmailAsks(fixture, { quoteExpired: false })
-    expect(s.asks.length).toBe(3)
-    expect(s.asks[0].reason).toBe('high_flag')
-    expect(s.asks[1].reason).toBe('high_flag')
-    expect(s.asks[2].reason).toBe('must_have')
-    // The generic 5% ask ranks last among must-haves, so Compliance Plus parity ($1,073) wins the slot.
-    expect(s.asks[2].label).toMatch(/Compliance Plus/)
+  it('caps term asks at two even when three HIGH terms flags exist, rule-backed first', () => {
+    const s = selectEmailAsks(fixture, { quoteExpired: false, targetPrice: null })
+    expect(s.asks.map((a) => a.reason)).toEqual(['term', 'term'])
+    expect(s.asks[0].rule).toMatch(/escalation/)
+    expect(s.asks[1].rule).toMatch(/auto_renew/)
+    expect(s.playbookOnly).toContain('Mid-term seat reduction right of up to 15% at month 12 with 30 days notice')
   })
 
-  it('never selects an ask whose savings were unquantified as a money ask', () => {
-    const s = selectEmailAsks(fixture, { quoteExpired: false })
-    expect(s.asks.find((a) => /headcount/.test(a.label))).toBeUndefined()
+  it('no target and nothing rule-backed: a HIGH terms flag still counts as a term ask', () => {
+    const out = { red_flags: [{ type: 'Terms', severity: 'high', score_category: 'terms', issue: 'No exit clause', what_to_ask_for: 'Add an exit clause after 12 months', if_they_push_back: '' }], what_to_ask_for: { must_have: ['Add an exit clause after 12 months', 'Remove the €500 onboarding fee'], nice_to_have: [] }, potential_savings: { must_have: [{ ask: 'Remove the €500 onboarding fee', amount: 500, quantified: true }] } }
+    const s = selectEmailAsks(out, { targetPrice: 9500, formatMoney: fmt })
+    expect(s.asks.map((a) => a.reason)).toEqual(['target_price', 'term'])
+    expect(s.asks[1].label).toBe('Add an exit clause after 12 months')
+    expect(s.justification).toEqual(['Remove the €500 onboarding fee'])
+    expect(s.playbookOnly).toEqual(['Remove the €500 onboarding fee'])
   })
 
-  it('keeps the rule-backed uplift and notice asks when a third HIGH flag competes for the two slots (live run 4)', () => {
-    const out = {
-      ...fixture,
-      red_flags: [
-        { type: 'Renewal', severity: 'high', score_category: 'terms', source_rule: 'model+escalation.no_cap', issue: 'Renewal escalation is uncapped', why_it_matters: '', what_to_ask_for: 'Cap renewal price increases at CPI or 3%, whichever is lower, and remove the vendor right to increase beyond the cap, in the order form.', if_they_push_back: '' },
-        { type: 'Renewal', severity: 'high', score_category: 'terms', source_rule: 'model+auto_renew.notice_long', issue: 'Auto-renewal with 90-day non-renewal notice window', why_it_matters: '', what_to_ask_for: 'Reduce auto-renewal notice window from 90 days to 30 or 60 days', if_they_push_back: '' },
-        { type: 'Scope', severity: 'high', score_category: 'terms', issue: 'Seat counts are contractually frozen', why_it_matters: '', what_to_ask_for: 'Mid-term seat reduction right of up to 15% at month 12 with 30 days notice', if_they_push_back: '' },
-      ],
-      what_to_ask_for: { must_have: ['Reduce auto-renewal notice window from 90 days to 30 or 60 days', 'Additional 5% discount on both KSAT and Compliance Plus line items', 'Mid-term seat reduction right of up to 15% at month 12 with 30 days notice'], nice_to_have: [] },
-    }
-    const s = selectEmailAsks(out, { quoteExpired: true, expiredOn: '2026-01-31' })
-    expect(s.asks.map((a) => a.reason)).toEqual(['refreshed_quote', 'high_flag', 'high_flag'])
-    expect(s.asks[1].label).toMatch(/CPI or 3%/)
-    expect(s.asks[2].label).toMatch(/notice window/)
-    expect(s.asks.some((a) => /seat reduction/.test(a.label))).toBe(false)
+  it('carries the flag category onto candidates', () => {
+    const c = buildCandidateAsks(fixture)
+    expect(c.find((x) => /seat reduction/.test(x.label))?.category).toBe('terms')
+    expect(c.find((x) => /Compliance Plus/.test(x.label))?.category).toBe('pricing')
   })
 
-  it('recognises generic headline-discount asks', () => {
-    expect(isGenericDiscountAsk('5% discount on total contract value')).toBe(true)
-    expect(isGenericDiscountAsk('Additional 5% discount on total contract value in recognition of the 24-month commitment')).toBe(true)
-    expect(isGenericDiscountAsk('Match Compliance Plus discount to KSAT rate of 38.1%')).toBe(false)
-  })
 })

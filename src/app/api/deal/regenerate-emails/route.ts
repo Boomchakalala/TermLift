@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
-import { getClaudeResponse, getLanguageInstruction, KEVIN_SYSTEM_PROMPT, EMAIL_RULES, analysisDate } from '@/lib/claude'
+import { getClaudeResponse, getLanguageInstruction, KEVIN_SYSTEM_PROMPT, analysisDate } from '@/lib/claude'
+import { EMAIL_VOICE } from '@/lib/claude/email-voice'
 import { NextResponse } from 'next/server'
 import { outputLocale } from '@/lib/output-language'
 
@@ -13,8 +14,8 @@ import { computeDealTarget } from '@/lib/deal-target'
 import { isExpired, toIsoDate } from '@/lib/scoring'
 import { fmtMoney } from '@/lib/deal-metrics'
 import { detectCurrency, type Currency } from '@/lib/currency'
-import { sanitizeEmailBody } from '@/lib/email-guard'
-import { UPLIFT_ASK_PCT, upliftCapCeiling } from '@/lib/ask-policy'
+import { sanitizeEmailBody, applyVoiceGuard } from '@/lib/email-guard'
+import { stripPastDated, stripLongerTermOffers, longerTermOptedIn } from '@/lib/playbook-hygiene'
 
 // Email generation regularly takes 15-25s (single Claude call producing 3
 // variants) — matches the explicit maxDuration set on every other AI-calling
@@ -43,7 +44,7 @@ export async function POST(request: Request) {
     // NB: profiles has no first_name/last_name (verified against information_schema).
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('plan, is_admin, contact_name')
+      .select('plan, is_admin, contact_name, negotiation_preferences')
       .eq('id', user.id)
       .single()
     if (profileError) console.error('[TermLift] regenerate-emails: profile lookup failed:', profileError.message)
@@ -120,12 +121,25 @@ export async function POST(request: Request) {
     const quoteExpired = o.quote_expired === true || isExpired(expiresRaw, today)
     const expiredOn = quoteExpired ? (toIsoDate(expiresRaw) || String(expiresRaw || '')) : null
 
-    // Asks: code-selected (refreshed quote first when expired, then every HIGH flag ask, then the largest quantified must-have; cap 3).
-    const selection = selectEmailAsks({ ...pb, red_flags: o.red_flags?.length ? o.red_flags : pb.red_flags }, { quoteExpired, expiredOn, cap: 3 })
+    // One target: the round's stored target_price (the same number the header, playbook and must-have total use).
+    let target = computeDealTarget(pb)
+    // A round analysed before target_price existed: derive it once, store it, and read the stored value from here on.
+    if (target && target.source !== 'stored') {
+      const pbRound = (dealRounds || []).find((r) => r.output_json === pb) ?? (dealRounds || []).find((r) => r.id === roundId)
+      if (pbRound) {
+        const oj = (pbRound.output_json as Record<string, unknown>) || {}
+        await supabase.from('rounds').update({ output_json: { ...oj, target_price: target.target, target_price_source: target.source } }).eq('id', pbRound.id).eq('user_id', user.id)
+        target = computeDealTarget({ ...pb, target_price: target.target })
+      }
+    }
+    const targetAnchor = target ? fmt(target.target) : null
 
-    // One target, the same number the hero tile shows.
-    const target = computeDealTarget(pb)
-    const targetAnchor = target ? fmt(target.anchor) : null
+    // Asks, ranked in code: reopen line (expired only) → target → top two rule-backed term asks.
+    // Shape asks (seat cut, add-on parity, ...) stay in the playbook; the quantified ones explain the target.
+    const selection = selectEmailAsks({ ...pb, red_flags: o.red_flags?.length ? o.red_flags : pb.red_flags }, { quoteExpired, expiredOn, targetPrice: target?.target ?? null, formatMoney: fmt, maxTermAsks: 2 })
+
+    // Concessions the buyer can offer: nothing past-dated, no longer term unless the person opted in.
+    const optedLonger = longerTermOptedIn((profile as { negotiation_preferences?: { contract_term_strategy?: string } } | null)?.negotiation_preferences)
 
     // Deal-type framing: "new customer / new logo" only when the stored type is New, the
     // inference is high-confidence, and the document never names a running subscription.
@@ -138,8 +152,8 @@ export async function POST(request: Request) {
     const contactName: string | undefined = (o.contact_name || snapshot.contact_name || undefined) as string | undefined
     const quoteNumber: string | undefined = snapshot.quote_number || undefined
     const vendorName: string = deal?.vendor || o.vendor || snapshot.vendor_product || 'the vendor'
-    const leverage: string[] = pb.negotiation_plan?.leverage_you_have || []
-    const offers: string[] = pb.negotiation_plan?.trades_you_can_offer || []
+    const leverage: string[] = stripPastDated(pb.negotiation_plan?.leverage_you_have, today).kept
+    const offers: string[] = stripLongerTermOffers(stripPastDated(pb.negotiation_plan?.trades_you_can_offer, today).kept, optedLonger).kept
     const highSeverityFlagCount = (o.red_flags || []).filter((f: any) => String(f?.severity || '').toLowerCase() === 'high').length
 
     const dealTypeContext = isRenewal
@@ -163,15 +177,12 @@ export async function POST(request: Request) {
       : ''
 
     const asksBlock = selection.asks.length
-      ? selection.asks.map((a, i) => `${i + 1}. ${a.label}${a.savings ? ` (worth about ${fmt(a.savings)})` : ''}${a.reason === 'refreshed_quote' ? ' — THIS MUST BE THE FIRST ASK IN EVERY VARIANT' : ''}`).join('\n')
+      ? selection.asks.map((a, i) => `${i + 1}. ${a.label}${a.reason === 'refreshed_quote' ? ' — one sentence, first in every variant' : a.reason === 'target_price' ? ' — the ONLY total you state' : ''}${a.reason === 'term' && a.fallback ? ` (fallback, one clause only if the ask isn't possible: ${a.fallback})` : ''}`).join('\n')
       : '- (none — write a short, friendly note that the buyer is happy with the quote and ready to proceed)'
-    const stretchBlock = selection.stretch.length
-      ? `\nSTRETCH (optional, mention at most one, only where it fits naturally, NEVER as a condition of signing):\n${selection.stretch.map((s) => `- ${s}`).join('\n')}`
-      : ''
 
     const basePrompt = `Write 3 supplier-facing email variations in Kevin's style.
 
-${EMAIL_RULES}
+${EMAIL_VOICE}
 
 DEAL CONTEXT (already known from the analysis — do not ask the user for any of this):
 Vendor: ${vendorName}
@@ -183,7 +194,7 @@ Currency: ${currency}
 Payment terms: ${snapshot.billing_payment || 'not specified'}
 Pricing model: ${snapshot.pricing_model || 'not specified'}
 ${quoteExpired ? `QUOTE STATUS: the quote expired on ${expiredOn}. Its prices are historical. Every variant opens by asking for a refreshed quote that keeps the printed pricing and discounts as the starting point; nothing else is agreed until that arrives. Do not mention the old deadline as pressure.` : ''}
-${targetAnchor ? `TARGET TOTAL: ${targetAnchor}. This is the ONE number to anchor on when you state a target (already rounded — use it exactly as written). Do not state any other total.` : ''}
+${targetAnchor ? `TARGET TOTAL: ${targetAnchor}. This is the ONE total you state, exactly as written. Do not compute, round or restate any other total.` : ''}
 ${benchLine}
 Situation: ${o.quick_read?.conclusion || o.verdict || 'Negotiation in progress'}
 ${dealTypeContext}
@@ -191,9 +202,8 @@ ${dealTypeContext}
 ${contactName ? `The contact's first name is "${contactName}". Use "Hi ${contactName}," as the greeting in every email.` : ''}
 SENDER NAME: ${senderName || '[Your Name]'}
 
-THE ASKS TO RAISE — raise ALL of these, in THIS order, and no others. The first ask gets the most space:
+THE ASKS TO RAISE — one paragraph each, in THIS order, and no others:
 ${asksBlock}
-${stretchBlock}
 
 WHAT THE BUYER CAN OFFER IN RETURN (trade these against the asks where they fit naturally):
 ${offers.map((c: string) => `- ${c}`).join('\n') || '- fast signature once the points above are settled'}
@@ -202,7 +212,7 @@ LEVERAGE THE BUYER HAS (use the strongest one or two naturally — never state t
 ${leverage.map((l: string) => `- ${l}`).join('\n') || '- (none specific — keep the tone collaborative rather than pushing hard on leverage)'}
 
 WORDING GUARDS:
-- RENEWAL UPLIFT POLICY: when an ask concerns renewal price increases, ask for CPI or ${UPLIFT_ASK_PCT}% whichever is lower; the only acceptable fallback is a hard cap of ${upliftCapCeiling(o.extraction?.renewalTerms)}%. Never write a cap higher than ${upliftCapCeiling(o.extraction?.renewalTerms)}%.
+- Raise ONLY the asks listed above, with their numbers as written. Do not add a discount, a cap, a term change or any other ask of your own.
 ${allowNewLogo ? '- You may refer to the buyer as a new customer.' : '- NEVER write "new customer", "new logo", "first-time buyer" or any equivalent.'}
 ${allowAlternatives ? '- The competing quote / alternative below is real; you may reference it factually.' : '- NEVER claim the buyer is looking at alternatives, other vendors or competing quotes. None were provided.'}
 - Never invent a budget figure, a deadline or a competing offer that is not in this context.
@@ -259,7 +269,9 @@ Return ONLY valid JSON (no markdown, no code fences):
       const e = pick(label, idx)
       const s = sanitizeEmailBody(String(e?.body ?? ''), { newLogo: allowNewLogo, alternatives: allowAlternatives })
       removed.push(...s.removed)
-      return { subject: String(e?.subject ?? ''), body: s.body }
+      const v = applyVoiceGuard(s.body)
+      removed.push(...v.changed)
+      return { subject: String(e?.subject ?? ''), body: v.body }
     }
     const emailDrafts = { neutral: clean('neutral', 0), firm: clean('firm', 1), final_push: clean('final_push', 2) }
     if (removed.length) console.warn('[TermLift] email guard removed sentences:', removed.join(' | '))
@@ -273,8 +285,9 @@ Return ONLY valid JSON (no markdown, no code fences):
       benchmarkUsed: !!benchLine,
       // 2026-09-11: what the code decided, so the draft can be audited.
       selectedAsks: selection.asks,
-      stretchAsks: selection.stretch,
-      targetAnchor: target ? target.anchor : null,
+      targetJustification: selection.justification,
+      playbookOnlyAsks: selection.playbookOnly,
+      targetAnchor: target ? target.target : null,
       targetSource: target?.source ?? null,
       quoteExpired,
       allowNewLogo,

@@ -54,8 +54,9 @@ export function detectCodeFlags(extraction: ExtractionResult, asOf: string | und
         type: 'Renewal', severity: 'high', score_category: 'terms', source_rule: 'auto_renew.notice_long',
         issue: `${days}-day written notice required to stop the auto-renewal`,
         why_it_matters: `Missing the window by a day locks you into another full term at ${total} or more. A ${days}-day window is far ahead of when most teams review a renewal.`,
-        what_to_ask_for: 'Reduce the cancellation notice to 30 days, or require a written renewal reminder from the vendor 120 days before term end with the cancellation right restated.',
-        if_they_push_back: 'Accept 60 days only with the written reminder commitment in the order form, not by email.',
+        // Notice policy: ask 45 days; fallback 60 days with a written reminder in the order form.
+        what_to_ask_for: 'Reduce the non-renewal notice window to 45 days.',
+        if_they_push_back: 'Accept 60 days, with a written renewal reminder from the vendor 90 days before term end, in the order form.',
       })
     } else if (days <= 30) {
       flags.push({
@@ -155,8 +156,8 @@ export function mergeCodeFlags<T extends LlmFlag>(modelFlags: T[], codeFlags: Co
       const cur = SEV[(String(existing.severity || 'medium').toLowerCase() as keyof typeof SEV)] ?? 2
       if (SEV[cf.severity] > cur) out[idx] = { ...existing, severity: cf.severity } as T
       if (!existing.source_rule) out[idx] = { ...(out[idx] as object), source_rule: `model+${cf.source_rule}` } as unknown as T
-      // The escalation ask and fallback are policy (lib/ask-policy.ts), not the model's to set.
-      if (cf.source_rule.startsWith('escalation')) out[idx] = { ...(out[idx] as object), what_to_ask_for: cf.what_to_ask_for, if_they_push_back: cf.if_they_push_back } as unknown as T
+      // The escalation and notice asks and fallbacks are policy, not the model's to set.
+      if (cf.source_rule.startsWith('escalation') || cf.source_rule.startsWith('auto_renew')) out[idx] = { ...(out[idx] as object), what_to_ask_for: cf.what_to_ask_for, if_they_push_back: cf.if_they_push_back } as unknown as T
       continue
     }
     out.push(cf)

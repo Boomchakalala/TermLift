@@ -161,6 +161,14 @@ export async function POST(
       const delta = await runWithAiContext({ userId: user.id, dealId }, () => compareRounds(previousOutput, output, validated.extractedText, locale))
       if (delta) (output as Record<string, unknown>).round_delta = delta
     }
+    // One stored target per deal: a vendor-reply round inherits the previous round's target_price.
+    {
+      const prevTarget = (previousOutput as { target_price?: unknown; target_price_source?: unknown } | undefined)?.target_price
+      if (typeof prevTarget === 'number' && prevTarget > 0) {
+        ;(output as Record<string, unknown>).target_price = prevTarget
+        ;(output as Record<string, unknown>).target_price_source = (previousOutput as { target_price_source?: unknown }).target_price_source ?? 'asks'
+      }
+    }
 
     // Round 2+: the vendor's current total, read from the analysis this round
     // already ran (no extra model call), checked deterministically and stored

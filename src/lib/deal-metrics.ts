@@ -7,6 +7,7 @@
  */
 import { detectCurrency, formatCurrency, parseMoney, type Currency } from '@/lib/currency'
 import type { VendorOffer } from '@/lib/vendor-offer'
+import { snapTarget } from '@/lib/deal-target'
 
 /** The analysis JSON is loosely typed across schema versions — read defensively. */
 interface LooseOutput {
@@ -16,6 +17,8 @@ interface LooseOutput {
   red_flags?: unknown[]
   priority_points?: unknown[]
   potential_savings?: unknown
+  /** The deal's single stored target (lib/deal-target.ts), snapped. */
+  target_price?: unknown
   snapshot?: { total_commitment?: unknown; currency?: unknown; deal_type?: unknown; renewal_date?: unknown }
   commercial_facts?: { supplier?: unknown; total_value?: unknown; currency?: unknown }
 }
@@ -86,7 +89,15 @@ export function parseSavingsAmount(v: unknown): number {
  *  - [ {annual_impact, confidence} ]   (legacy array; low-confidence items excluded)
  */
 export function getPotentialSavings(deal: DealLike): number {
-  const ps = getLatestOutput(deal).potential_savings
+  const out = getLatestOutput(deal)
+  // One stored target per deal (lib/deal-target.ts): the savings figure is quote − target_price, nothing else.
+  const tp = out.target_price
+  if (typeof tp === 'number' && tp > 0) {
+    const total = parseMoney(getTotalCommitment(deal) || '0').amount
+    const snapped = total > 0 ? snapTarget(tp, total) : tp
+    if (total > snapped) return Math.round((total - snapped) * 100) / 100
+  }
+  const ps = out.potential_savings
   if (!ps) return 0
   if (Array.isArray(ps)) {
     const items = ps as SavingsItem[]

@@ -19,8 +19,9 @@ import { analysisDate } from '@/lib/claude'
 import { isUnreadableClassification, resolveClassification } from '@/lib/claude/classification-guard'
 import { detectCodeFlags, mergeCodeFlags } from '@/lib/claude/code-flags'
 import { normalizeSavings } from '@/lib/savings-normalize'
-import { filterSolidAgainstFlags, stripDeadlineLeverage } from '@/lib/playbook-hygiene'
+import { filterSolidAgainstFlags, stripDeadlineLeverage, stripPastDated, stripLongerTermOffers, longerTermOptedIn } from '@/lib/playbook-hygiene'
 import { enforceUpliftPolicy } from '@/lib/ask-policy'
+import { attachTargetPrice } from '@/lib/deal-target'
 import { computeScores, countHighTermsFlags, isExpired, mergeExtractions, normalizeExtraction, scoreLabel } from '@/lib/scoring'
 import { parseMoney } from '@/lib/currency'
 
@@ -74,7 +75,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ dea
     // A failed run reverts deep_analysis_status to 'idle' (see catch block
     // below), so without this check a bad document could be retried
     // indefinitely, each retry burning a fresh expensive call.
-    const { data: limitProfile } = await supabase.from('profiles').select('is_admin').eq('id', user.id).single()
+    const { data: limitProfile } = await supabase.from('profiles').select('is_admin, negotiation_preferences').eq('id', user.id).single()
     if (!limitProfile?.is_admin) {
       const rateLimit = await checkRateLimit(user.id)
       if (!rateLimit.allowed) {
@@ -237,21 +238,28 @@ export async function POST(request: Request, { params }: { params: Promise<{ dea
       const policedFlags = policed.output.red_flags as typeof redFlags
       const policedAsks = policed.output.what_to_ask_for as typeof deep.what_to_ask_for
       const potentialSavings = policed.output.potential_savings
-      const solid = filterSolidAgainstFlags(deep.quick_read?.whats_solid, policedFlags, policedAsks?.must_have)
-      let leverage = deep.negotiation_plan?.leverage_you_have || []
+      // Past-dated concessions are dead; a longer term is only offered when the person opted in.
+      const optedLonger = longerTermOptedIn((limitProfile as { negotiation_preferences?: { contract_term_strategy?: string } } | null)?.negotiation_preferences)
+      const hygienicAsks = {
+        must_have: stripLongerTermOffers(stripPastDated(policedAsks?.must_have, asOf).kept, optedLonger).kept,
+        nice_to_have: stripLongerTermOffers(stripPastDated(policedAsks?.nice_to_have, asOf).kept, optedLonger).kept,
+      }
+      const trades = stripLongerTermOffers(stripPastDated(deep.negotiation_plan?.trades_you_can_offer, asOf).kept, optedLonger).kept
+      const solid = filterSolidAgainstFlags(deep.quick_read?.whats_solid, policedFlags, hygienicAsks.must_have)
+      let leverage = stripPastDated(deep.negotiation_plan?.leverage_you_have, asOf).kept
       if (quoteExpired) leverage = stripDeadlineLeverage(leverage).kept
       console.log(`[TermLift] Deep rescore: ${output.score} → ${scores.overall} (p${scores.pricing}/t${scores.terms}/l${scores.leverage}); code flags: ${codeFlags.map((f) => f.source_rule).join(', ') || 'none'}${quoteExpired ? '; QUOTE EXPIRED' : ''}`)
 
       // Enrich, don't overwrite the headline facts: verdict/verdict_type/title/
       // snapshot/vendor/category/description stay as the fast pass set them.
       // The score and its inputs are REPLACED with the rescored values above.
-      const merged = {
+      const mergedRaw = {
         generated_locale: locale,
         ...output,
         quick_read: { ...deep.quick_read, whats_solid: solid.kept },
         red_flags: policedFlags,
-        negotiation_plan: { ...deep.negotiation_plan, leverage_you_have: leverage },
-        what_to_ask_for: policedAsks,
+        negotiation_plan: { ...deep.negotiation_plan, leverage_you_have: leverage, trades_you_can_offer: trades },
+        what_to_ask_for: hygienicAsks,
         potential_savings: potentialSavings,
         cash_flow_improvements: deep.cash_flow_improvements,
         watchItems: deep.watchItems,
@@ -274,6 +282,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ dea
         deep_analysis_status: 'done',
         deep_analysis_completed_at: new Date().toISOString(),
       }
+      // Recompute the single stored target on the Playbook's asks (or the benchmark target).
+      const merged = attachTargetPrice(mergedRaw, contractTotal)
 
       // Deep Analysis was the last reader of the raw quote text. Structured
       // facts (quote_facts, extracted_data, snapshot) carry everything later

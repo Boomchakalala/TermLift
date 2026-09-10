@@ -20,6 +20,8 @@ export interface SavingsItem {
   quantified?: boolean
   /** Set when rule 2 rewrote the amount. */
   recomputed_from?: { pct: number; base: number; original: number }
+  /** Why the amount was removed, when it was not the conditional-ask rule. */
+  dropped_reason?: 'stacked_percentage'
 }
 
 export interface NormalizedSavings {
@@ -69,6 +71,19 @@ export function normalizeSavings(raw: unknown, contractTotal: number): Normalize
   const r = raw as Record<string, unknown>
   const must = toItems(r.must_have).map((it) => (isConditionalAsk(it.ask, it.rationale) ? { ...it, amount: null, quantified: false } : { ...it, quantified: it.amount != null }))
   const nice = toItems(r.nice_to_have).map((it) => (isConditionalAsk(it.ask, it.rationale) ? { ...it, amount: null, quantified: false } : { ...it, quantified: it.amount != null }))
+
+  // Rule 1b: never sum two percentage discounts onto the same quoted total —
+  // keep the largest headline % ask quantified, the others become unquantified.
+  const headlines = must.filter((it) => it.quantified && it.amount != null && headlinePct(it.ask) != null)
+  if (headlines.length > 1) {
+    const keep = headlines.reduce((best, it) => ((headlinePct(it.ask) as number) > (headlinePct(best.ask) as number) ? it : best), headlines[0])
+    for (const it of headlines) {
+      if (it === keep) continue
+      it.amount = null
+      it.quantified = false
+      it.dropped_reason = 'stacked_percentage'
+    }
+  }
 
   // Rule 2: headline % on the net of the line-specific quantified asks.
   if (contractTotal > 0) {

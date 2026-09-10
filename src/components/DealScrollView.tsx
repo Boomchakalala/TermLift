@@ -13,6 +13,7 @@ import { shouldRenderBenchmark } from '@/lib/benchmark/visibility'
 import { FULL_ANALYSIS_EMAIL_REGEN_LIMIT, deepAnalysisPriceNote } from '@/lib/pricing'
 import { TONE_LABELS, type EmailTone } from '@/lib/tone-recommend'
 import { getFlagSeverity } from '@/lib/deal-metrics'
+import { snapTarget } from '@/lib/deal-target'
 import { Btn, Card, Chip, GateCard } from '@/components/system'
 import { TONE_APPROACH } from '@/lib/tone-recommend'
 import type { RoundDelta } from '@/types'
@@ -221,7 +222,12 @@ export function DealScrollView(props: DealScrollViewProps) {
       const amt = (i: any) => (i.quantified === false || i.amount == null ? 0 : typeof i.amount === 'number' ? i.amount : parseMoney(String(i.amount || '0')).amount)
       const mh = (ps.must_have || []).map((i: any) => ({ ask: i.ask, amount: amt(i), rationale: i.rationale || '', quantified: i.quantified !== false && i.amount != null }))
       const nth = (ps.nice_to_have || []).map((i: any) => ({ ask: i.ask, amount: amt(i), rationale: i.rationale || '', quantified: i.quantified !== false && i.amount != null }))
-      return { total: mh.reduce((s: number, i: any) => s + (i.amount || 0), 0), mustHave: mh, niceToHave: nth }
+      // One stored target per deal: the headline savings figure is quote − target_price (snapped), never the item sum.
+      const tp = (pb as any)?.target_price
+      const quoteNum = parseMoney(totalCommitment || '0').amount
+      const snapped = typeof tp === 'number' && tp > 0 && quoteNum > 0 ? snapTarget(tp, quoteNum) : null
+      const total = snapped != null && quoteNum > snapped ? quoteNum - snapped : mh.reduce((s: number, i: any) => s + (i.amount || 0), 0)
+      return { total, mustHave: mh, niceToHave: nth }
     }
     if (Array.isArray(ps)) {
       const mh = ps.filter((s: any) => s.confidence !== 'low').map((s: any) => ({ ask: s.ask, amount: parseMoney(s.annual_impact || '').amount, rationale: s.rationale || '' }))
@@ -229,7 +235,7 @@ export function DealScrollView(props: DealScrollViewProps) {
       return { total: mh.reduce((s: number, i: any) => s + (i.amount || 0), 0), mustHave: mh, niceToHave: nth }
     }
     return { total: 0, mustHave: [], niceToHave: [] }
-  }, [pb?.potential_savings])
+  }, [pb?.potential_savings, (pb as any)?.target_price, totalCommitment])
 
   // ── email state ───────────────────────────
   const bizDate = getNextBusinessDate()
@@ -278,6 +284,15 @@ export function DealScrollView(props: DealScrollViewProps) {
   const [internalDeadline, setInternalDeadline] = useState(savedCtx?.internalDeadline || '')
 
   const hasEmail = !!(o?.email_drafts?.neutral?.body)
+  // The email block is the tallest thing on the page: collapsed to a one-line summary once a draft
+  // exists, open while generating one is the next step. A "Prepare Round" / "#email-section" jump opens it.
+  const [emailOpen, setEmailOpen] = useState(!hasEmail)
+  useEffect(() => {
+    const onHash = () => { if (window.location.hash === '#email-section') setEmailOpen(true) }
+    onHash()
+    window.addEventListener('hashchange', onHash)
+    return () => window.removeEventListener('hashchange', onHash)
+  }, [])
 
   // Real negotiation activity — an analysis by itself is not a negotiation
   // round. sortedRounds.length > 1 means a genuine round 2+ (vendor response
@@ -347,6 +362,7 @@ export function DealScrollView(props: DealScrollViewProps) {
       setRemainingRegens(data.remainingRegenerations)
       // Context is now persisted with the drafts — keep it in the form (it prefills next time too).
       setShowEmailContext(false)
+      setEmailOpen(true)
       router.refresh()
     } catch (err) { setRegenError(err instanceof Error ? err.message : 'Failed') }
     finally { setRegenerating(false) }
@@ -734,6 +750,12 @@ export function DealScrollView(props: DealScrollViewProps) {
               sub={sortedRounds.length > 1
                 ? (hasEmail ? (fr ? 'Ce que la réponse du fournisseur a changé, et la contre-proposition à envoyer.' : "What the vendor's reply changed, and the counter to send.") : (fr ? 'Ce que la réponse du fournisseur a changé. Générez votre contre-proposition ci-dessous.' : "What the vendor's reply changed. Generate your counter below."))
                 : (hasEmail ? (fr ? 'L’e-mail d’ouverture, prêt à copier et envoyer.' : 'Your opening email, ready to copy and send.') : (fr ? 'TermLift connaît déjà le devis et la stratégie. Ajoutez ce que le document ne peut pas nous dire, puis générez l’e-mail.' : 'TermLift already knows the quote and the strategy. Add what the document can’t tell us, then generate the email.'))}
+              right={hasEmail ? (
+                <Btn variant="link" size="sm" onClick={() => setEmailOpen(!emailOpen)} aria-expanded={emailOpen} aria-controls="email-detail">
+                  {emailOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                  {emailOpen ? (fr ? 'Réduire' : 'Collapse') : (fr ? 'Afficher l’e-mail' : 'Show email')}
+                </Btn>
+              ) : undefined}
             />
 
             {/* Round 2+: the vendor's figure first, then what their reply changed. */}
@@ -758,6 +780,18 @@ export function DealScrollView(props: DealScrollViewProps) {
             })()}
             {sortedRounds.length > 1 && (o as any)?.round_delta && <RoundDeltaCard d={(o as any).round_delta as RoundDelta} fr={fr} />}
 
+            {!emailOpen && hasEmail && (
+              /* Collapsed: one line — tone, subject, copy. The full editor is one click away. */
+              <Card pad={false} className="mb-1">
+                <div className="px-4 py-3 flex flex-wrap items-center gap-x-3 gap-y-2">
+                  <Chip tone="green">{toneChipLabel(toneOrder[emailTab])}</Chip>
+                  <span className="text-[13px] font-semibold text-ink truncate min-w-0 flex-1">{emailSubjects[emailTab] || (fr ? 'E-mail prêt' : 'Email ready')}</span>
+                  <Btn variant="primary" size="sm" onClick={() => { setCopiedEmail(true); navigator.clipboard.writeText(emailBodies[emailTab]); setTimeout(() => setCopiedEmail(false), 2000) }}>{copiedEmail ? <><CheckCircle2 className="w-3.5 h-3.5" />{fr ? 'Copié' : 'Copied'}</> : <><Copy className="w-3.5 h-3.5" />{fr ? 'Copier l’e-mail' : 'Copy email'}</>}</Btn>
+                  <Btn variant="ghost" size="sm" onClick={() => setEmailOpen(true)}><ChevronDown className="w-3.5 h-3.5" />{fr ? 'Ouvrir' : 'Open'}</Btn>
+                </div>
+              </Card>
+            )}
+            <div id="email-detail" hidden={hasEmail && !emailOpen}>
             {hasEmail && (
               <div className="rounded-[10px] border border-line bg-surface px-4 py-3 mb-3">
                 <p className="tl-label text-ink-3 mb-1">{fr ? 'Approche recommandée' : 'Recommended approach'}</p>
@@ -837,6 +871,7 @@ export function DealScrollView(props: DealScrollViewProps) {
               </div>
             )}
             {demoMode && !hasEmail && <Btn href="/login?from=demo" variant="primary">{fr ? 'Inscrivez-vous pour générer' : 'Sign up to generate'} <ArrowRight className="w-3.5 h-3.5" /></Btn>}
+            </div>
           </>
         )}
       </section>

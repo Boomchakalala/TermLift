@@ -55,7 +55,7 @@ Final self-check before output:
 
 Return only valid JSON.
 
-ANCHOR NUMBERS: when the email states a target total or a price you are asking for, round it to a clean figure a person would say out loud (nearest 100 below 20,000; nearest 500 below 200,000; nearest 1,000 above). Never round the individual asks, discounts or the vendor's own figures; only the total you anchor on.`
+TARGET TOTAL: when the deal context provides a target total, state it exactly as written — never round it, restate it as another figure, or add a second total. Never round the individual asks, discounts or the vendor's own figures either.`
 
 // ---------------------------------------------------------------------------
 // EMAIL GENERATION RULES — injected into every generation call

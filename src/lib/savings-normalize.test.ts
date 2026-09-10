@@ -41,6 +41,21 @@ describe('normalizeSavings (KnowBe4 fixture)', () => {
     expect(headlinePct('Match Compliance Plus discount to KSAT rate of 38.1%')).toBeNull()
   })
 
+  it('never sums two percentage discounts onto the same quoted total', () => {
+    const r = normalizeSavings({ must_have: [
+      { ask: '5% multi-year discount on total contract value', amount: 1817 },
+      { ask: '3% loyalty discount on the total contract value', amount: 1090 },
+      { ask: 'Remove the $500 onboarding fee', amount: 500 },
+    ] }, 36330)!
+    expect(r.must_have[0].quantified).toBe(true)
+    expect(r.must_have[1].quantified).toBe(false)
+    expect(r.must_have[1].amount).toBeNull()
+    expect(r.must_have[1].dropped_reason).toBe('stacked_percentage')
+    // 5% on the total net of the $500 line ask
+    expect(r.must_have[0].amount).toBe(Math.round((36330 - 500) * 0.05))
+    expect(r.total).toBe(Math.round((36330 - 500) * 0.05) + 500)
+  })
+
   it('returns null for a shape it does not understand', () => {
     expect(normalizeSavings(null, 100)).toBeNull()
     expect(normalizeSavings([], 100)).toBeNull()
