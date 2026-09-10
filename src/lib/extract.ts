@@ -195,6 +195,29 @@ export async function textForPersistence(input: {
   return null
 }
 
+/**
+ * Model transcription of the document when the parsers gave nothing (image-only
+ * PDFs, PDFs pdf-parse cannot open, serverless builds without the native
+ * parser). Lives behind its own function so the fast path stays free and the
+ * caller can run it in parallel with the analysis. Never throws.
+ */
+export async function transcribeForPersistence(input: {
+  pdfData?: { base64: string; mimeType?: string } | null
+  imageData?: { base64: string; mimeType?: string } | null
+  allPages?: Array<{ base64: string; mimeType?: string }> | null
+}): Promise<string | null> {
+  if (!input.pdfData?.base64 && !input.imageData?.base64 && !(input.allPages && input.allPages.length)) return null
+  try {
+    const { transcribeDocument } = await import('@/lib/claude/transcribe')
+    const text = await transcribeDocument(input)
+    if (text) console.log(`[TermLift] textForPersistence: parsers gave nothing; model transcription kept ${text.length} characters`)
+    return text
+  } catch (e) {
+    console.warn('[TermLift] transcribeForPersistence failed (non-fatal):', e instanceof Error ? e.message : e)
+    return null
+  }
+}
+
 export async function extractText(file: File): Promise<string> {
   const buffer = Buffer.from(await file.arrayBuffer())
   const fileType = file.type

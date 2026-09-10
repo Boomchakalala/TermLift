@@ -132,7 +132,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ dea
       return NextResponse.json({
         error: purged
           ? 'The quote text for this deal was removed under our retention policy, so the Negotiation Playbook can’t be built on it. Start a new analysis with the same quote to unlock it.'
-          : 'This deal was analysed before we kept the quote text, so the Negotiation Playbook can’t be built on it. Start a new analysis with the same quote to unlock it.',
+          : 'We couldn’t read the text of this quote when it was analysed (the file may be image-only), so the Negotiation Playbook can’t be built on it. Start a new analysis: paste the quote text, or upload the document again.',
       }, { status: 422 })
     }
 

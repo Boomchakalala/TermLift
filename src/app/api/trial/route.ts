@@ -5,7 +5,7 @@ import { inferDealTypeForPersistence, applyChosenDealType } from '@/lib/deal-typ
 import { stripAdvancedOutput, stripFlagDetailForQuick, SHOW_FULL_NEGOTIATION_PLAYBOOK } from '@/lib/negotiation-gating'
 import { runWithAiContext } from '@/lib/ai-telemetry'
 import { createAdminClient, createClient } from '@/lib/supabase/server'
-import { textForPersistence } from '@/lib/extract'
+import { textForPersistence, transcribeForPersistence } from '@/lib/extract'
 import { TRIAL_MAX_PER_IP_PER_DAY } from '@/lib/ai-limits'
 import { FREE_ANALYSIS_LIMIT } from '@/lib/pricing'
 import type { DealOutput, DealOutputV2 } from '@/types'
@@ -164,7 +164,10 @@ export async function POST(request: Request) {
     // Text the browser stashes with the trial so import-trial can persist it —
     // otherwise an uploaded trial imports with "[Document received]" as its text
     // and can never run Deep Analysis. Computed first so the classifier reads it.
-    const persistText = await textForPersistence({ extractedText, pdfData: validPdfData ?? null, imageData: validImageData ?? null, allPages: validAllPages ?? null })
+    const docInput = { pdfData: validPdfData ?? null, imageData: validImageData ?? null, allPages: validAllPages ?? null }
+    let persistText = await textForPersistence({ extractedText, ...docInput })
+    // Parsers gave nothing: model transcription, in parallel with the analysis (see create/route.ts).
+    const transcription = persistText ? null : transcribeForPersistence(docInput)
 
     // Analyze with V1 (full text analysis — auto-retry on transient failures)
     const output = await runWithAiContext({ ipAddress: clientIP }, () => withRetry(() => analyzeDeal(
@@ -181,6 +184,7 @@ export async function POST(request: Request) {
       undefined,
       persistText || undefined,
     )))
+    if (!persistText && transcription) persistText = await transcription
     ;(output as any).inferred_deal_type = inferDealTypeForPersistence({
       snapshotDealType: (output as any)?.snapshot?.deal_type,
       recurring: (output as any)?.classification?.recurring,

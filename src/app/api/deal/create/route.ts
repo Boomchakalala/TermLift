@@ -1,7 +1,7 @@
 ﻿import { NextResponse } from 'next/server'
 import { resolveRequestLocale } from '@/lib/request-locale'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
-import { textForPersistence } from '@/lib/extract'
+import { textForPersistence, transcribeForPersistence } from '@/lib/extract'
 import { CreateDealSchema } from '@/lib/schemas'
 import { analyzeDeal, type ExtractedFacts } from '@/lib/claude'
 import { toStructuredExtraction } from '@/lib/structured-extraction'
@@ -115,12 +115,12 @@ export async function POST(request: Request) {
     // uploaded PDF/image now (best-effort). The file itself is never stored.
     // Computed BEFORE the analysis so the classifier reads it too (Haiku cannot
     // take a PDF) and deal-type inference can run while the text still exists.
-    const persistText = await textForPersistence({
-      extractedText: validated.extractedText,
-      pdfData: validated.pdfData ?? null,
-      imageData: validated.imageData ?? null,
-      allPages: (body as any).allPages ?? null,
-    })
+    const docInput = { pdfData: validated.pdfData ?? null, imageData: validated.imageData ?? null, allPages: (body as any).allPages ?? null }
+    let persistText = await textForPersistence({ extractedText: validated.extractedText, ...docInput })
+    // Parsers gave nothing (image-only PDF, or no native parser on this host): have the model
+    // transcribe the document, in parallel with the analysis so it costs no extra wait. Without
+    // this the deal was born without text and the Playbook could never run on it.
+    const transcription = persistText ? null : transcribeForPersistence(docInput)
 
     // Analyze with V1 (full text analysis — auto-retry on transient failures)
     const analysisStart = Date.now()
@@ -158,6 +158,7 @@ export async function POST(request: Request) {
     // kept as evidence (`deal_type_stated`) and was already fed to the inference above.
     applyChosenDealType(output as any, validated.dealType)
     console.log(`[TermLift timing] analyzeDeal() total: ${Date.now() - analysisStart}ms`)
+    if (!persistText && transcription) persistText = await transcription
 
     // Auto-detect vendor
     const vendor = validated.vendor || output.vendor
