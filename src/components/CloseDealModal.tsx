@@ -1,12 +1,14 @@
 'use client'
 
 import { useState, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { X, Loader2, Upload, FileText, Check, TrendingDown } from 'lucide-react'
 import { trackEvent } from '@/lib/analytics'
 import { detectCurrency, formatCurrency, parseMoney } from '@/lib/currency'
 import { Btn, Chip, StatTile } from '@/components/system'
 import { cn } from '@/lib/utils'
 import type { ConfirmedVendorOffer } from '@/lib/vendor-offer'
+import { useLockBodyScroll } from '@/hooks/useLockBodyScroll'
 
 interface CloseDealModalProps {
   dealId: string
@@ -76,6 +78,8 @@ export function CloseDealModal({ dealId, currentTotal, roundCount = 0, confirmed
   const currency = detectCurrency(currentTotal || '')
   const originalAmount = parseMoneyLocal(currentTotal || '')
   const fileInputRef = useRef<HTMLInputElement>(null)
+  // Phones: without this the page behind the modal scrolls instead of the modal.
+  useLockBodyScroll()
 
   // Default final total: the latest confirmed/verified vendor offer, if any. Prefilled
   // only — the person must still tick the confirmation box before closing.
@@ -206,15 +210,22 @@ export function CloseDealModal({ dealId, currentTotal, roundCount = 0, confirmed
     }
   }
 
-  const overlay = 'fixed inset-0 z-50 bg-ink/40 backdrop-blur-sm flex items-center justify-center p-4'
+  // Phones: the panel is the scroll container, so it must be sized to the visible
+  // viewport (dvh, not vh — vh ignores Safari's toolbars) and stop scroll chaining.
+  const overlay = 'fixed inset-0 z-50 bg-ink/40 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4'
   const panel = 'bg-surface rounded-[14px] border border-line shadow-[0_24px_60px_-20px_rgba(16,26,23,0.35)] w-full'
+
+  // Rendered into <body>: the modal opens from inside the deal header and the
+  // home list, whose own stacking contexts would otherwise keep it under the
+  // phone action bar and bottom nav.
+  const portal = (node: React.ReactNode) => createPortal(node, document.body)
 
   // ─── Confirmation screen ───
   if (closed) {
     const finalShown = isLost ? (currentTotal || '—') : (finalTotal || '—')
-    return (
+    return portal(
       <div className={overlay} onClick={() => { onSuccess(); onClose() }}>
-        <div className={cn(panel, 'max-w-[520px] p-6 sm:p-7')} onClick={(e) => e.stopPropagation()}>
+        <div className={cn(panel, 'max-w-[520px] p-6 sm:p-7 rounded-b-none sm:rounded-b-[14px]')} onClick={(e) => e.stopPropagation()}>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-green-soft text-green-deep grid place-items-center shrink-0"><Check className="w-5 h-5" strokeWidth={2.5} /></div>
             <div>
@@ -238,9 +249,9 @@ export function CloseDealModal({ dealId, currentTotal, roundCount = 0, confirmed
 
   const showFields = !isLost && (showManual || aiDone || !!finalTotal.trim())
 
-  return (
+  return portal(
     <div className={overlay} onClick={onClose}>
-      <div className={cn(panel, 'max-w-[580px] max-h-[90vh] overflow-y-auto')} onClick={(e) => e.stopPropagation()}>
+      <div className={cn(panel, 'max-w-[580px] max-h-[calc(100dvh-1rem)] sm:max-h-[90dvh] overflow-y-auto overscroll-contain rounded-b-none sm:rounded-b-[14px]')} onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="px-5 sm:px-6 py-4 border-b border-line sticky top-0 bg-surface z-10 flex items-start justify-between gap-4">
           <div>

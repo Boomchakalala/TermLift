@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Search, MoreHorizontal, CheckCircle2, Trash2 } from 'lucide-react'
+import { Search, MoreHorizontal, CheckCircle2, Trash2, CheckSquare, Loader2 } from 'lucide-react'
 import { useI18n } from '@/i18n/context'
 import { cn } from '@/lib/utils'
 import { trackEvent } from '@/lib/analytics'
@@ -61,6 +61,21 @@ function RowMenu({ row, onClose, onDelete }: { row: HomeRow; onClose: () => void
   )
 }
 
+/** Inbox-style tick. Purely visual: the row's own click toggles selection. */
+function Tick({ on }: { on: boolean }) {
+  return (
+    <span
+      aria-hidden
+      className={cn(
+        'shrink-0 w-[18px] h-[18px] rounded-[5px] border grid place-items-center transition-colors',
+        on ? 'bg-green border-green text-white' : 'bg-surface border-line-2',
+      )}
+    >
+      {on && <svg viewBox="0 0 12 12" className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2.5 6.5l2.5 2.5 4.5-5" /></svg>}
+    </span>
+  )
+}
+
 const COLS = 'minmax(0,2fr) minmax(0,1.3fr) 0.9fr 1fr 1.1fr 0.8fr 28px'
 
 export function HomeDealsClient({ rows: initialRows, linkBase = '/app', readOnly = false, initialFilter = 'all' }: Props) {
@@ -72,6 +87,10 @@ export function HomeDealsClient({ rows: initialRows, linkBase = '/app', readOnly
   const [q, setQ] = useState('')
   const [closing, setClosing] = useState<HomeRow | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  // Inbox-style multi-select: rows become toggles, a bar above the list carries select-all / delete.
+  const [selecting, setSelecting] = useState(false)
+  const [selected, setSelected] = useState<Set<string>>(() => new Set())
+  const [bulkDeleting, setBulkDeleting] = useState(false)
   useEffect(() => setRows(initialRows), [initialRows])
 
   const needsCount = rows.filter((r) => r.waitingOnClient).length
@@ -89,6 +108,20 @@ export function HomeDealsClient({ rows: initialRows, linkBase = '/app', readOnly
   const active = filtered.filter((r) => !r.closed)
   const closed = filtered.filter((r) => r.closed)
 
+  const visibleIds = filtered.map((r) => r.id)
+  const selectedVisible = visibleIds.filter((id) => selected.has(id))
+  const allVisibleSelected = visibleIds.length > 0 && selectedVisible.length === visibleIds.length
+
+  const startSelecting = () => { setSelected(new Set()); setSelecting(true) }
+  const stopSelecting = () => { setSelecting(false); setSelected(new Set()) }
+  const toggleOne = (id: string) => setSelected((prev) => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next })
+  const toggleAllVisible = () => setSelected((prev) => {
+    const next = new Set(prev)
+    if (allVisibleSelected) visibleIds.forEach((id) => next.delete(id))
+    else visibleIds.forEach((id) => next.add(id))
+    return next
+  })
+
   const handleDelete = async (row: HomeRow) => {
     if (!confirm(row.closed && row.savingsKind === 'saved' ? t('dealList.deleteConfirmClosed') : t('dealList.deleteConfirm'))) return
     setDeletingId(row.id)
@@ -103,6 +136,29 @@ export function HomeDealsClient({ rows: initialRows, linkBase = '/app', readOnly
     finally { setDeletingId(null) }
   }
 
+  const handleBulkDelete = async () => {
+    const ids = selectedVisible
+    if (ids.length === 0) return
+    const closedWithSavings = rows.filter((r) => ids.includes(r.id) && r.closed && r.savingsKind === 'saved').length
+    const msg = closedWithSavings > 0
+      ? t('dealList.deleteConfirmManyClosed', { n: ids.length, closed: closedWithSavings })
+      : t('dealList.deleteConfirmMany', { n: ids.length })
+    if (!confirm(msg)) return
+    setBulkDeleting(true)
+    try {
+      const res = await fetch('/api/deals', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids }) })
+      const data = res.ok ? await res.json() : null
+      if (!data) { alert(t('dealList.deleteFailed')); return }
+      const gone = new Set<string>([...(data.deleted || []), ...(data.skipped || [])])
+      setRows((prev) => prev.filter((r) => !gone.has(r.id)))
+      trackEvent({ name: 'deals_bulk_deleted', properties: { count: (data.deleted || []).length } })
+      if ((data.failed || []).length > 0) alert(t('dealList.deletePartial', { n: data.failed.length }))
+      stopSelecting()
+      router.refresh()
+    } catch { alert(t('dealList.deleteError')) }
+    finally { setBulkDeleting(false) }
+  }
+
   const filters: Array<{ key: Filter; label: string; count?: number }> = [
     { key: 'all', label: t('home.filterAll') },
     { key: 'needs', label: t('home.filterNeeds'), count: needsCount },
@@ -111,13 +167,21 @@ export function HomeDealsClient({ rows: initialRows, linkBase = '/app', readOnly
   ]
 
   const renderRow = (r: HomeRow) => {
+    const isSel = selected.has(r.id)
     // Desktop-only hover hint on rows still at the quick stage; every other secondary line comes from the status itself.
     const hint = !r.closed && r.needsUnlock
       ? <span className="text-ink-3 opacity-0 group-hover:opacity-100 group-hover:text-green-deep transition-opacity">{t('home.hintUnlock')}</span>
       : null
+    const name = <NameCell name={r.vendor} sub={[r.category, r.dealType].filter(Boolean).join(' · ')} />
     return (
-      <TableRow key={r.id} cols={COLS} href={`${linkBase}/deal/${r.id}`} className={cn('group', deletingId === r.id && 'opacity-50')}>
-        <NameCell name={r.vendor} sub={[r.category, r.dealType].filter(Boolean).join(' · ')} />
+      <TableRow
+        key={r.id}
+        cols={COLS}
+        href={selecting ? undefined : `${linkBase}/deal/${r.id}`}
+        onClick={selecting ? () => toggleOne(r.id) : undefined}
+        className={cn('group', deletingId === r.id && 'opacity-50', selecting && isSel && 'bg-green-soft/60 hover:bg-green-soft/60')}
+      >
+        {selecting ? <div className="flex items-center gap-3 min-w-0"><Tick on={isSel} />{name}</div> : name}
         {/* Phone: the badge sits top-right, aligned across rows; the hover hint is desktop-only. */}
         <DealStatus stage={r.stage} mode={r.mode} won={r.won} lost={r.lost} closed={r.closed} waitingOnClient={r.waitingOnClient} roundCount={r.roundCount} hint={hint} className="max-md:items-end max-md:text-right max-md:shrink-0" secondaryClassName="max-md:hidden" />
         {/* Phone-only third line: the numbers the desktop columns carry. */}
@@ -147,7 +211,7 @@ export function HomeDealsClient({ rows: initialRows, linkBase = '/app', readOnly
         </HideM>
         <HideM className="text-[12.5px] text-ink-3">{timeAgo(r.closed && r.closedAt ? r.closedAt : r.updatedAt)}</HideM>
         <HideM className="flex justify-end">
-          {!readOnly && <span className="opacity-0 group-hover:opacity-100 transition-opacity"><RowMenu row={r} onClose={() => setClosing(r)} onDelete={() => handleDelete(r)} /></span>}
+          {!readOnly && !selecting && <span className="opacity-0 group-hover:opacity-100 transition-opacity"><RowMenu row={r} onClose={() => setClosing(r)} onDelete={() => handleDelete(r)} /></span>}
         </HideM>
       </TableRow>
     )
@@ -159,24 +223,44 @@ export function HomeDealsClient({ rows: initialRows, linkBase = '/app', readOnly
     </TableHead>
   )
 
+  const chip = (on: boolean) => cn('h-8 px-3 rounded-lg border text-[12.5px] font-semibold transition-colors inline-flex items-center gap-1.5', on ? 'bg-ink text-white border-ink' : 'bg-surface text-ink-2 border-line hover:border-[#C9D3CE]')
+
   return (
     <>
       <div className="flex flex-wrap items-center gap-2">
         {filters.map((f) => (
-          <button
-            key={f.key}
-            onClick={() => setFilter(f.key)}
-            className={cn('h-8 px-3 rounded-lg border text-[12.5px] font-semibold transition-colors inline-flex items-center gap-1.5', filter === f.key ? 'bg-ink text-white border-ink' : 'bg-surface text-ink-2 border-line hover:border-[#C9D3CE]')}
-          >
+          <button key={f.key} onClick={() => setFilter(f.key)} className={chip(filter === f.key)}>
             {f.label}
             {f.count ? <span className={cn('tl-num', filter === f.key ? 'text-white/80' : 'text-warn')}>{f.count}</span> : null}
           </button>
         ))}
+        {!readOnly && rows.length > 0 && !selecting && (
+          <button onClick={startSelecting} className={chip(false)} aria-pressed={false}>
+            <CheckSquare className="w-3.5 h-3.5" />{t('dealList.select')}
+          </button>
+        )}
         <label className="relative w-full sm:w-[240px] sm:ml-auto">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-3" />
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('home.searchPlaceholder')} className="w-full h-8 pl-9 pr-3 rounded-lg border border-line bg-surface text-[13px] placeholder:text-ink-3 focus:outline-none focus:border-green focus:ring-[3px] focus:ring-green/15" />
         </label>
       </div>
+
+      {selecting && (
+        <div className="sticky top-2 z-10 flex items-center gap-3 px-3 h-11 rounded-[12px] border border-line bg-surface shadow-[0_10px_30px_-18px_rgba(16,26,23,0.4)]">
+          <button onClick={toggleAllVisible} className="flex items-center gap-2 text-[13px] font-semibold text-ink min-w-0" aria-pressed={allVisibleSelected} aria-label={t('dealList.selectAll')}>
+            <Tick on={allVisibleSelected} />
+            <span className="max-sm:hidden">{t('dealList.selectAll')}</span>
+          </button>
+          <span className="text-[12.5px] text-ink-3 tl-num truncate">{t('dealList.selectedCount', { n: selectedVisible.length })}</span>
+          <div className="ml-auto flex items-center gap-2">
+            <Btn size="sm" variant="ghost" onClick={stopSelecting} disabled={bulkDeleting}>{t('dealList.cancel')}</Btn>
+            <Btn size="sm" variant="ink" onClick={handleBulkDelete} disabled={bulkDeleting || selectedVisible.length === 0} className="!bg-risk hover:!bg-risk/90">
+              {bulkDeleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+              {t('dealList.deleteSelected')}{selectedVisible.length > 0 ? ` (${selectedVisible.length})` : ''}
+            </Btn>
+          </div>
+        </div>
+      )}
 
       {filtered.length === 0 ? (
         <div className="py-10 text-center text-[13px] text-ink-3 border border-dashed border-line rounded-[14px] bg-surface">{t('home.noMatch')}</div>

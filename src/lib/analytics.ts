@@ -32,6 +32,7 @@ export type AnalyticsEvent =
   | { name: 'deal_closed'; properties: { outcome: string; hasSavings: boolean; savingsAmount?: number } }
   | { name: 'deal_reopened'; properties: { dealId: string } }
   | { name: 'deal_deleted'; properties: { isClosed: boolean; hasSavings: boolean } }
+  | { name: 'deals_bulk_deleted'; properties: { count: number } }
 
   // Round management
   | { name: 'round_added'; properties: { roundNumber: number; hasNote: boolean; hasGoal: boolean } }

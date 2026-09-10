@@ -531,7 +531,15 @@
     "deleteConfirm": "Are you sure you want to delete this deal?",
     "deleteConfirmClosed": "This is a closed deal with savings data. Are you sure you want to delete it?",
     "deleteFailed": "Failed to delete deal",
-    "deleteError": "Error deleting deal"
+    "deleteError": "Error deleting deal",
+    "select": "Select",
+    "selectAll": "Select all",
+    "selectedCount": "{n} selected",
+    "deleteSelected": "Delete",
+    "cancel": "Cancel",
+    "deleteConfirmMany": "Delete {n} deals? This cannot be undone.",
+    "deleteConfirmManyClosed": "Delete {n} deals? {closed} of them are closed with savings data. This cannot be undone.",
+    "deletePartial": "{n} deals could not be deleted. Refresh and try again."
   },
   "settingsClient": {
     "memberSince": "Member since {date}",

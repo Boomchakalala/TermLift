@@ -531,7 +531,15 @@
     "deleteConfirm": "Êtes-vous sûr de vouloir supprimer ce contrat ?",
     "deleteConfirmClosed": "Ce contrat est clôturé avec des données d'économies. Êtes-vous sûr de vouloir le supprimer ?",
     "deleteFailed": "Échec de la suppression du contrat",
-    "deleteError": "Erreur lors de la suppression du contrat"
+    "deleteError": "Erreur lors de la suppression du contrat",
+    "select": "Sélectionner",
+    "selectAll": "Tout sélectionner",
+    "selectedCount": "{n} sélectionné(s)",
+    "deleteSelected": "Supprimer",
+    "cancel": "Annuler",
+    "deleteConfirmMany": "Supprimer {n} contrats ? Cette action est irréversible.",
+    "deleteConfirmManyClosed": "Supprimer {n} contrats ? {closed} d'entre eux sont clôturés avec des données d'économies. Cette action est irréversible.",
+    "deletePartial": "{n} contrats n'ont pas pu être supprimés. Actualisez la page et réessayez."
   },
   "settingsClient": {
     "memberSince": "Membre depuis {date}",
