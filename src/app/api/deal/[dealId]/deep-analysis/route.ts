@@ -17,6 +17,9 @@ import { getPlaybookAccess, consumeCredit } from '@/lib/billing'
 import { deepAnalysisPriceLabel } from '@/lib/pricing'
 import { analysisDate } from '@/lib/claude'
 import { isUnreadableClassification, resolveClassification } from '@/lib/claude/classification-guard'
+import { detectCodeFlags, mergeCodeFlags } from '@/lib/claude/code-flags'
+import { stripDeadlineLeverage } from '@/lib/playbook-hygiene'
+import { computeScores, countHighTermsFlags, isExpired, mergeExtractions, normalizeExtraction, scoreLabel } from '@/lib/scoring'
 import { parseMoney } from '@/lib/currency'
 
 export const maxDuration = 120
@@ -213,22 +216,46 @@ export async function POST(request: Request, { params }: { params: Promise<{ dea
       // it can explain the numbers, never move them.
       const benchmark_interpretation = benchmarkRun ? clampInterpretation(deep.benchmark_interpretation, benchmarkRun.result) : null
 
+      // ── Rescore on the merged extraction (2026-09-11) ──────────────────────
+      // The Playbook's deeper read fills fields the fast pass left null; rule
+      // flags run on the merged fields; HIGH terms flags cap the Terms bar; the
+      // score is recomputed so it agrees with the flags on the page.
+      const fastExtraction = normalizeExtraction(output.extraction, contractTotal)
+      const deepExtraction = normalizeExtraction(deep.extraction, contractTotal)
+      const mergedExtraction = mergeExtractions(fastExtraction, deepExtraction)
+      const quoteExpired = isExpired(mergedExtraction.quoteDates?.expires, asOf)
+      const codeFlags = detectCodeFlags(mergedExtraction, asOf, facts.total_commitment)
+      const redFlags = mergeCodeFlags(deep.red_flags || [], codeFlags)
+      const highTermsFlagCount = countHighTermsFlags(redFlags)
+      const scores = computeScores(mergedExtraction, { asOf, highTermsFlagCount })
+      const potentialSavings = deep.potential_savings
+      let leverage = deep.negotiation_plan?.leverage_you_have || []
+      if (quoteExpired) leverage = stripDeadlineLeverage(leverage).kept
+      console.log(`[TermLift] Deep rescore: ${output.score} → ${scores.overall} (p${scores.pricing}/t${scores.terms}/l${scores.leverage}); code flags: ${codeFlags.map((f) => f.source_rule).join(', ') || 'none'}${quoteExpired ? '; QUOTE EXPIRED' : ''}`)
 
-      // Enrich, don't overwrite: score/score_breakdown/extraction/deductions/
-      // confidence/target_price_range/verdict/verdict_type/title/snapshot/
-      // vendor/category/description all stay exactly as the fast pass set them.
+      // Enrich, don't overwrite the headline facts: verdict/verdict_type/title/
+      // snapshot/vendor/category/description stay as the fast pass set them.
+      // The score and its inputs are REPLACED with the rescored values above.
       const merged = {
         generated_locale: locale,
         ...output,
         quick_read: deep.quick_read,
-        red_flags: deep.red_flags,
-        negotiation_plan: deep.negotiation_plan,
+        red_flags: redFlags,
+        negotiation_plan: { ...deep.negotiation_plan, leverage_you_have: leverage },
         what_to_ask_for: deep.what_to_ask_for,
-        potential_savings: deep.potential_savings,
+        potential_savings: potentialSavings,
         cash_flow_improvements: deep.cash_flow_improvements,
         watchItems: deep.watchItems,
         assumptions: deep.assumptions,
         price_insight: deep.price_insight,
+        extraction: mergedExtraction,
+        score: scores.overall,
+        score_label: scoreLabel(scores.overall),
+        score_breakdown: { pricing: scores.pricing, terms: scores.terms, leverage: scores.leverage, deductions: scores.deductions },
+        deductions: scores.deductions,
+        quick_score: typeof output.score === 'number' ? output.score : null,
+        analysis_date: asOf,
+        quote_expired: quoteExpired,
         classification,
         // Market Benchmark — deterministic result + the query that produced it (reproducible),
         // plus the clamped model commentary. All absent when the step was skipped/failed.

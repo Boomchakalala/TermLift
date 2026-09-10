@@ -29,10 +29,11 @@ import { extractFinancialFacts, type ExtractedFacts } from './extract'
 import { analyzeFastCore } from './fast-analyze'
 import { validateTotalCommitment } from './validate-total'
 import { resolveClassification } from './classification-guard'
+import { detectCodeFlags, mergeCodeFlags } from './code-flags'
 import { buildQuoteFacts, reconcileTotalWithLines } from '@/lib/quote-facts'
 import { stripDeadlineLeverage } from '@/lib/playbook-hygiene'
 import { DealOutputSchema, type DealOutputType, type QuoteClassificationType } from '../schemas'
-import { computeScores, isExpired, normalizeExtraction, scoreLabel, seedFromFacts } from '../scoring'
+import { computeScores, countHighTermsFlags, isExpired, normalizeExtraction, scoreLabel, seedFromFacts } from '../scoring'
 import { parseMoney, normalizeAmount } from '../currency'
 import type { DealOutput } from '@/types'
 import { ANALYSIS_PIPELINE_V3 } from '../analysis/flag'
@@ -158,7 +159,10 @@ export async function analyzeDeal(
     const extraction = seedFromFacts(normalizeExtraction(analysis.extraction, contractTotal), rawFacts)
     const quoteExpired = isExpired(extraction.quoteDates?.expires, asOf)
 
-    const redFlags = analysis.red_flags || []
+    // ─── Step 2b: Rule flags on the renewal / date fields, merged with the model's ───
+    const codeFlags = detectCodeFlags(extraction, asOf, rawFacts.total_commitment)
+    const redFlags = mergeCodeFlags(analysis.red_flags || [], codeFlags)
+    if (codeFlags.length) console.log('[TermLift] Step 2b: code flags:', codeFlags.map((f) => f.source_rule).join(', '))
 
     const potentialSavings = analysis.potential_savings
 
@@ -217,7 +221,8 @@ export async function analyzeDeal(
     }
 
     // Extract-then-compute: the LLM extracted the facts, the engine sets the numbers.
-    const scores = computeScores(extraction, { asOf })
+    const highTermsFlagCount = countHighTermsFlags(validated.red_flags)
+    const scores = computeScores(extraction, { asOf, highTermsFlagCount })
 
     const assembleStart = Date.now()
     // Persist the extraction + deductions alongside the computed scores so the deal

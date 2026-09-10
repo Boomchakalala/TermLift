@@ -251,8 +251,29 @@ export function computeScores(extraction: ExtractionResult, options: ScoreOption
     deductions.push({ category: 'terms', label: 'Deposit >40% with balance due early', points: -10 })
   }
 
-  const terms = Math.max(FLOOR, 100 + sumPoints(deductions, 'terms'))
+  // Renewal mechanics (fields, not prose — see RenewalTerms).
+  const rt = extraction.renewalTerms
+  if (rt?.autoRenew && rt.noticeDays != null && rt.noticeDays >= 90) {
+    deductions.push({ category: 'terms', label: `Auto-renewal with ${rt.noticeDays}-day notice window`, points: -15 })
+  }
+  if (rt && rt.escalationMinPct != null && rt.escalationCapPct == null) {
+    deductions.push({ category: 'terms', label: `Renewal uplift of at least ${fmtPct(rt.escalationMinPct)} with no cap`, points: -20 })
+  }
+  if (rt?.extraIncreaseAllowed) {
+    deductions.push({ category: 'terms', label: 'Vendor may raise renewal pricing beyond the stated increase', points: -10 })
+  }
 
+  let terms = Math.max(FLOOR, 100 + sumPoints(deductions, 'terms'))
+
+  // HIGH-severity terms flags cap the bar so a serious clause the extractor
+  // could not express as a field still moves the score. Recorded as a
+  // deduction so the bar always reconciles with its list.
+  const highTerms = options.highTermsFlagCount ?? 0
+  const termsCap = highTerms >= 2 ? 65 : highTerms === 1 ? 75 : null
+  if (termsCap != null && terms > termsCap) {
+    deductions.push({ category: 'terms', label: highTerms >= 2 ? `${highTerms} high-severity terms issues (cap 65)` : '1 high-severity terms issue (cap 75)', points: termsCap - terms })
+    terms = termsCap
+  }
 
   // ─── LEVERAGE (start 50, neutral) ───────────────────────────────────────────
   const l = extraction.leverageFactors
