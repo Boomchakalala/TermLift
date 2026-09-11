@@ -1313,11 +1313,8 @@
     "looksLikeRenewalBody": "Le document mentionne un abonnement en cours, mais ce dossier est classé comme un nouvel achat. Basculez-le pour que le plan et les e-mails utilisent le levier de fidélisation.",
     "looksLikeRenewalCta": "Marquer comme renouvellement",
     "pendingChip": "Analyse en cours",
-    "pendingTitle": "Analyse du devis en cours",
-    "pendingBody": "L’aperçu ci-dessus est prêt. Les points de vigilance, le score et les demandes apparaîtront ici dans une trentaine de secondes. Vous pouvez rester sur cette page ou revenir plus tard.",
-    "pendingStage1": "Devis lu et conditions extraites",
-    "pendingStage2": "Vérification des prix, des conditions et des leviers",
-    "pendingStage3": "Calcul du score",
+    "pendingTitle": "Points de vigilance et score en cours.",
+    "pendingBody": "Une trentaine de secondes. La page se met à jour toute seule ; vous pouvez rester ou revenir plus tard.",
     "pendingFailedTitle": "L’analyse n’a pas pu aboutir",
     "pendingFailedBody": "L’analyse a échoué. Veuillez réessayer.",
     "pendingRetry": "Réessayer",
@@ -1361,7 +1358,9 @@
     "dealTypeNew": "Nouvel achat",
     "dealTypeRenewal": "Renouvellement",
     "dealTypeSuggested": "Suggéré d’après le devis",
-    "dealTypeSuggestedRenewal": "Le devis mentionne un abonnement en cours, nous avons donc sélectionné Renouvellement. Modifiez si ce n’est pas le cas."
+    "dealTypeSuggestedRenewal": "Le devis mentionne un abonnement en cours, nous avons donc sélectionné Renouvellement. Modifiez si ce n’est pas le cas.",
+    "readingQuote": "Lecture du devis…",
+    "openingDeal": "Ouverture du dossier…"
   },
   "negotiationPage": {
     "crumb": "Négociation TermLift",

@@ -52,6 +52,10 @@ export interface AnalysisUploaderProps {
   previewing?: boolean
   /** Fired when the person leaves the paste box — the caller may run the preview early. */
   onInputSettled?: () => void
+  /** False = no staged progress panel while analysing (the two-phase app flow opens the deal page within seconds); the button shows a spinner instead. */
+  showProgress?: boolean
+  /** Button label while analysing when showProgress is false. */
+  analyzingLabel?: string
 }
 
 function formatBytes(bytes: number) {
@@ -186,6 +190,8 @@ export function AnalysisUploader({
   suggestedDealType,
   previewing = false,
   onInputSettled,
+  showProgress = true,
+  analyzingLabel = 'Opening your deal…',
 }: AnalysisUploaderProps) {
   const fileRef = useRef<HTMLInputElement>(null)
   const [dragging, setDragging] = useState(false)
@@ -379,7 +385,7 @@ export function AnalysisUploader({
 
       {/* ─── RIGHT — CTA + value prop, or the live progress panel (2 cols on desktop) ─── */}
       <div className="lg:col-span-2 flex flex-col gap-4 sm:gap-5">
-        {analyzing ? (
+        {analyzing && showProgress ? (
           <AnalysisProgress liveFindings={liveFindings} completionFlash={completionFlash} />
         ) : (
           <>
@@ -391,10 +397,10 @@ export function AnalysisUploader({
 
             <button
               onClick={onAnalyze}
-              disabled={!hasContent}
+              disabled={!hasContent || analyzing}
               className="w-full bg-green text-white rounded-[10px] py-4 text-[15px] sm:text-[16px] font-bold flex items-center justify-center gap-2.5 hover:bg-green hover:-translate-y-0.5 disabled:hover:translate-y-0 transition-all disabled:opacity-60 disabled:cursor-not-allowed shadow-[0_8px_24px_-6px_rgba(29,185,84,0.45)] hover:shadow-[0_12px_32px_-8px_rgba(29,185,84,0.55)]"
             >
-              <Zap className="w-5 h-5" />{analyzeLabel}
+              {analyzing ? <><Loader2 className="w-5 h-5 animate-spin" />{analyzingLabel}</> : <><Zap className="w-5 h-5" />{analyzeLabel}</>}
             </button>
 
             {showTrustLine && (

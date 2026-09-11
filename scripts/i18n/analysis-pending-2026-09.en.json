@@ -1,11 +1,8 @@
 {
   "dealPage": {
     "pendingChip": "Analysing",
-    "pendingTitle": "Analysing your quote",
-    "pendingBody": "The snapshot above is ready. Red flags, the score and the asks appear here in about half a minute. You can stay on this page or come back later.",
-    "pendingStage1": "Quote read and terms extracted",
-    "pendingStage2": "Checking pricing, terms and leverage",
-    "pendingStage3": "Scoring the deal",
+    "pendingTitle": "Red flags and score on the way.",
+    "pendingBody": "About half a minute. The page updates itself; you can stay or come back later.",
     "pendingFailedTitle": "The analysis could not finish",
     "pendingFailedBody": "The analysis failed. Please try again.",
     "pendingRetry": "Try again",
@@ -13,5 +10,9 @@
     "pendingStatTerm": "Term",
     "pendingStatDealType": "Deal type",
     "pendingStatValidUntil": "Quote valid until"
+  },
+  "newPage": {
+    "readingQuote": "Reading the quote…",
+    "openingDeal": "Opening your deal…"
   }
 }

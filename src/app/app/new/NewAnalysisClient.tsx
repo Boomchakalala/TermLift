@@ -167,6 +167,8 @@ export function NewAnalysisClient({ billing, locked }: { billing?: ReactNode; lo
             suggestedDealType={suggestedDealType}
             previewing={previewing}
             onInputSettled={() => { if (input.trim().length >= 80 && !uploadedFileName) void runPreview(dealType) }}
+            showProgress={false}
+            analyzingLabel={previewing ? t('newPage.readingQuote') : t('newPage.openingDeal')}
           />}
           {!locked && <p className="text-[12px] text-ink-3 mt-3">
             {t('newPage.tailored')} · <Link href="/app/settings" className="text-green-deep hover:underline">{t('newPage.edit')}</Link>

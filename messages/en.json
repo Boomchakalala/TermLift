@@ -1313,11 +1313,8 @@
     "looksLikeRenewalBody": "The document names a current subscription, but this deal is filed as a new purchase. Switch it so the playbook and emails use retention leverage.",
     "looksLikeRenewalCta": "Mark as renewal",
     "pendingChip": "Analysing",
-    "pendingTitle": "Analysing your quote",
-    "pendingBody": "The snapshot above is ready. Red flags, the score and the asks appear here in about half a minute. You can stay on this page or come back later.",
-    "pendingStage1": "Quote read and terms extracted",
-    "pendingStage2": "Checking pricing, terms and leverage",
-    "pendingStage3": "Scoring the deal",
+    "pendingTitle": "Red flags and score on the way.",
+    "pendingBody": "About half a minute. The page updates itself; you can stay or come back later.",
     "pendingFailedTitle": "The analysis could not finish",
     "pendingFailedBody": "The analysis failed. Please try again.",
     "pendingRetry": "Try again",
@@ -1361,7 +1358,9 @@
     "dealTypeNew": "New purchase",
     "dealTypeRenewal": "Renewal",
     "dealTypeSuggested": "Suggested from the quote",
-    "dealTypeSuggestedRenewal": "The quote names a current subscription, so we set this to Renewal. Change it if that is wrong."
+    "dealTypeSuggestedRenewal": "The quote names a current subscription, so we set this to Renewal. Change it if that is wrong.",
+    "readingQuote": "Reading the quote…",
+    "openingDeal": "Opening your deal…"
   },
   "negotiationPage": {
     "crumb": "TermLift negotiation",

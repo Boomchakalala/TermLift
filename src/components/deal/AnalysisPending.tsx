@@ -3,9 +3,8 @@
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { CheckCircle2, Loader2 } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 import { useI18n } from '@/i18n/context'
-import { cn } from '@/lib/utils'
 import type { DealOutput } from '@/types'
 import { AppPage, BackLink, Btn, Chip, PageBody, StatRow, StatTile } from '@/components/system'
 import { shortenVendorDisplayName } from '@/lib/vendor-normalize'
@@ -24,15 +23,9 @@ export function AnalysisPending({ deal, output }: { deal: DealLike; output: Deal
   const { t, locale } = useI18n()
   const router = useRouter()
   const [now] = useState(() => Date.now())
-  const [elapsed, setElapsed] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [exhausted, setExhausted] = useState(false)
   const started = useRef(false)
-
-  useEffect(() => {
-    const id = setInterval(() => setElapsed(Math.round((Date.now() - now) / 1000)), 1000)
-    return () => clearInterval(id)
-  }, [now])
 
   useEffect(() => {
     if (started.current) return
@@ -93,12 +86,6 @@ export function AnalysisPending({ deal, output }: { deal: DealLike; output: Deal
   const dateFull = (d: string | Date) => new Date(d).toLocaleDateString(dLocale, { month: 'short', day: 'numeric', year: 'numeric' })
   const quoteExpiredLabel = quoteExpiresIso ? dateLong(quoteExpiresIso) : String(quoteExpiresRaw || '')
 
-  const stages = [
-    { label: t('dealPage.pendingStage1'), at: 0 },
-    { label: t('dealPage.pendingStage2'), at: 2 },
-    { label: t('dealPage.pendingStage3'), at: 18 },
-  ]
-  const currentIdx = error ? -1 : stages.reduce((acc, s, i) => (elapsed >= s.at ? i : acc), 0)
 
   return (
     <AppPage>
@@ -143,37 +130,23 @@ export function AnalysisPending({ deal, output }: { deal: DealLike; output: Deal
           )}
         </StatRow>
 
-        {/* ── The flags / score pass, in flight ── */}
-        <div className={cn('rounded-[14px] border px-4 py-4 sm:px-5', error ? 'bg-surface border-line' : 'bg-green-soft border-green-line')}>
-          <div className="flex items-center justify-between gap-3 mb-3">
-            <p className="font-display font-bold text-[16px] text-ink leading-snug">{error ? t('dealPage.pendingFailedTitle') : t('dealPage.pendingTitle')}</p>
-            {!error && <span className="text-[12px] font-medium text-green-deep tabular-nums" style={{ fontFamily: 'var(--font-jetbrains), monospace' }}>{elapsed}s</span>}
-          </div>
-          {error ? (
-            <div className="flex flex-wrap items-center gap-3">
-              <p className="text-[13px] text-ink-2 leading-relaxed flex-1 min-w-[16rem]">{error}</p>
-              {exhausted
-                ? <Btn href="/app/new" variant="primary">{t('dealPage.pendingStartOver')}</Btn>
-                : <Btn variant="primary" onClick={retry}>{t('dealPage.pendingRetry')}</Btn>}
+        {/* ── The flags / score pass, in flight: one line, no restarted progress story ── */}
+        {error ? (
+          <div className="rounded-[14px] border border-line bg-surface px-4 py-4 sm:px-5 flex flex-wrap items-center gap-3">
+            <div className="flex-1 min-w-[16rem]">
+              <p className="font-display font-bold text-[15px] text-ink leading-snug">{t('dealPage.pendingFailedTitle')}</p>
+              <p className="text-[13px] text-ink-2 leading-relaxed mt-1">{error}</p>
             </div>
-          ) : (
-            <>
-              <div className="space-y-2.5">
-                {stages.map((s, i) => {
-                  const done = i < currentIdx
-                  const active = i === currentIdx
-                  return (
-                    <div key={s.label} className="flex items-center gap-3">
-                      {done ? <CheckCircle2 className="w-5 h-5 text-green-deep shrink-0" /> : active ? <Loader2 className="w-5 h-5 text-green-deep animate-spin shrink-0" /> : <div className="w-5 h-5 rounded-full border-2 border-line shrink-0" />}
-                      <p className={cn('text-[13.5px] font-semibold', done ? 'text-ink-3' : active ? 'text-ink' : 'text-ink-3 opacity-60')}>{s.label}</p>
-                    </div>
-                  )
-                })}
-              </div>
-              <p className="text-[12.5px] text-ink-3 mt-4 leading-relaxed">{t('dealPage.pendingBody')}</p>
-            </>
-          )}
-        </div>
+            {exhausted
+              ? <Btn href="/app/new" variant="primary">{t('dealPage.pendingStartOver')}</Btn>
+              : <Btn variant="primary" onClick={retry}>{t('dealPage.pendingRetry')}</Btn>}
+          </div>
+        ) : (
+          <div role="status" className="rounded-[14px] border border-green-line bg-green-soft px-4 py-3.5 sm:px-5 flex items-center gap-3">
+            <Loader2 className="w-5 h-5 text-green-deep animate-spin shrink-0" />
+            <p className="text-[13.5px] text-ink leading-snug"><span className="font-semibold">{t('dealPage.pendingTitle')}</span> <span className="text-ink-3">{t('dealPage.pendingBody')}</span></p>
+          </div>
+        )}
       </PageBody>
     </AppPage>
   )
