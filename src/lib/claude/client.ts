@@ -49,6 +49,10 @@ export async function createTrackedMessage(
 export const CLAUDE_MODEL = 'claude-sonnet-4-6'                 // Extraction, emails, general calls
 export const CLAUDE_MODEL_ANALYSIS = 'claude-sonnet-4-6'        // Analysis — Sonnet (Opus 4.x caused timeouts/JSON errors here)
 export const CLAUDE_CLASSIFY_MODEL = 'claude-haiku-4-5-20251001' // Classification — fast, cheap
+// 2026-09-11 perf split: the document is read by the model ONCE, in the extraction
+// call, on the cheap/fast model. Every later step (flags, Playbook, emails) reads
+// the persisted extract JSON and the stored text — never the file again.
+export const CLAUDE_EXTRACT_MODEL = 'claude-haiku-4-5'            // Extraction — the only call that sees the document
 export const CLAUDE_MODEL_ID = CLAUDE_MODEL_ANALYSIS
 
 export type ClaudeImageMediaType = 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp'

@@ -1,9 +1,10 @@
-﻿import { NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { resolveRequestLocale } from '@/lib/request-locale'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { textForPersistence, transcribeForPersistence } from '@/lib/extract'
 import { CreateDealSchema } from '@/lib/schemas'
-import { analyzeDeal, type ExtractedFacts } from '@/lib/claude'
+import { type ExtractedFacts } from '@/lib/claude'
+import { prepareExtract, buildSnapshotOutput } from '@/lib/claude/index'
 import { toStructuredExtraction } from '@/lib/structured-extraction'
 import type { QuoteClassificationType } from '@/lib/schemas'
 import { checkRateLimit } from '@/lib/rate-limit'
@@ -11,11 +12,14 @@ import { checkFreeQuota } from '@/lib/pricing'
 import { getPlaybookAccess, consumeCredit } from '@/lib/billing'
 import { resolveVendorForDeal } from '@/lib/vendor-resolve'
 import { inferDealTypeForPersistence, applyChosenDealType } from '@/lib/deal-type-inference'
-import { stripAdvancedOutput, SHOW_FULL_NEGOTIATION_PLAYBOOK } from '@/lib/negotiation-gating'
 import { runWithAiContext } from '@/lib/ai-telemetry'
-import type { DealOutput, DealOutputV2 } from '@/types'
+import { createTimer, logTimings, serverTimingHeader } from '@/lib/timings'
 
-// Allow up to 120s for classification + analysis with retries (Vercel Pro plan)
+// Phase 1 of the analysis (2026-09-11 perf split): read the document ONCE
+// (extract, reused from /api/deal/extract-preview when the client ran it),
+// persist the extract + snapshot on the deal, return the deal id. The flags/
+// score pass runs in a second request, POST /api/deal/[id]/analyze, from the
+// stored extract and text — the file is never sent to the model again.
 export const maxDuration = 120
 
 /** Retry a function with exponential backoff on transient failures */
@@ -46,7 +50,7 @@ async function withRetry<T>(
 }
 
 export async function POST(request: Request) {
-  const requestStart = Date.now()
+  const timer = createTimer()
   try {
     const supabase = await createClient()
 
@@ -111,37 +115,34 @@ export async function POST(request: Request) {
         }
       : undefined
 
-    // Text to keep for Deep Analysis later: pasted text, else extracted from the
-    // uploaded PDF/image now (best-effort). The file itself is never stored.
-    // Computed BEFORE the analysis so the classifier reads it too (Haiku cannot
-    // take a PDF) and deal-type inference can run while the text still exists.
+    // Text to keep on the round: pasted text, else extracted from the uploaded
+    // PDF/image now (best-effort). The file itself is never stored. The flags
+    // pass and the Playbook read this text + the extract, never the file.
     const docInput = { pdfData: validated.pdfData ?? null, imageData: validated.imageData ?? null, allPages: (body as any).allPages ?? null }
-    let persistText = await textForPersistence({ extractedText: validated.extractedText, ...docInput })
+    let persistText = await timer.time('parse_ms', () => textForPersistence({ extractedText: validated.extractedText, ...docInput }))
     // Parsers gave nothing (image-only PDF, or no native parser on this host): have the model
-    // transcribe the document, in parallel with the analysis so it costs no extra wait. Without
-    // this the deal was born without text and the Playbook could never run on it.
+    // transcribe the document, in parallel with the extraction. Without this the deal
+    // was born without text and the Playbook could never run on it.
     const transcription = persistText ? null : transcribeForPersistence(docInput)
 
-    // Analyze with V1 (full text analysis — auto-retry on transient failures)
-    const analysisStart = Date.now()
-    // Pre-generate the deal's id so the analysis call below — which runs
+    // Pre-generate the deal's id so the extraction call below — which runs
     // before the deal row exists — can still be tagged with the real
     // deal_id in ai_usage_events, instead of leaving it null.
     const dealId = crypto.randomUUID()
-    const output = await runWithAiContext({ userId: user.id, dealId }, () => withRetry(() => analyzeDeal(
-      validated.extractedText || '',
-      validated.dealType,
-      validated.goal || undefined,
-      validated.notes || undefined,
-      undefined,
-      validated.imageData,
-      (body as any).allPages || undefined,
-      locale,
-      validPdfData,
-      (profile as any)?.negotiation_preferences || undefined,
+    const prepared = await runWithAiContext({ userId: user.id, dealId }, () => withRetry(() => prepareExtract({
+      extractedText: validated.extractedText || '',
+      dealType: validated.dealType,
+      imageData: validated.imageData,
+      allPages: (body as any).allPages || undefined,
+      pdfData: validPdfData,
       precomputed,
-      persistText || undefined,
-    )))
+      textForClassification: persistText || undefined,
+      timer,
+    })))
+    if (!persistText && transcription) persistText = await timer.time('parse_ms', () => transcription)
+
+    // Phase-1 output: the snapshot the page can render now; flags/score follow.
+    const output = buildSnapshotOutput(prepared, { dealType: validated.dealType })
 
     // Deal-type inference, persisted on the round BEFORE the raw text can be
     // purged (Playbook completion, close, retention). Nothing downstream may
@@ -157,23 +158,21 @@ export async function POST(request: Request) {
     // The snapshot's deal type is the deal's CHOSEN type. What the document said is
     // kept as evidence (`deal_type_stated`) and was already fed to the inference above.
     applyChosenDealType(output as any, validated.dealType)
-    console.log(`[TermLift timing] analyzeDeal() total: ${Date.now() - analysisStart}ms`)
-    if (!persistText && transcription) persistText = await transcription
 
     // Auto-detect vendor
-    const vendor = validated.vendor || output.vendor
+    const vendor = validated.vendor || (output.vendor as string)
 
     const dbStart = Date.now()
 
     // Create deal — using the id pre-generated above so it matches what
-    // was already recorded against the analysis call's ai_usage_events rows.
+    // was already recorded against the extraction call's ai_usage_events rows.
     const { data: deal, error: dealError } = await supabase
       .from('deals')
       .insert({
         id: dealId,
         user_id: user.id,
         vendor,
-        title: `${vendor} Â· ${validated.dealType === 'New' ? 'New Purchase' : 'Renewal'} Â· ${new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`,
+        title: `${vendor} · ${validated.dealType === 'New' ? 'New Purchase' : 'Renewal'} · ${new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`,
         deal_type: validated.dealType,
         goal: validated.goal,
       })
@@ -184,7 +183,7 @@ export async function POST(request: Request) {
       throw new Error('Failed to create deal')
     }
 
-    // Link to a vendor entity (best-effort â€” never blocks deal creation).
+    // Link to a vendor entity (best-effort — never blocks deal creation).
     try {
       const vendorId = await resolveVendorForDeal(supabase, user.id, vendor)
       if (vendorId) await supabase.from('deals').update({ vendor_id: vendorId }).eq('id', deal.id)
@@ -192,7 +191,7 @@ export async function POST(request: Request) {
       console.error('[TermLift] vendor link failed (non-fatal):', e)
     }
 
-    // Create Round 1 (persistText was computed above, before the analysis)
+    // Create Round 1 with the snapshot-phase output (analysis_status: 'pending').
     const { data: round, error: roundError } = await supabase
       .from('rounds')
       .insert({
@@ -200,13 +199,11 @@ export async function POST(request: Request) {
         user_id: user.id,
         round_number: 1,
         note: validated.notes,
-        // Always persisted now (previously gated on saveExtractedText) — deep
-        // analysis (on-demand, triggered later from the deal page) needs the
-        // original quote text and can't rely on it still being in the
-        // browser's memory. Extracted text only, never the original file.
+        // Always persisted: the flags pass (next request) and the Playbook
+        // (on demand) read this text — never the file. Extracted text only.
         extracted_text: persistText,
         output_json: { ...output, generated_locale: locale },
-        // Structured facts from this analysis, kept so an outcome can be compared later without the quote text.
+        // Structured facts from this extract, kept so an outcome can be compared later without the quote text.
         extracted_data: toStructuredExtraction(output),
         output_markdown: '', // V1 doesn't need markdown
         status: 'done',
@@ -231,19 +228,20 @@ export async function POST(request: Request) {
         .update({ usage_count: profile.usage_count + 1 })
         .eq('id', user.id)
     }
+    timer.mark('db_ms', Date.now() - dbStart)
 
-    const responseOutput = profile.is_admin || SHOW_FULL_NEGOTIATION_PLAYBOOK
-      ? output
-      : stripAdvancedOutput(output as DealOutput | DealOutputV2)
-
-    console.log(`[TermLift timing] DB writes (deal+vendor+round+usage): ${Date.now() - dbStart}ms`)
-    console.log(`[TermLift timing] TOTAL request (auth+limits+analysis+DB): ${Date.now() - requestStart}ms`)
+    const timings = timer.done()
+    logTimings('create', timings)
 
     return NextResponse.json({
       dealId: deal.id,
       roundId: round.id,
-      output: responseOutput,
-    })
+      output,
+      // The flags/score pass has not run yet: the client lands on the deal page,
+      // which triggers POST /api/deal/[id]/analyze and fills the rest in.
+      analysisStatus: 'pending',
+      timings,
+    }, { headers: { 'Server-Timing': serverTimingHeader(timings) } })
   } catch (error) {
     console.error('Create deal error:', error)
     const msg = error instanceof Error ? error.message : ''
@@ -256,4 +254,3 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: hint }, { status: 500 })
   }
 }
-

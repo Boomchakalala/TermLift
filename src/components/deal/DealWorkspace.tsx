@@ -12,6 +12,7 @@ import { DealHeaderClient } from '@/components/DealHeaderClient'
 import { HeroVerdict } from '@/components/HeroVerdict'
 import { NegotiationProgress } from '@/components/deal/NegotiationProgress'
 import { NextActionCard } from '@/components/deal/NextActionCard'
+import { AnalysisPending } from '@/components/deal/AnalysisPending'
 import { TranslateControl, type LanguageView } from '@/components/deal/TranslateControl'
 import { AppPage, BackLink, Btn, Chip, DealStatus, GateCard, PageBody, ScoreRing, StatRow, StatTile } from '@/components/system'
 import { deriveDealStage, deriveNegotiationMode, stageChipKey, type DealStage } from '@/lib/deal-stage'
@@ -149,6 +150,13 @@ export function DealWorkspace({ deal, mode, messages, isAdmin, showFullPlaybook,
   }, [mode])
 
   if (!latestRound || !latestOutput) return null
+
+  // Two-phase analysis (2026-09-11): the extract exists but the flags/score pass has
+  // not landed yet — render the snapshot and let that view run and follow the pass.
+  const analysisStatus = (latestOutput as { analysis_status?: string }).analysis_status
+  if (mode === 'app' && analysisStatus && analysisStatus !== 'done') {
+    return <AnalysisPending deal={deal} output={latestOutput} />
+  }
 
   const openRequest = negotiationRequest && !negotiationRequest.status.startsWith('closed_') ? negotiationRequest : null
   const stage: DealStage = isTrial ? 'quick' : deriveDealStage({ status: deal.status, rounds: deal.rounds, negotiationRequestStatus: openRequest?.status })

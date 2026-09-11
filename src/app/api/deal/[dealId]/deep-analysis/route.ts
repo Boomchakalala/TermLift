@@ -3,8 +3,9 @@ import { createClient } from '@/lib/supabase/server'
 import { outputLocale } from '@/lib/output-language'
 import { classifyQuote } from '@/lib/claude'
 import { analyzeDealFacts } from '@/lib/claude/analyze'
-import type { ExtractedFacts } from '@/lib/claude/extract'
 import type { QuoteClassificationType } from '@/lib/schemas'
+import { factsFromOutput, readPersistedExtract, renderExtractForModel } from '@/lib/quote-extract'
+import { createTimer, logTimings, serverTimingHeader } from '@/lib/timings'
 import { checkRateLimit } from '@/lib/rate-limit'
 import { runWithAiContext } from '@/lib/ai-telemetry'
 import { extractBenchmarkInput } from '@/lib/claude/benchmark-input'
@@ -32,15 +33,16 @@ export const maxDuration = 120
 // round, triggered explicitly from the deal page. Reuses analyzeDealFacts()
 // (the original, untouched, full-depth analysis call) rather than rebuilding
 // anything. Reconstructs its inputs from what's already persisted:
-//   - ExtractedFacts  <- output_json.snapshot / vendor / category / description
+//   - ExtractedFacts  <- output_json.extract (the persisted extract, 2026-09-11),
+//                        else the slim rebuild from snapshot/vendor/category
 //   - classification  <- output_json.classification if present, else one
 //                         fresh classifyQuote() call (cheap Haiku, ~2s — not
 //                         worth a bigger change to avoid)
-//   - rawText          <- rounds.extracted_text (now always persisted on
-//                          create — see create/route.ts). If absent (any
-//                          historical deal from before that change), deep
-//                          analysis is unavailable for that deal and says so.
-// Never resends/reprocesses the document beyond this one required read.
+//   - document view    <- the rendered extract (lines, totals, dates, verbatim
+//                          term clauses). The full quote text is read ONLY for
+//                          rounds analysed before extracts were persisted; the
+//                          file itself is never sent again.
+// Never resends/reprocesses the document.
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** Build state of the latest round: 'idle' | 'running' | 'done'. Lets the client recover a run whose response it lost. */
@@ -124,7 +126,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ dea
       return NextResponse.json({ error: 'The Negotiation Playbook is already being built for this deal.' }, { status: 409 })
     }
 
-    if (!round.extracted_text) {
+    // The document view for the model: the persisted extract, rendered. Only a
+    // round from before extracts existed falls back to its stored quote text.
+    const persistedExtract = readPersistedExtract(output)
+    const docForModel: string | null = persistedExtract ? renderExtractForModel(persistedExtract) : (round.extracted_text as string | null)
+    if (persistedExtract) console.log(`[TermLift] Playbook reads the persisted extract (${docForModel!.length} chars), not the quote text`)
+    else console.warn('[TermLift] Playbook: no persisted extract on this round (pre-2026-09-11); reading the stored quote text')
+    if (!docForModel) {
       // Either a legacy deal analysed before the quote text was kept, or the text was
       // removed under the retention policy (closed deal, or older than the maximum age).
       // There is no re-upload on an existing deal — the way forward is a new analysis.
@@ -145,21 +153,14 @@ export async function POST(request: Request, { params }: { params: Promise<{ dea
       .eq('id', round.id)
       .eq('user_id', user.id)
 
+    const timer = createTimer()
     try {
-      const facts: ExtractedFacts = {
-        vendor: output.vendor,
-        vendor_product: output.snapshot?.vendor_product || output.vendor,
-        category: output.category,
-        description: output.description,
-        term: output.snapshot?.term || '',
-        total_commitment: output.snapshot?.total_commitment || '',
-        billing_payment: output.snapshot?.billing_payment || '',
-        pricing_model: output.snapshot?.pricing_model || '',
-        currency: output.snapshot?.currency || 'USD',
-        deal_type: output.snapshot?.deal_type || deal.deal_type,
-        renewal_date: output.snapshot?.renewal_date,
-        signing_deadline: output.snapshot?.signing_deadline,
-      }
+      // The verified facts the Playbook prompt receives: the full persisted extract
+      // (line items, dates, renewal mechanics, term clauses) when the round has one.
+      // Copied: the stored extract keeps what the document printed; only the prompt copy follows the chosen type.
+      const facts = { ...factsFromOutput(output, deal.deal_type) }
+      // The snapshot's deal type is the deal's CHOSEN type (form / inference / switch).
+      facts.deal_type = output.snapshot?.deal_type || facts.deal_type || deal.deal_type
 
       // Generated in the language the deal already speaks, whatever the UI cookie says now.
       const locale = outputLocale(output)
@@ -171,7 +172,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ dea
         // A stored classification that could not read the document (the old blank-prompt
         // PDF path) is not reused: classify again from the text, then guard the result.
         const stored: QuoteClassificationType | undefined = output.classification && !isUnreadableClassification(output.classification) ? output.classification : undefined
-        const fresh = stored || await classifyQuote(round.extracted_text, deal.deal_type as 'New' | 'Renewal')
+        const fresh = stored || await classifyQuote(docForModel, deal.deal_type as 'New' | 'Renewal')
         const classification: QuoteClassificationType = resolveClassification(fresh, facts, deal.deal_type as 'New' | 'Renewal', contractTotal).classification
 
         // ── Market Benchmark (optional, never blocks Deep Analysis) ──────────
@@ -182,10 +183,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ dea
         let benchmarkRun: BenchmarkRun | null = null
         // Quote facts validated at analysis time come first — no extra call.
         // The Haiku extractor runs only when they lack the numbers it would add.
+        const benchStart = Date.now()
         benchmarkInput = benchmarkInputFromQuoteFacts(output.quote_facts)
         if (!quoteFactsSufficient(output.quote_facts)) {
           try {
-            const fallback = await extractBenchmarkInput(round.extracted_text, output.snapshot || {})
+            const fallback = await extractBenchmarkInput(docForModel, output.snapshot || {})
             benchmarkInput = benchmarkInput
               ? { ...fallback, quantity: benchmarkInput.quantity ?? fallback.quantity, unit_price: benchmarkInput.unit_price ?? fallback.unit_price, unit_price_period: benchmarkInput.unit_price ? benchmarkInput.unit_price_period : fallback.unit_price_period, term_months: benchmarkInput.term_months ?? fallback.term_months, list_unit_price: benchmarkInput.list_unit_price ?? fallback.list_unit_price, pricing_metric: benchmarkInput.pricing_metric ?? fallback.pricing_metric, extraction_notes: [benchmarkInput.extraction_notes, fallback.extraction_notes].filter(Boolean).join(' · ') }
               : fallback
@@ -204,16 +206,18 @@ export async function POST(request: Request, { params }: { params: Promise<{ dea
         } catch (e) {
           console.warn('[TermLift] Market benchmark failed (continuing without):', e instanceof Error ? e.message : e)
         }
+        timer.mark('benchmark_ms', Date.now() - benchStart)
 
-        const deep = await analyzeDealFacts(facts, classification, round.extracted_text, {
+        const deep = await timer.time('flags_ms', () => analyzeDealFacts(facts, classification, docForModel, {
           dealType: deal.deal_type as 'New' | 'Renewal',
           userLocale: locale,
           marketBenchmark: benchmarkRun?.result,
           asOf,
-        })
+        }))
         return { classification, deep, benchmarkInput, benchmarkRun }
       })
       console.log(`[TermLift timing] Deep analysis (analyzeDealFacts): ${Date.now() - deepStart}ms`)
+      const assembleStart = Date.now()
 
       // The model's benchmark commentary is clamped into the engine's evidence band —
       // it can explain the numbers, never move them.
@@ -284,6 +288,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ dea
       }
       // Recompute the single stored target on the Playbook's asks (or the benchmark target).
       const merged = attachTargetPrice(mergedRaw, contractTotal)
+      timer.mark('assemble_ms', Date.now() - assembleStart)
+      const dbStart = Date.now()
 
       // Deep Analysis was the last reader of the raw quote text. Structured
       // facts (quote_facts, extracted_data, snapshot) carry everything later
@@ -300,8 +306,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ dea
         .eq('id', round.id)
         .eq('user_id', user.id)
       if (updateError) throw new Error('Failed to save deep analysis')
+      timer.mark('db_ms', Date.now() - dbStart)
+      const timings = timer.done()
+      logTimings(`deep-analysis deal=${dealId}`, timings)
 
-      return NextResponse.json({ status: 'done', output: merged })
+      return NextResponse.json({ status: 'done', output: merged, timings }, { headers: { 'Server-Timing': serverTimingHeader(timings) } })
     } catch (innerError) {
       // Deep analysis failed — revert the status flag so the fast analysis
       // (everything else in output_json, untouched above) stays fully usable

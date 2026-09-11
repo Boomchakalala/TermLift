@@ -13,6 +13,7 @@ import { stripAdvancedOutput, SHOW_FULL_NEGOTIATION_PLAYBOOK } from '@/lib/negot
 import { MAX_ROUNDS_PER_DEAL } from '@/lib/ai-limits'
 import { runWithAiContext } from '@/lib/ai-telemetry'
 import { dealHasFullAnalysis } from '@/lib/deep-analysis-status'
+import { createTimer, logTimings, serverTimingHeader } from '@/lib/timings'
 import type { DealOutput, DealOutputV2 } from '@/types'
 
 // Allow up to 120s for classification + analysis with retries (Vercel Pro plan)
@@ -50,6 +51,7 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ dealId: string }> }
 ) {
+  const timer = createTimer()
   try {
     const { dealId } = await params
     const supabase = await createClient()
@@ -149,7 +151,10 @@ export async function POST(
       undefined,
       locale,
       undefined,
-      (profile as any)?.negotiation_preferences || undefined
+      (profile as any)?.negotiation_preferences || undefined,
+      undefined,
+      undefined,
+      timer,
     )))
 
     // The snapshot's deal type is the deal's stored type; the reply's own wording stays as evidence.
@@ -218,11 +223,14 @@ export async function POST(
       ? output
       : stripAdvancedOutput(output as DealOutput | DealOutputV2)
 
+    const timings = timer.done()
+    logTimings(`round deal=${dealId} n=${nextRoundNumber}`, timings)
     return NextResponse.json({
       roundId: round.id,
       output: responseOutput,
       vendorOffer,
-    })
+      timings,
+    }, { headers: { 'Server-Timing': serverTimingHeader(timings) } })
   } catch (error) {
     console.error('Add round error:', error)
     return NextResponse.json({

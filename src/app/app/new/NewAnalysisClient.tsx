@@ -133,8 +133,9 @@ export function NewAnalysisClient({ billing, locked }: { billing?: ReactNode; lo
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || 'Failed to create deal')
       trackEvent({ name: 'deal_created', properties: { dealType: chosenType, source: imageData || pdfData ? 'upload' : 'paste', hasGoal: !!context } })
-      setCompletionFlash({ opportunityCount: data.output?.red_flags?.length || 0 })
-      setTimeout(() => router.push(`/app/deal/${data.dealId}`), 700)
+      // Two-phase (2026-09-11): the deal exists as soon as the extract does. The deal page
+      // renders the snapshot now and runs the flags/score pass itself — no waiting here.
+      router.push(`/app/deal/${data.dealId}`)
     } catch (err) {
       setError(err instanceof Error ? err.message : t('try.errorOccurred'))
       setAnalyzing(false)

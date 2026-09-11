@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
-import { createTrackedMessage, CLAUDE_MODEL, getResponseText, parseJsonFromContent, buildImageContent, SUPPORTED_IMAGE_MIME_TYPES, type ClaudeImageMediaType } from './client'
+import { createTrackedMessage, CLAUDE_EXTRACT_MODEL, getResponseText, parseJsonFromContent, buildImageContent, SUPPORTED_IMAGE_MIME_TYPES, type ClaudeImageMediaType } from './client'
 import { logAiRaw } from '@/lib/ai-debug'
 
 const EXTRACTION_PROMPT = `You are a financial data extraction engine. Your ONLY job is to extract factual information from vendor quotes. Do NOT analyze, judge, or recommend — just extract.
@@ -56,6 +56,7 @@ STRUCTURED COMMERCIAL FACTS (optional — copy printed figures only, never compu
 25. escalation_cap_pct: the maximum / capped annual increase as a JSON number, only if the document states a cap. If the document says the increase is "a minimum of X%" or "at least X%" with no ceiling, omit this field.
 26. extra_increase_allowed: true if the document reserves the vendor's right to increase prices beyond the stated percentage (e.g. "a minimum of 4% … KnowBe4 may increase"), false if the stated percentage is the ceiling, omit if silent.
 27. deal_type_evidence: JSON array of up to 3 SHORT quoted spans (each under 80 characters, copied verbatim) that show whether this is a new purchase, a renewal or an expansion (e.g. "Sub end date: 11th Jan 2026", "Renewal of existing subscription", "New customer discount"). Omit if the document gives no such signal.
+28. term_clauses: JSON array of the contractual clauses printed on the document, copied VERBATIM (each "text" under 400 characters; up to 15 entries; omit the array if the document prints none). This is the only view of the document later steps get, so copy every clause about: auto-renewal, cancellation / termination / notice, price increases / escalation / indexation, payment terms / late fees, minimum commitment / true-up / overage, quote validity / expiry, SLA / service credits, liability / indemnity, exclusivity / non-compete, data / exit / transition, discounts and their conditions, anything else that binds the buyer. Each entry: { "topic": one of "auto_renewal" | "termination" | "price_increase" | "payment" | "commitment" | "validity" | "sla" | "liability" | "exclusivity" | "data_exit" | "discount" | "other", "text": "the clause as printed" }.
 
 Return ONLY valid JSON:
 {
@@ -87,7 +88,11 @@ Return ONLY valid JSON:
   "notice_days": 60,
   "escalation_min_pct": 4,
   "extra_increase_allowed": true,
-  "deal_type_evidence": ["Renewal of existing subscription", "Sub end date: March 15, 2026"]
+  "deal_type_evidence": ["Renewal of existing subscription", "Sub end date: March 15, 2026"],
+  "term_clauses": [
+    { "topic": "auto_renewal", "text": "This subscription will automatically renew for successive 12-month terms unless either party gives 60 days' written notice." },
+    { "topic": "price_increase", "text": "Renewal pricing will increase by a minimum of 4% over the prior term." }
+  ]
 }
 
 RULES:
@@ -149,6 +154,9 @@ export interface ExtractedFacts {
   escalation_cap_pct?: number
   extra_increase_allowed?: boolean
   deal_type_evidence?: string[]
+  // ── 2026-09-11: verbatim contractual clauses. The Playbook and the flags call read
+  //    these (plus the stored text) instead of the document, which is never re-sent.
+  term_clauses?: Array<{ topic?: string; text?: string }>
 }
 
 export async function extractFinancialFacts(
@@ -174,8 +182,12 @@ export async function extractFinancialFacts(
   }
 
   const response = await createTrackedMessage('extract', {
-    model: CLAUDE_MODEL,
-    max_tokens: 1024,
+    // Cheap/fast model (2026-09-11 perf split): this is the ONE call that reads the
+    // document. Haiku 4.5 takes neither `output_config.effort` nor adaptive thinking,
+    // so the request is plain: temperature 0, no thinking.
+    model: CLAUDE_EXTRACT_MODEL,
+    // Raised from 1024 when term_clauses (verbatim, up to 15) joined the output.
+    max_tokens: 3000,
     // CRITICAL: Extraction is ALWAYS language-agnostic. Never inject language instructions here.
     // The model must output structured facts in canonical English format (US number formatting,
     // currency symbol before amount, field values in English). Localization happens downstream
@@ -185,10 +197,6 @@ export async function extractFinancialFacts(
       { role: 'user', content: userContent },
     ],
     temperature: 0,
-    // Extraction is mechanical fact-pulling — no reasoning needed. Low effort + no
-    // thinking is the fast path (Sonnet 4.6 otherwise defaults to high effort).
-    thinking: { type: 'disabled' },
-    output_config: { effort: 'low' },
   })
 
   if (response.stop_reason === 'max_tokens') {

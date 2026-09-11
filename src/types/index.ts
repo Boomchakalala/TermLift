@@ -337,6 +337,12 @@ export type DealOutput = {
   round_delta?: RoundDelta
   /** Language this output was generated in (lib/output-language.ts). Absent on rounds before 2026-09-10: inferred from prose. */
   generated_locale?: 'en' | 'fr'
+  // ── Two-phase analysis (2026-09-11) ──
+  /** pending/running: only the snapshot exists (flags, score, asks follow via /api/deal/[id]/analyze). Absent = complete (pre-split rounds). */
+  analysis_status?: 'pending' | 'running' | 'done' | 'failed'
+  analysis_error?: string
+  /** The persisted quote extract (lib/quote-extract.ts): the only view of the document later steps read. */
+  extract?: import('@/lib/quote-extract').PersistedExtract
 }
 
 /** What a vendor reply changed versus the previous round — the "Round N, counter proposal" card. */

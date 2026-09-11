@@ -16,6 +16,7 @@ import { fmtMoney } from '@/lib/deal-metrics'
 import { detectCurrency, type Currency } from '@/lib/currency'
 import { sanitizeEmailBody, applyVoiceGuard } from '@/lib/email-guard'
 import { stripPastDated, stripLongerTermOffers, longerTermOptedIn } from '@/lib/playbook-hygiene'
+import { createTimer, logTimings, serverTimingHeader } from '@/lib/timings'
 
 // Email generation regularly takes 15-25s (single Claude call producing 3
 // variants) — matches the explicit maxDuration set on every other AI-calling
@@ -33,6 +34,7 @@ export const maxDuration = 120
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function POST(request: Request) {
+  const timer = createTimer()
   try {
     const supabase = await createClient()
 
@@ -240,13 +242,14 @@ Return ONLY valid JSON (no markdown, no code fences):
     const locale = outputLocale(round.output_json)
     const langInstruction = getLanguageInstruction(locale)
 
-    const raw = (await runWithAiContext({ userId: user.id, dealId: round.deal_id, roundId }, () => getClaudeResponse({
+    // The letter is the one frontier-model call on a later click; it reads the stored round only.
+    const raw = (await runWithAiContext({ userId: user.id, dealId: round.deal_id, roundId }, () => timer.time('email_ms', () => getClaudeResponse({
       action: 'email_regenerate',
       system: KEVIN_SYSTEM_PROMPT + '\n' + langInstruction,
       userContent: basePrompt,
       temperature: 0.3,
       max_tokens: 2000,
-    }))).trim() || '{}'
+    })))).trim() || '{}'
 
     let result
     try {
@@ -308,6 +311,8 @@ Return ONLY valid JSON (no markdown, no code fences):
       return NextResponse.json({ error: 'Emails were generated but could not be saved. Please try again.' }, { status: 500 })
     }
 
+    const timings = timer.done()
+    logTimings(`regenerate-emails deal=${round.deal_id}`, timings)
     return NextResponse.json({
       emails: [
         { label: 'neutral', ...emailDrafts.neutral },
@@ -317,8 +322,9 @@ Return ONLY valid JSON (no markdown, no code fences):
       recommendedTone,
       selectedAsks: selection.asks.map((a) => a.label),
       targetAnchor: target?.anchor ?? null,
-      remainingRegenerations: maxRegens - round.email_regeneration_count - 1
-    })
+      remainingRegenerations: maxRegens - round.email_regeneration_count - 1,
+      timings,
+    }, { headers: { 'Server-Timing': serverTimingHeader(timings) } })
   } catch (error) {
     console.error('Regenerate emails error:', error)
     return NextResponse.json(

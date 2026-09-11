@@ -8,6 +8,7 @@ import { runWithAiContext } from '@/lib/ai-telemetry'
 import { textForPersistence } from '@/lib/extract'
 import { resolveClassification } from '@/lib/claude/classification-guard'
 import { inferDealTypeForPersistence } from '@/lib/deal-type-inference'
+import { createTimer, logTimings, serverTimingHeader } from '@/lib/timings'
 
 // Lightweight preview step ahead of /api/deal/create: runs the SAME
 // classify+extract calls analyzeDeal() runs internally as its Steps 0+1,
@@ -26,6 +27,7 @@ import { inferDealTypeForPersistence } from '@/lib/deal-type-inference'
 export const maxDuration = 30
 
 export async function POST(request: Request) {
+  const timer = createTimer()
   try {
     const supabase = await createClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -60,12 +62,13 @@ export async function POST(request: Request) {
     const pastedText = (validated.extractedText || '').trim()
     const classifyText = pastedText.length >= 10 && !/^\[.{0,80}\]$/.test(pastedText)
       ? pastedText
-      : (await textForPersistence({ extractedText: null, pdfData: validPdfData ?? null, imageData: validated.imageData ?? null, allPages: allPages ?? null })) || ''
+      : (await timer.time('parse_ms', () => textForPersistence({ extractedText: null, pdfData: validPdfData ?? null, imageData: validated.imageData ?? null, allPages: allPages ?? null }))) || ''
 
-    const [classifiedRaw, facts] = await runWithAiContext({ userId: user.id }, () => Promise.all([
+    // The ONE model read of the document (extract, cheap/fast model) — classify reads the text.
+    const [classifiedRaw, facts] = await runWithAiContext({ userId: user.id }, () => timer.time('extract_ms', () => Promise.all([
       classifyQuote(classifyText, validated.dealType, validated.imageData, allPages, validPdfData),
       extractFinancialFacts(validated.extractedText || '', validated.dealType, validated.imageData, allPages, validPdfData),
-    ]))
+    ])))
 
     facts.total_commitment = normalizeAmount(facts.total_commitment)
     const validation = validateTotalCommitment(facts.total_commitment, validated.extractedText || classifyText)
@@ -87,7 +90,9 @@ export async function POST(request: Request) {
       currentSubEnd: facts.current_sub_end,
     })
 
-    return NextResponse.json({ classification, facts, inferredDealType, classificationSource: resolved.replaced ? 'facts_fallback' : 'model' })
+    const timings = timer.done()
+    logTimings('extract-preview', timings)
+    return NextResponse.json({ classification, facts, inferredDealType, classificationSource: resolved.replaced ? 'facts_fallback' : 'model', timings }, { headers: { 'Server-Timing': serverTimingHeader(timings) } })
   } catch (error) {
     console.error('Extract preview error:', error)
     return NextResponse.json({ error: 'Failed to preview quote' }, { status: 500 })
