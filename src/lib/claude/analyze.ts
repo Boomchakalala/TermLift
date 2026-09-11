@@ -270,6 +270,8 @@ export interface AnalysisOutput {
     conclusion: string
   }
   red_flags: Array<{
+    /** Echoed from the EXISTING RED FLAGS block when the quick flags were supplied. */
+    index?: number
     type: string
     severity: 'high' | 'medium' | 'low'
     score_category: 'pricing' | 'terms' | 'leverage'
@@ -331,6 +333,8 @@ export async function analyzeDealFacts(
     marketBenchmark?: import('@/lib/benchmark/types').BenchmarkResult
     /** Server date `YYYY-MM-DD`; lets the model see that a printed deadline is already past. */
     asOf?: string
+    /** The quick analysis's flags (final). When given, red_flags must echo them and only fill what_to_ask_for / if_they_push_back. */
+    existingFlagsBlock?: string
   }
 ): Promise<AnalysisOutput> {
   // Build the enhanced prompt with overlays
@@ -349,6 +353,7 @@ export async function analyzeDealFacts(
     options.notes && `User Notes: ${options.notes}`,
     options.previousRoundOutput && `MULTI-ROUND ANALYSIS CONTEXT:\nThis is a follow-up round. Previous analysis: ${JSON.stringify(options.previousRoundOutput, null, 2)}\nKeep findings and extraction consistent. Only change them if the quote materially changed.`,
     options.marketBenchmark && `MARKET BENCHMARK (computed by TermLift from stored observations — authoritative, do not recompute or extend):\n${JSON.stringify(benchmarkForPrompt(options.marketBenchmark), null, 2)}`,
+    options.existingFlagsBlock,
   ].filter(Boolean)
 
   const visualContent = buildImageContent(options.imageData, options.allPages, options.pdfData)

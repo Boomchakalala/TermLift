@@ -287,12 +287,21 @@ export function DealScrollView(props: DealScrollViewProps) {
   // The email block is the tallest thing on the page: collapsed to a one-line summary once a draft
   // exists, open while generating one is the next step. A "Prepare Round" / "#email-section" jump opens it.
   const [emailOpen, setEmailOpen] = useState(!hasEmail)
+  // A draft generated a moment ago (before the router refresh re-rendered this view) stays open
+  // and in view: the flag is set right before the refresh and consumed once here.
+  const justGeneratedKey = `tl-email-just-generated:${latestRoundId || dealId}`
   useEffect(() => {
     const onHash = () => { if (window.location.hash === '#email-section') setEmailOpen(true) }
     onHash()
     window.addEventListener('hashchange', onHash)
+    let generated = false
+    try { generated = sessionStorage.getItem(justGeneratedKey) === '1'; if (generated) sessionStorage.removeItem(justGeneratedKey) } catch {}
+    if (generated) {
+      setEmailOpen(true)
+      requestAnimationFrame(() => document.getElementById('email-section')?.scrollIntoView({ block: 'start' }))
+    }
     return () => window.removeEventListener('hashchange', onHash)
-  }, [])
+  }, [justGeneratedKey])
 
   // Real negotiation activity — an analysis by itself is not a negotiation
   // round. sortedRounds.length > 1 means a genuine round 2+ (vendor response
@@ -363,6 +372,8 @@ export function DealScrollView(props: DealScrollViewProps) {
       // Context is now persisted with the drafts — keep it in the form (it prefills next time too).
       setShowEmailContext(false)
       setEmailOpen(true)
+      // The refresh re-renders this view with the stored draft; keep the email open and on screen.
+      try { sessionStorage.setItem(justGeneratedKey, '1') } catch {}
       router.refresh()
     } catch (err) { setRegenError(err instanceof Error ? err.message : 'Failed') }
     finally { setRegenerating(false) }

@@ -12,9 +12,10 @@ import { logAiRaw } from '@/lib/ai-debug'
 // analyzeDealFacts(), used for the blocking initial-display path. Same model,
 // same "extraction" sub-schema (still required — lib/scoring.ts's
 // computeScores() needs it for the deal score), but asks for a small fraction
-// of the output volume: 3-5 short red flags instead of up to 10 detailed ones,
-// no full negotiation strategy, no cash-flow analysis, no watch items, no
-// email drafts. analyzeDealFacts() itself is untouched and still available —
+// of the output volume: short red flags (the COMPLETE list — since 2026-09-11 the
+// quick analysis owns the flag list and the score; the Playbook only attaches
+// asks to these rows), no full negotiation strategy, no cash-flow analysis, no
+// watch items, no email drafts. analyzeDealFacts() itself is untouched and still available —
 // this file does not replace it, it sits alongside it for the fast path.
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -36,7 +37,7 @@ WHAT TO PRODUCE — KEEP EVERYTHING SHORT
 
 - verdict: MAXIMUM 1-2 sentences telling the buyer what to do next. This is the ONLY place you state the bottom line — do not restate it elsewhere.
 - quick_read.whats_solid: max 2 short bullets, phrases not sentences.
-- red_flags: MAXIMUM 3 — the highest-value issues only, by dollar impact or legal/financial exposure. Fewer is fine and often correct; do not pad. Skip entirely if the quote is clean. For each: issue (one short sentence), why_it_matters (ONE short sentence — the dollar/legal consequence only, no background), what_to_ask_for (one short concrete ask), if_they_push_back (one short fallback, as brief as the ask itself). Never combine unrelated commercial issues into one red flag simply to fit the maximum count — select only the three highest-impact INDEPENDENT issues and omit lower-priority issues entirely rather than merging them into a flag about something else.
+- red_flags: the COMPLETE list — this is the only pass that decides the flags; a later pass adds asks to these rows and can never add a flag. An item is a RED FLAG only if it passes BOTH tests: (1) ACTIONABLE — there is a concrete ask that changes the outcome (a number to push, a clause to add or remove); (2) MATERIAL — it affects MORE THAN 1% of contract value, OR it creates legal/financial exposure (cancellation terms, auto-renewal, escalation, seat/commit lock-in, overage or add-on usage billed at list, liability, fraud signals). Pure observations ("priced at the high end", "X is not visible", "typical for this category") are NOT red flags — omit them. The count is NOT fixed: a clean quote may have 0 or 1, a messy one 6-8; report every item that passes, one flag per INDEPENDENT issue, and never merge unrelated issues into one flag or pad to look thorough. Keep each flag short: issue (one short sentence), why_it_matters (ONE short sentence — the dollar/legal consequence only, no background), what_to_ask_for (one short concrete ask), if_they_push_back (one short fallback, as brief as the ask itself).
 - negotiation_plan.leverage_you_have: MAXIMUM 3 — short phrases, not sentences (e.g. "Deadline in 6 days", not "The vendor has set a deadline in 6 days which creates urgency").
 - what_to_ask_for.must_have: pull directly from the red flags' asks — do NOT restate them in different words, just list the ask itself tersely. Do not add asks unrelated to a red flag unless it's the standard baseline discount ask.
 - potential_savings: 2 must_have items MAXIMUM, each with a rationale of one short clause (not a sentence — "standard on new-logo deals", not "This is a standard ask that buyers typically make on new-logo deals of this size"). Also a top-level low/high range: most conservative defensible number as "low", most aggressive still-defensible number as "high". total = sum of must_have amounts.
@@ -164,7 +165,7 @@ GROUND RULES
 - Do not ask the user questions in the output.
 - Keep currency consistent throughout.
 - If the VERIFIED FACTS state quote_expires / signing_deadline earlier than the ANALYSIS DATE given in the context, the quote has expired: do not list the deadline as leverage or urgency, and say the numbers are historical until the vendor re-quotes.
-- HARD LIMITS: 3 red flags maximum, 3 leverage points maximum, 2 savings items maximum, 2 assumptions maximum. These are ceilings, not targets — fewer is fine when fewer is genuinely correct.
+- HARD LIMITS: 3 leverage points maximum, 2 savings items maximum, 2 assumptions maximum. These are ceilings, not targets — fewer is fine when fewer is genuinely correct. Red flags have NO cap and NO target: exactly the items that pass both tests, each kept short.
 - This is the FAST pass — brevity is correct, not a shortcoming. Do not apologize for or mention the brevity in the output.
 
 Return ONLY valid JSON.`
@@ -279,7 +280,8 @@ export async function analyzeFastCore(
     // whats_concerning/trades_you_can_offer dropped entirely). Verified live
     // against the same test document before landing here — see the session
     // report — not lowered blindly. Still real headroom above expected output.
-    max_tokens: 3072,
+    // 4096 again since the quick pass carries the complete flag list (2026-09-11).
+    max_tokens: 4096,
     system: enhancedPrompt + getLanguageInstruction(options.userLocale || 'en'),
     messages: [{ role: 'user', content: userContent }],
     temperature: 0,

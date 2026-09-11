@@ -18,12 +18,12 @@ import { getPlaybookAccess, consumeCredit } from '@/lib/billing'
 import { deepAnalysisPriceLabel } from '@/lib/pricing'
 import { analysisDate } from '@/lib/claude'
 import { isUnreadableClassification, resolveClassification } from '@/lib/claude/classification-guard'
-import { detectCodeFlags, mergeCodeFlags } from '@/lib/claude/code-flags'
 import { normalizeSavings } from '@/lib/savings-normalize'
+import { attachPlaybookAsks, renderExistingFlagsForPrompt, type FlagRow } from '@/lib/playbook-flags'
 import { filterSolidAgainstFlags, stripDeadlineLeverage, stripPastDated, stripLongerTermOffers, longerTermOptedIn } from '@/lib/playbook-hygiene'
 import { enforceUpliftPolicy } from '@/lib/ask-policy'
 import { attachTargetPrice } from '@/lib/deal-target'
-import { computeScores, countHighTermsFlags, isExpired, mergeExtractions, normalizeExtraction, scoreLabel } from '@/lib/scoring'
+import { isExpired, normalizeExtraction } from '@/lib/scoring'
 import { parseMoney } from '@/lib/currency'
 
 export const maxDuration = 120
@@ -168,6 +168,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ dea
       const deepStart = Date.now()
       const asOf = analysisDate()
       const contractTotal = parseMoney(facts.total_commitment).amount
+      const quickFlags: FlagRow[] = Array.isArray(output.red_flags) ? output.red_flags : []
       const { classification, deep, benchmarkInput, benchmarkRun } = await runWithAiContext({ userId: user.id, dealId, roundId: round.id }, async () => {
         // A stored classification that could not read the document (the old blank-prompt
         // PDF path) is not reused: classify again from the text, then guard the result.
@@ -208,11 +209,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ dea
         }
         timer.mark('benchmark_ms', Date.now() - benchStart)
 
+        // The quick analysis's flags are final: the Playbook fills each one's ask and fallback, nothing else.
         const deep = await timer.time('flags_ms', () => analyzeDealFacts(facts, classification, docForModel, {
           dealType: deal.deal_type as 'New' | 'Renewal',
           userLocale: locale,
           marketBenchmark: benchmarkRun?.result,
           asOf,
+          existingFlagsBlock: renderExistingFlagsForPrompt(quickFlags),
         }))
         return { classification, deep, benchmarkInput, benchmarkRun }
       })
@@ -223,23 +226,19 @@ export async function POST(request: Request, { params }: { params: Promise<{ dea
       // it can explain the numbers, never move them.
       const benchmark_interpretation = benchmarkRun ? clampInterpretation(deep.benchmark_interpretation, benchmarkRun.result) : null
 
-      // ── Rescore on the merged extraction (2026-09-11) ──────────────────────
-      // The Playbook's deeper read fills fields the fast pass left null; rule
-      // flags run on the merged fields; HIGH terms flags cap the Terms bar; the
-      // score is recomputed so it agrees with the flags on the page.
-      const fastExtraction = normalizeExtraction(output.extraction, contractTotal)
-      const deepExtraction = normalizeExtraction(deep.extraction, contractTotal)
-      const mergedExtraction = mergeExtractions(fastExtraction, deepExtraction)
-      const quoteExpired = isExpired(mergedExtraction.quoteDates?.expires, asOf)
-      const codeFlags = detectCodeFlags(mergedExtraction, asOf, facts.total_commitment)
-      const redFlags = mergeCodeFlags(deep.red_flags || [], codeFlags)
-      const highTermsFlagCount = countHighTermsFlags(redFlags)
-      const scores = computeScores(mergedExtraction, { asOf, highTermsFlagCount })
+      // ── Flags and score are FINAL from the quick analysis (2026-09-11) ──────
+      // No flagger runs here and nothing is rescored: the Playbook attaches its
+      // ask and fallback to each existing flag row (same rows, same order, same
+      // severity) and brings the asks, target, savings and strategy.
+      const quickExtraction = normalizeExtraction(output.extraction, contractTotal)
+      const quoteExpired = output.quote_expired === true || isExpired(quickExtraction.quoteDates?.expires, asOf)
+      const attached = attachPlaybookAsks(quickFlags, deep.red_flags)
+      console.log(`[TermLift] Playbook flags: ${quickFlags.length} kept, ${attached.enriched} enriched, ${attached.unmatched} model rows dropped`)
       const normalizedSavings = normalizeSavings(deep.potential_savings, contractTotal, output.quote_facts?.lines ?? null, asOf) ?? deep.potential_savings
-      // Uplift cap policy (lib/ask-policy.ts): no proposed cap above 4%, never above the vendor's stated minimum.
-      const policed = enforceUpliftPolicy({ red_flags: redFlags, what_to_ask_for: deep.what_to_ask_for, potential_savings: normalizedSavings }, mergedExtraction.renewalTerms)
+      // Uplift cap policy (lib/ask-policy.ts): no proposed cap above 4%, never above the vendor's stated minimum. Rewrites ask text only; never a row.
+      const policed = enforceUpliftPolicy({ red_flags: attached.flags, what_to_ask_for: deep.what_to_ask_for, potential_savings: normalizedSavings }, quickExtraction.renewalTerms)
       if (policed.rewrites.length) console.log('[TermLift] Deep: uplift policy rewrites:', policed.rewrites.join(' | '))
-      const policedFlags = policed.output.red_flags as typeof redFlags
+      const policedFlags = policed.output.red_flags as typeof attached.flags
       const policedAsks = policed.output.what_to_ask_for as typeof deep.what_to_ask_for
       const potentialSavings = policed.output.potential_savings
       // Past-dated concessions are dead; a longer term is only offered when the person opted in.
@@ -252,11 +251,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ dea
       const solid = filterSolidAgainstFlags(deep.quick_read?.whats_solid, policedFlags, hygienicAsks.must_have)
       let leverage = stripPastDated(deep.negotiation_plan?.leverage_you_have, asOf).kept
       if (quoteExpired) leverage = stripDeadlineLeverage(leverage).kept
-      console.log(`[TermLift] Deep rescore: ${output.score} → ${scores.overall} (p${scores.pricing}/t${scores.terms}/l${scores.leverage}); code flags: ${codeFlags.map((f) => f.source_rule).join(', ') || 'none'}${quoteExpired ? '; QUOTE EXPIRED' : ''}`)
-
       // Enrich, don't overwrite the headline facts: verdict/verdict_type/title/
-      // snapshot/vendor/category/description stay as the fast pass set them.
-      // The score and its inputs are REPLACED with the rescored values above.
+      // snapshot/vendor/category/description stay as the fast pass set them, and
+      // so do score / score_breakdown / deductions / extraction (never recomputed here).
       const mergedRaw = {
         generated_locale: locale,
         ...output,
@@ -269,13 +266,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ dea
         watchItems: deep.watchItems,
         assumptions: deep.assumptions,
         price_insight: deep.price_insight,
-        extraction: mergedExtraction,
-        score: scores.overall,
-        score_label: scoreLabel(scores.overall),
-        score_breakdown: { pricing: scores.pricing, terms: scores.terms, leverage: scores.leverage, deductions: scores.deductions },
-        deductions: scores.deductions,
         quick_score: typeof output.score === 'number' ? output.score : null,
-        analysis_date: asOf,
+        analysis_date: output.analysis_date ?? asOf,
         quote_expired: quoteExpired,
         classification,
         // Market Benchmark — deterministic result + the query that produced it (reproducible),
