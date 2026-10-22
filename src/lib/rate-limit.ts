@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { AI_ACTIONS_PER_DAY, AI_ACTIONS_PER_HOUR, NEW_DEALS_PER_DAY, NEW_DEALS_PER_MONTH } from '@/lib/ai-limits'
 
 export interface RateLimitConfig {
   hourlyLimit: number
@@ -15,8 +16,48 @@ export interface RateLimitResult {
 
 // One abuse ceiling for every account — there are no tiers. Admins bypass at the caller.
 const LIMITS: RateLimitConfig = {
-  hourlyLimit: 5,
-  dailyLimit: 10,
+  hourlyLimit: AI_ACTIONS_PER_HOUR,
+  dailyLimit: AI_ACTIONS_PER_DAY,
+}
+
+export interface NewDealQuotaResult {
+  allowed: boolean
+  usedToday: number
+  usedThisMonth: number
+  dailyLimit: number
+  monthlyLimit: number
+  resetAt: Date
+  message?: string
+}
+
+/**
+ * New deals per account on rolling windows (UTC day, calendar month). Replaces the
+ * old lifetime "4 free quick analyses": the product is free, this only bounds cost.
+ */
+export async function checkNewDealQuota(userId: string, locale: string = 'en'): Promise<NewDealQuotaResult> {
+  const supabase = await createClient()
+  const now = new Date()
+  const dayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
+  const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1))
+  const nextDay = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000)
+  const nextMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1))
+  const [{ count: usedToday }, { count: usedThisMonth }] = await Promise.all([
+    supabase.from('deals').select('id', { count: 'exact', head: true }).eq('user_id', userId).gte('created_at', dayStart.toISOString()),
+    supabase.from('deals').select('id', { count: 'exact', head: true }).eq('user_id', userId).gte('created_at', monthStart.toISOString()),
+  ])
+  const fr = locale === 'fr'
+  const base = { usedToday: usedToday || 0, usedThisMonth: usedThisMonth || 0, dailyLimit: NEW_DEALS_PER_DAY, monthlyLimit: NEW_DEALS_PER_MONTH }
+  if (base.usedThisMonth >= NEW_DEALS_PER_MONTH) {
+    return { ...base, allowed: false, resetAt: nextMonth, message: fr
+      ? `Vous avez lancé ${base.usedThisMonth} analyses ce mois-ci — la limite gratuite est de ${NEW_DEALS_PER_MONTH} par mois. Ça repart le 1er.`
+      : `You've started ${base.usedThisMonth} analyses this month — the free limit is ${NEW_DEALS_PER_MONTH} a month. It resets on the 1st.` }
+  }
+  if (base.usedToday >= NEW_DEALS_PER_DAY) {
+    return { ...base, allowed: false, resetAt: nextDay, message: fr
+      ? `Vous avez lancé ${base.usedToday} analyses aujourd'hui — la limite gratuite est de ${NEW_DEALS_PER_DAY} par jour. Ça repart à minuit UTC.`
+      : `You've started ${base.usedToday} analyses today — the free limit is ${NEW_DEALS_PER_DAY} a day. It resets at midnight UTC.` }
+  }
+  return { ...base, allowed: true, resetAt: nextDay }
 }
 
 export async function checkRateLimit(userId: string): Promise<RateLimitResult> {

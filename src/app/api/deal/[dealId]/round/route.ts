@@ -9,6 +9,7 @@ import { toStructuredExtraction } from '@/lib/structured-extraction'
 import { extractVendorOffer, type VendorOffer } from '@/lib/vendor-offer'
 import { applyChosenDealType } from '@/lib/deal-type-inference'
 import { checkRateLimit } from '@/lib/rate-limit'
+import { guardAiSpend } from '@/lib/ai-budget'
 import { stripAdvancedOutput, SHOW_FULL_NEGOTIATION_PLAYBOOK } from '@/lib/negotiation-gating'
 import { MAX_ROUNDS_PER_DEAL } from '@/lib/ai-limits'
 import { runWithAiContext } from '@/lib/ai-telemetry'
@@ -82,7 +83,9 @@ export async function POST(
           { status: 429 }
         )
       }
-      // No free-quota check here: rounds on an existing deal are covered by that deal's Playbook (pricing.ts).
+      // No per-deal quota here: rounds on an existing deal are free; only the global budget applies.
+      const capacity = await guardAiSpend(false)
+      if (capacity) return capacity
     }
 
     // Parse request body

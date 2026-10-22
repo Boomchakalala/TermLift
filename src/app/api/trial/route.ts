@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { guardAiSpend } from '@/lib/ai-budget'
 import { resolveRequestLocale } from '@/lib/request-locale'
 import { analyzeDeal } from '@/lib/claude'
 import { inferDealTypeForPersistence, applyChosenDealType } from '@/lib/deal-type-inference'
@@ -129,7 +130,12 @@ export async function POST(request: Request) {
 
     // IP-based rate limiting for trial route. A signed-in admin testing /try skips it.
     const clientIP = getClientIP(request)
-    const rateLimit = (await isSignedInAdmin()) ? { allowed: true } : await checkTrialRateLimit(clientIP)
+    const trialAdmin = await isSignedInAdmin()
+    const rateLimit = trialAdmin ? { allowed: true } : await checkTrialRateLimit(clientIP)
+    if (!trialAdmin) {
+      const capacity = await guardAiSpend(false, await resolveRequestLocale(locale))
+      if (capacity) return capacity
+    }
 
     if (!rateLimit.allowed) {
       const fr = (await resolveRequestLocale(locale)) === 'fr'

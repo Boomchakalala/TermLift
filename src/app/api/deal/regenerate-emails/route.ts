@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { guardAiSpend } from '@/lib/ai-budget'
 import { getClaudeResponse, getLanguageInstruction, KEVIN_SYSTEM_PROMPT, analysisDate } from '@/lib/claude'
 import { EMAIL_VOICE } from '@/lib/claude/email-voice'
 import { NextResponse } from 'next/server'
@@ -52,6 +53,8 @@ export async function POST(request: Request) {
     if (profileError) console.error('[TermLift] regenerate-emails: profile lookup failed:', profileError.message)
 
     const senderName = profile?.contact_name?.trim() || undefined
+    const capacity = await guardAiSpend(!!profile?.is_admin)
+    if (capacity) return capacity
     // A flat abuse safeguard, not a paywall. Per-deal entitlement is checked below.
     const maxRegens = profile?.is_admin ? 99 : FULL_ANALYSIS_EMAIL_REGEN_LIMIT
 

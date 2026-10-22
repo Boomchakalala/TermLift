@@ -4,6 +4,7 @@ import { CreateDealSchema } from '@/lib/schemas'
 import { classifyQuote, extractFinancialFacts, validateTotalCommitment } from '@/lib/claude'
 import { normalizeAmount, parseMoney } from '@/lib/currency'
 import { checkRateLimit } from '@/lib/rate-limit'
+import { guardAiSpend } from '@/lib/ai-budget'
 import { runWithAiContext } from '@/lib/ai-telemetry'
 import { textForPersistence } from '@/lib/extract'
 import { resolveClassification } from '@/lib/claude/classification-guard'
@@ -46,6 +47,8 @@ export async function POST(request: Request) {
       if (!rateLimit.allowed) {
         return NextResponse.json({ error: rateLimit.message || 'Rate limit exceeded' }, { status: 429 })
       }
+      const capacity = await guardAiSpend(false)
+      if (capacity) return capacity
     }
 
     const body = await request.json()

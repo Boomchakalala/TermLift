@@ -25,3 +25,25 @@ export const MAX_ROUNDS_PER_DEAL = 6
  * just makes it durable.
  */
 export const TRIAL_MAX_PER_IP_PER_DAY = 1
+
+/**
+ * Free-era usage ceilings (2026-10-22: TermLift is free; the negotiation
+ * service is the product). Rolling windows, not lifetime counts — a tester
+ * who comes back next week is exactly who we want.
+ */
+/** New deals (analyses) one account can start per UTC day / per calendar month. */
+export const NEW_DEALS_PER_DAY = 3
+export const NEW_DEALS_PER_MONTH = 15
+/** AI actions (analysis, Playbook, round, email) per account per rolling hour / per day. */
+export const AI_ACTIONS_PER_HOUR = 5
+export const AI_ACTIONS_PER_DAY = 20
+
+/**
+ * Global spend ceilings across every user, in USD of estimated model cost
+ * (lib/ai-cost.ts). ~$0.80 per deal all-in on 2026-10 telemetry, so $15/day
+ * is roughly 18 deals a day and $200/month ~250 deals. When a cap is hit the
+ * app answers "at capacity" instead of spending; admins are never blocked.
+ * AI_KILL_SWITCH=1 in the environment stops every paid call for non-admins.
+ */
+export const AI_BUDGET_DAILY_USD = 15
+export const AI_BUDGET_MONTHLY_USD = 200

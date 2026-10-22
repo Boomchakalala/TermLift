@@ -7,9 +7,8 @@ import { type ExtractedFacts } from '@/lib/claude'
 import { prepareExtract, buildSnapshotOutput } from '@/lib/claude/index'
 import { toStructuredExtraction } from '@/lib/structured-extraction'
 import type { QuoteClassificationType } from '@/lib/schemas'
-import { checkRateLimit } from '@/lib/rate-limit'
-import { checkFreeQuota } from '@/lib/pricing'
-import { getPlaybookAccess, consumeCredit } from '@/lib/billing'
+import { checkRateLimit, checkNewDealQuota } from '@/lib/rate-limit'
+import { guardAiSpend } from '@/lib/ai-budget'
 import { resolveVendorForDeal } from '@/lib/vendor-resolve'
 import { inferDealTypeForPersistence, applyChosenDealType } from '@/lib/deal-type-inference'
 import { runWithAiContext } from '@/lib/ai-telemetry'
@@ -61,7 +60,6 @@ export async function POST(request: Request) {
     }
 
     // Get user profile and check usage limit
-    let useCredit = false
     const { data: profile } = await supabase
       .from('profiles')
       .select('usage_count, is_admin, negotiation_preferences')
@@ -81,13 +79,6 @@ export async function POST(request: Request) {
           { status: 429 }
         )
       }
-      const quota = checkFreeQuota(profile.usage_count || 0)
-      if (!quota.allowed) {
-        // Past the free quick analyses a new deal is a Playbook deal: first one free, else a paid credit.
-        const access = await getPlaybookAccess(user.id, null, false)
-        if (!access.granted) return NextResponse.json({ error: quota.message, paymentRequired: true }, { status: 402 })
-        if (access.kind === 'credit') useCredit = true
-      }
     }
 
     // Parse request body
@@ -96,6 +87,16 @@ export async function POST(request: Request) {
 
     // Determine locale from cookie or request body
     const locale = await resolveRequestLocale((body as any).locale)
+
+    // Free-era ceilings (lib/ai-limits.ts): per-account rolling quota, then the global spend budget.
+    if (!profile.is_admin) {
+      const quota = await checkNewDealQuota(user.id, locale)
+      if (!quota.allowed) {
+        return NextResponse.json({ error: quota.message, quota: true, resetAt: quota.resetAt.toISOString() }, { status: 429 })
+      }
+      const capacity = await guardAiSpend(false, locale)
+      if (capacity) return capacity
+    }
 
     // Validate PDF data if provided
     const validPdfData = validated.pdfData?.base64 && validated.pdfData?.mimeType === 'application/pdf'
@@ -218,7 +219,6 @@ export async function POST(request: Request) {
     }
 
     // A credit bought from the new-deal gate is spent on this deal (its Playbook is then included).
-    if (useCredit) await consumeCredit(user.id, deal.id)
 
     // Increment usage count (skip for admins and demo text)
     if (!profile.is_admin && !validated.isDemoText) {

@@ -7,6 +7,7 @@ import type { QuoteClassificationType } from '@/lib/schemas'
 import { factsFromOutput, readPersistedExtract, renderExtractForModel } from '@/lib/quote-extract'
 import { createTimer, logTimings, serverTimingHeader } from '@/lib/timings'
 import { checkRateLimit } from '@/lib/rate-limit'
+import { guardAiSpend } from '@/lib/ai-budget'
 import { runWithAiContext } from '@/lib/ai-telemetry'
 import { extractBenchmarkInput } from '@/lib/claude/benchmark-input'
 import { benchmarkInputFromQuoteFacts, quoteFactsSufficient } from '@/lib/benchmark/from-quote-facts'
@@ -83,6 +84,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ dea
       if (!rateLimit.allowed) {
         return NextResponse.json({ error: rateLimit.message || 'Rate limit exceeded' }, { status: 429 })
       }
+      const capacity = await guardAiSpend(false)
+      if (capacity) return capacity
     }
 
     // Price gate (lib/billing-rules.ts): free during early access, first Playbook free,

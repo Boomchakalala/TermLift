@@ -2,6 +2,8 @@ export const dynamic = 'force-dynamic'
 
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import { checkAiBudget } from '@/lib/ai-budget'
+import { AI_ACTIONS_PER_DAY, AI_ACTIONS_PER_HOUR, NEW_DEALS_PER_DAY, NEW_DEALS_PER_MONTH } from '@/lib/ai-limits'
 
 
 function fmtUsd(n: number) {
@@ -16,6 +18,7 @@ export default async function AiUsagePage() {
   const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', user.id).single()
   if (!profile?.is_admin) redirect('/app')
 
+  const budget = await checkAiBudget()
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
   const startOfToday = new Date(); startOfToday.setHours(0, 0, 0, 0)
 
@@ -65,6 +68,26 @@ export default async function AiUsagePage() {
       <p className="text-[13px] text-ink-3 mb-6">
         Estimated from real token usage on every Claude call (see lib/ai-cost.ts for the rate card). Last 7 days, up to 500 most recent calls.
       </p>
+
+      {/* Budget burn — the guard every paid route checks (lib/ai-budget.ts) */}
+      <div className={`rounded-[12px] border p-4 mb-4 ${budget.allowed ? 'bg-white border-line' : 'bg-risk-soft border-risk-line'}`}>
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+          <p className="text-[12px] font-bold text-ink">Free-era budget {budget.allowed ? <span className="text-green-deep">· open</span> : <span className="text-risk">· at capacity ({budget.stop})</span>}</p>
+          <p className="text-[11.5px] text-ink-3">Per account: {NEW_DEALS_PER_DAY} deals/day · {NEW_DEALS_PER_MONTH}/month · {AI_ACTIONS_PER_HOUR} AI actions/hour · {AI_ACTIONS_PER_DAY}/day{budget.killSwitch ? ' · KILL SWITCH ON' : ''}</p>
+        </div>
+        {[
+          { label: 'Today (UTC)', spent: budget.spentTodayUsd, cap: budget.dailyCapUsd },
+          { label: 'This month', spent: budget.spentMonthUsd, cap: budget.monthlyCapUsd },
+        ].map((b) => {
+          const pct = Math.min(100, Math.round((b.spent / b.cap) * 100))
+          return (
+            <div key={b.label} className="mb-2 last:mb-0">
+              <div className="flex justify-between text-[11.5px] mb-1"><span className="text-ink-2">{b.label}</span><span className="tl-num text-ink">{fmtUsd(b.spent)} <span className="text-ink-3">/ {fmtUsd(b.cap)} · {pct}%</span></span></div>
+              <div className="h-1.5 rounded-full bg-line-2 overflow-hidden"><div className={`h-full rounded-full ${pct >= 100 ? 'bg-risk' : pct >= 75 ? 'bg-warn' : 'bg-green'}`} style={{ width: `${pct}%` }} /></div>
+            </div>
+          )
+        })}
+      </div>
 
       {/* Aggregate stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
