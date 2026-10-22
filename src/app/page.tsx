@@ -71,7 +71,7 @@ export default async function LandingPage() {
             <h1 className="font-display font-extrabold text-[34px] sm:text-[46px] leading-[1.02] tracking-[-0.035em] mt-3">
               {t('h1a')} <span className="text-green">{t('h1b')}</span>
             </h1>
-            <p className="text-[15.5px] leading-[1.5] text-ink-2 max-w-[48ch] mt-4">{t('lead', { day: NEW_DEALS_PER_DAY })}</p>
+            <p className="text-[15.5px] leading-[1.5] text-ink-2 max-w-[48ch] mt-4">{t('lead')}</p>
             <div className="flex flex-wrap items-center gap-4 mt-5">
               <Btn href="/try" variant="primary" size="lg">{t('ctaPrimary')}</Btn>
               <Link href="/demo/deal/demo-atlassian" className="text-[13.5px] font-semibold text-ink-2 hover:text-ink inline-flex items-center gap-1.5 no-underline transition-colors">
@@ -246,7 +246,7 @@ export default async function LandingPage() {
       <section className="py-12 sm:py-14 text-center">
         <div className={wrap}>
           <h2 className="font-display font-extrabold text-[26px] sm:text-[32px] leading-[1.08] tracking-[-0.03em] mx-auto">{t('final.title')}</h2>
-          <p className="text-[15px] text-ink-2 mt-2.5">{t('final.lead')}</p>
+          <p className="text-[15px] text-ink-2 mt-2.5">{t('final.lead', { day: NEW_DEALS_PER_DAY })}</p>
           <Btn href="/try" variant="primary" size="lg" className="mt-5">{t('final.cta')}</Btn>
         </div>
       </section>
