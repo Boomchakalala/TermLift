@@ -1,6 +1,7 @@
-// One-off: freeze savings_base for won deals closed before migration 20261022.
+// One-off: freeze savings for won deals closed before 2026-10-22, into
+// deals.verification.savings_frozen (see lib/verification.ts FrozenSavings).
 // Uses the account's base currency and today's open.er-api rate (there is no
-// historical rate for the close date), stamps savings_frozen_at = now.
+// historical rate for the close date), stamps frozen_at = now.
 //
 //   node scripts/backfill-savings-base.mjs          dry run
 //   node scripts/backfill-savings-base.mjs --write  apply
@@ -34,24 +35,27 @@ const convert = (amount, from, to) => {
 }
 
 const { data: deals, error } = await db.from('deals')
-  .select('id, user_id, status, savings_amount, savings_base, savings_base_currency, closed_at, rounds(output_json, round_number)')
-  .eq('status', 'closed_won').gt('savings_amount', 0).is('savings_base', null)
+  .select('id, user_id, status, savings_amount, verification, final_total_provenance, closed_at, rounds(output_json, round_number)')
+  .eq('status', 'closed_won').gt('savings_amount', 0)
 if (error) { console.error(error); process.exit(1) }
-const { data: profiles } = await db.from('profiles').select('id, base_currency').in('id', [...new Set(deals.map((d) => d.user_id))])
-const baseOf = new Map(profiles.map((p) => [p.id, p.base_currency || 'EUR']))
+const todo = deals.filter((d) => !d.verification?.savings_frozen)
+const { data: profiles } = await db.from('profiles').select('id, base_currency').in('id', [...new Set(todo.map((d) => d.user_id))])
+const baseOf = new Map((profiles || []).map((p) => [p.id, p.base_currency || 'EUR']))
 
-console.log(`${deals.length} won deals without a frozen figure`)
+console.log(`${deals.length} won deals, ${todo.length} without a frozen figure`)
 const now = new Date().toISOString()
-for (const d of deals) {
+for (const d of todo) {
   const first = [...(d.rounds || [])].sort((a, b) => (a.round_number || 0) - (b.round_number || 0))[0]
   const snap = first?.output_json?.snapshot || {}
   const cur = detectCurrency(String(snap.currency || snap.total_commitment || ''))
   const base = baseOf.get(d.user_id) || 'EUR'
-  const inBase = convert(d.savings_amount, cur, base)
-  const fx = Math.round((inBase / d.savings_amount) * 1e6) / 1e6
-  console.log(`${d.id}  ${cur} ${d.savings_amount} -> ${base} ${inBase}  (rate ${fx})  closed ${String(d.closed_at).slice(0, 10)}`)
+  const amount = convert(d.savings_amount, cur, base)
+  const fx = Math.round((amount / d.savings_amount) * 1e6) / 1e6
+  const hasRecord = !!d.verification
+  console.log(`${d.id}  ${cur} ${d.savings_amount} -> ${base} ${amount}  (rate ${fx})  closed ${String(d.closed_at).slice(0, 10)}${hasRecord ? '' : '  [no verification record: will create a minimal one]'}`)
   if (write) {
-    const { error: e } = await db.from('deals').update({ savings_base: inBase, savings_base_currency: base, savings_fx_rate: fx, savings_frozen_at: now }).eq('id', d.id)
+    const verification = { ...(d.verification || { version: 1, tier: d.final_total_provenance || 'user_confirmed', method: d.final_total_provenance === 'document_verified' ? 'final_document_extract' : 'user_entry', verified_at: d.closed_at || now, confirmed_total: null, currency: cur, document: null, extracted_total: null, matched: null }), savings_frozen: { amount, currency: base, fx_rate: fx, frozen_at: now } }
+    const { error: e } = await db.from('deals').update({ verification }).eq('id', d.id)
     if (e) console.error('  update failed:', e.message)
   }
 }

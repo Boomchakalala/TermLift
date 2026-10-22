@@ -43,9 +43,8 @@ export interface DealLike {
   status?: string | null
   savings_amount?: number | null
   savings_percent?: number | null
-  /** savings_amount converted to savings_base_currency once, at close (see migration 20261022). */
-  savings_base?: number | null
-  savings_base_currency?: string | null
+  /** Close-time evidence record; carries the frozen base-currency savings for won deals (lib/verification.ts). */
+  verification?: { savings_frozen?: { amount: number; currency: string } | null } | null
   closed_at?: string | null
   created_at: string
   updated_at: string
@@ -59,9 +58,10 @@ export interface DealLike {
  */
 export function getFrozenSavingsBase(deal: DealLike, base: string): number | null {
   if (!isWon(deal)) return null
-  if (deal.savings_base == null || !(deal.savings_base >= 0)) return null
-  if (!deal.savings_base_currency || deal.savings_base_currency !== base) return null
-  return deal.savings_base
+  const f = deal.verification?.savings_frozen
+  if (!f || typeof f.amount !== 'number' || !(f.amount >= 0)) return null
+  if (!f.currency || f.currency !== base) return null
+  return f.amount
 }
 
 const str = (v: unknown): string => (v == null ? '' : String(v))

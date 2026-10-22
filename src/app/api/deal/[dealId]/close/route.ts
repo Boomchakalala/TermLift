@@ -170,15 +170,15 @@ RULES:
 
     const closedAt = new Date().toISOString()
 
-    // Freeze the savings in the account's base currency with today's rate. Home, Insights,
-    // Settings and Vendors read this figure for won deals, so FX moves never rewrite a win.
-    let frozen: { savings_base: number; savings_base_currency: string; savings_fx_rate: number; savings_frozen_at: string } | null = null
-    if (o.status === 'closed_won' && o.savingsAmount != null && o.savingsAmount > 0) {
+    // Freeze the savings in the account's base currency with today's rate, inside the evidence
+    // record. Home, Insights, Settings and Vendors read this figure for won deals, so FX moves
+    // never rewrite a win. Lost/paused closes carry no record, so nothing stale survives a reopen.
+    if (verification && o.status === 'closed_won' && o.savingsAmount != null && o.savingsAmount > 0) {
       try {
         const dealCurrency = detectCurrency(String(originalSnapshot.currency || originalSnapshot.total_commitment || ''))
         const base = ((closeProfile as { base_currency?: string | null } | null)?.base_currency || 'EUR') as Currency
         const inBase = await convertCurrency(o.savingsAmount, dealCurrency, base)
-        frozen = { savings_base: inBase, savings_base_currency: base, savings_fx_rate: Math.round((inBase / o.savingsAmount) * 1e6) / 1e6, savings_frozen_at: closedAt }
+        verification.savings_frozen = { amount: inBase, currency: base, fx_rate: Math.round((inBase / o.savingsAmount) * 1e6) / 1e6, frozen_at: closedAt }
       } catch (err) {
         console.error('Savings freeze skipped (rates unavailable):', err)
       }
@@ -195,8 +195,6 @@ RULES:
         verification,
         savings_amount: o.savingsAmount,
         savings_percent: o.savingsPercent,
-        // Reopening then closing as lost/paused clears the frozen figure with the savings.
-        ...(frozen ?? { savings_base: null, savings_base_currency: null, savings_fx_rate: null, savings_frozen_at: null }),
         what_changed: Array.isArray(whatChanged) ? whatChanged : null,
         close_notes: typeof notes === 'string' && notes.trim() ? notes : null,
         close_summary: closeSummary,

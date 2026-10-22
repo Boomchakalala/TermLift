@@ -6,9 +6,22 @@ import type { OutcomeProvenance } from '@/lib/close-outcome'
  * bytes — proof of *which* file was processed, never a way back to its
  * content. Nothing in this record may carry text from the document.
  */
+/** savings_amount converted to the account's base currency once, with the rate of the close day. Never recomputed. */
+export interface FrozenSavings {
+  amount: number
+  /** Base currency the freeze was made in (EUR, USD, …). */
+  currency: string
+  /** amount / savings_amount — the rate used, for audit. */
+  fx_rate: number
+  /** Close time, or the backfill date for deals closed before this existed. */
+  frozen_at: string
+}
+
 export interface VerificationRecord {
   version: 1
   tier: OutcomeProvenance
+  /** Present on won deals closed after 2026-10-22 (or backfilled). */
+  savings_frozen?: FrozenSavings | null
   /** How the figure was established. */
   method: 'final_document_extract' | 'admin_document' | 'user_entry'
   verified_at: string

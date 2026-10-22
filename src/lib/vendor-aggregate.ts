@@ -10,9 +10,8 @@ export interface DealLite {
   vendor_id: string | null
   status: string | null
   savings_amount: number | null
-  /** Frozen at close in savings_base_currency (migration 20261022); null for older deals. */
-  savings_base?: number | null
-  savings_base_currency?: string | null
+  /** Close-time evidence record; savings_frozen holds the base-currency figure for won deals closed after 2026-10-22. */
+  verification?: { savings_frozen?: { amount: number; currency: string } | null } | null
   final_total: number | null
   updated_at: string
   created_at: string
@@ -87,8 +86,9 @@ export function aggregateVendors(
       }
       if (d.status === 'closed_won' && d.savings_amount && d.savings_amount > 0) {
         savingsByCurrency[cur] = (savingsByCurrency[cur] || 0) + d.savings_amount
-        if (d.savings_base != null && d.savings_base >= 0 && d.savings_base_currency) {
-          savingsFrozenByBase[d.savings_base_currency] = (savingsFrozenByBase[d.savings_base_currency] || 0) + d.savings_base
+        const f = d.verification?.savings_frozen
+        if (f && typeof f.amount === 'number' && f.amount >= 0 && f.currency) {
+          savingsFrozenByBase[f.currency] = (savingsFrozenByBase[f.currency] || 0) + f.amount
         } else {
           savingsLiveByCurrency[cur] = (savingsLiveByCurrency[cur] || 0) + d.savings_amount
         }

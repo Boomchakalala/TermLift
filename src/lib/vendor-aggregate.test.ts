@@ -42,7 +42,7 @@ describe('aggregateVendors', () => {
   })
 })
 
-describe('aggregateVendors — frozen savings (migration 20261022)', () => {
+describe('aggregateVendors — frozen savings (verification.savings_frozen)', () => {
   const round = (tc: string, cur: string) => ({ output_json: { score: 70, snapshot: { total_commitment: tc, currency: cur } }, round_number: 1 })
   const base = (over: Partial<DealLite>): DealLite => ({
     id: Math.random().toString(36), vendor_id: 'v1', status: 'closed_won', savings_amount: 1000, final_total: null,
@@ -50,7 +50,7 @@ describe('aggregateVendors — frozen savings (migration 20261022)', () => {
   })
   it('splits won savings into frozen-in-base and still-to-convert', () => {
     const deals = [
-      base({ savings_base: 920, savings_base_currency: 'EUR' }),          // frozen at close
+      base({ verification: { savings_frozen: { amount: 920, currency: 'EUR' } } }), // frozen at close
       base({ savings_amount: 500 }),                                       // closed before the migration
       base({ status: 'in_progress', savings_amount: 300 }),                // not won: no savings at all
     ]

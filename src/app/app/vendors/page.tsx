@@ -17,7 +17,7 @@ export default async function VendorsPage() {
     supabase.from('vendors').select('id, canonical_name, aliases').eq('user_id', user.id),
     supabase
       .from('deals')
-      .select('id, vendor_id, status, savings_amount, savings_base, savings_base_currency, final_total, updated_at, created_at, rounds(output_json, round_number)')
+      .select('id, vendor_id, status, savings_amount, verification, final_total, updated_at, created_at, rounds(output_json, round_number)')
       .eq('user_id', user.id)
       .not('vendor_id', 'is', null),
     supabase.from('profiles').select('base_currency').eq('id', user.id).single(),

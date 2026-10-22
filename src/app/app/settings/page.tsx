@@ -25,7 +25,7 @@ export default async function SettingsPage() {
 
   const { data: deals } = await supabase
     .from('deals')
-    .select('id, status, savings_amount, savings_base, savings_base_currency, closed_at, created_at, updated_at, rounds (id, output_json, round_number)')
+    .select('id, status, savings_amount, verification, closed_at, created_at, updated_at, rounds (id, output_json, round_number)')
     .eq('user_id', user.id)
 
   const { count: roundCount } = await supabase
