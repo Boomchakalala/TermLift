@@ -41,3 +41,22 @@ describe('aggregateVendors', () => {
     expect(formatTotals(row.totalsByCurrency)).toBe('€10K + $5K')
   })
 })
+
+describe('aggregateVendors — frozen savings (migration 20261022)', () => {
+  const round = (tc: string, cur: string) => ({ output_json: { score: 70, snapshot: { total_commitment: tc, currency: cur } }, round_number: 1 })
+  const base = (over: Partial<DealLite>): DealLite => ({
+    id: Math.random().toString(36), vendor_id: 'v1', status: 'closed_won', savings_amount: 1000, final_total: null,
+    updated_at: '2026-05-01', created_at: '2026-05-01', rounds: [round('$5,000', 'USD')], ...over,
+  })
+  it('splits won savings into frozen-in-base and still-to-convert', () => {
+    const deals = [
+      base({ savings_base: 920, savings_base_currency: 'EUR' }),          // frozen at close
+      base({ savings_amount: 500 }),                                       // closed before the migration
+      base({ status: 'in_progress', savings_amount: 300 }),                // not won: no savings at all
+    ]
+    const [row] = aggregateVendors([{ id: 'v1', canonical_name: 'Acme', aliases: [] }], deals)
+    expect(row.savingsByCurrency).toEqual({ USD: 1500 })      // display split keeps every won deal in its own currency
+    expect(row.savingsFrozenByBase).toEqual({ EUR: 920 })
+    expect(row.savingsLiveByCurrency).toEqual({ USD: 500 })
+  })
+})
