@@ -276,10 +276,12 @@ export function fmtCompact(n: number, currency: Currency): string {
  * real leverage / push back.
  */
 export function scoreHeadline(score: number, locale: string): string {
+  // Voice (2026-10-22): the headline is what a sharp friend in procurement would say out loud.
+  // The score and the flags underneath carry the evidence; this line carries the attitude.
   const fr = locale === 'fr'
-  if (score >= 80) return fr ? 'Devis solide — quelques gains encore possibles' : 'Solid quote — small gains still on the table'
-  if (score >= 65) return fr ? 'Devis correct — quelques points à pousser' : 'Decent quote — push on a few points'
-  if (score >= 45) return fr ? 'Vrai levier — négociez avant de signer' : 'Real leverage — negotiate before signing'
-  if (score >= 25) return fr ? 'Devis faible — des problèmes sérieux à régler' : 'Weak quote — serious issues to fix first'
-  return fr ? 'Ne signez pas en l’état' : 'Don’t sign this as it stands'
+  if (score >= 80) return fr ? 'Devis honnête. Grattez un peu, puis signez.' : 'Fair deal. Squeeze a little, then sign.'
+  if (score >= 65) return fr ? 'Pas mal, mais ils vous ont laissé de la marge. Prenez-la.' : 'Not bad, but they’ve left you room. Take it.'
+  if (score >= 45) return fr ? 'Ils comptent sur vous pour ne pas négocier.' : 'They’re counting on you not to push back.'
+  if (score >= 25) return fr ? 'Ce devis est gonflé. Ne signez pas encore.' : 'This quote is padded. Don’t sign it yet.'
+  return fr ? 'En l’état, c’est non. On reconstruit ou on s’en va.' : 'As it stands, no. Rebuild it or walk.'
 }

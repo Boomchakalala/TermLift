@@ -147,8 +147,8 @@ export function deriveNegotiationFlow(input: FlowInput): NegotiationFlow {
     case 'full_running':
       next = {
         key: 'full_running',
-        title: L('Building your negotiation strategy', 'Construction de votre stratégie de négociation'),
-        body: L('A couple of minutes. The ordered asks, target positions, fallbacks and the negotiation sequence appear below when it completes.', 'Quelques minutes. Les demandes ordonnées, les positions cibles, les replis et la séquence de négociation apparaîtront ci-dessous.'),
+        title: L('Building your Playbook', 'Construction de votre Plan'),
+        body: L('A couple of minutes. What to ask for, in what order, with numbers, and what to say when they push back. It lands below.', 'Quelques minutes. Quoi demander, dans quel ordre, avec des chiffres, et quoi répondre s’ils résistent. Ça arrive ci-dessous.'),
         cta: L('Building the Playbook…', 'Construction du Plan…'),
         href: '#deep-analysis',
         offerClose: false,
@@ -157,9 +157,9 @@ export function deriveNegotiationFlow(input: FlowInput): NegotiationFlow {
     case 'quick':
       next = {
         key: 'unlock_full',
-        title: L('Build your negotiation strategy', 'Construisez votre stratégie de négociation'),
-        body: L('Get the ordered asks with amounts, target positions, fallbacks, your leverage and the ready-to-send negotiation sequence.', 'Obtenez les demandes ordonnées et chiffrées, les positions cibles, les replis, vos leviers et la séquence prête à envoyer.'),
-        cta: L('Get the Negotiation Playbook', 'Obtenir le Plan de négociation'),
+        title: L('Now build the comeback', 'Maintenant, préparez la riposte'),
+        body: L('You know where they padded it. The Playbook turns that into an ordered list of asks with numbers, what you can offer, and what to say if they say no. Free.', 'Vous savez où ils ont gonflé. Le Plan en fait une liste de demandes chiffrées, dans l’ordre, ce que vous pouvez offrir, et quoi répondre s’ils disent non. Gratuit.'),
+        cta: L('Build the Playbook', 'Construire le Plan'),
         href: '#deep-analysis',
         offerClose: false,
       }
@@ -167,8 +167,8 @@ export function deriveNegotiationFlow(input: FlowInput): NegotiationFlow {
     case 'full':
       next = {
         key: 'prepare_round_1',
-        title: L('Prepare Round 1', 'Préparez le tour 1'),
-        body: L('Add what the quote can’t tell us — target outcome, budget, alternatives, deadline — then generate the Round 1 negotiation email. Everything is optional.', 'Ajoutez ce que le devis ne peut pas nous dire — objectif, budget, alternatives, échéance — puis générez l’e-mail du tour 1. Tout est facultatif.'),
+        title: L('Write the first email', 'Écrivez le premier e-mail'),
+        body: L('Tell us what the quote can’t: what you’re after, your budget, any alternative, the deadline. All optional. Then we write Round 1 in the tone the relationship can take.', 'Dites-nous ce que le devis ne dit pas : ce que vous visez, votre budget, une alternative, l’échéance. Tout est facultatif. Puis on écrit le tour 1 dans le ton que la relation supporte.'),
         cta: L('Prepare Round 1', 'Préparer le tour 1'),
         href: '#email-section',
         round: 1,
@@ -179,7 +179,7 @@ export function deriveNegotiationFlow(input: FlowInput): NegotiationFlow {
       next = {
         key: 'send_and_upload',
         title: L(`Send the Round ${latestRound} email, then add the vendor’s response`, `Envoyez l’e-mail du tour ${latestRound}, puis ajoutez la réponse du fournisseur`),
-        body: L('Copy the email below and send it. When the vendor replies, upload or paste their response and TermLift prepares the next round.', 'Copiez l’e-mail ci-dessous et envoyez-le. Quand le fournisseur répond, importez ou collez sa réponse et TermLift prépare le tour suivant.'),
+        body: L('Copy the email below and send it. When they reply, paste it in here and we tell you what moved, what didn’t, and what to say next.', 'Copiez l’e-mail ci-dessous et envoyez-le. Quand ils répondent, collez la réponse ici et on vous dit ce qui a bougé, ce qui n’a pas bougé, et quoi dire ensuite.'),
         cta: L('Add vendor response', 'Ajouter la réponse du fournisseur'),
         href: '#add-round',
         round: latestRound,
@@ -191,7 +191,7 @@ export function deriveNegotiationFlow(input: FlowInput): NegotiationFlow {
       next = {
         key: 'generate_counter',
         title: L(`Round ${latestRound} — review the vendor’s response`, `Tour ${latestRound} — examinez la réponse du fournisseur`),
-        body: L('See what changed, what they conceded and what they refused, then generate your counter.', 'Voyez ce qui a changé, ce qu’ils ont concédé et refusé, puis générez votre contre-proposition.'),
+        body: L('Here’s what they gave, what they held, and what that tells you. Generate the counter when you’re ready.', 'Voici ce qu’ils ont lâché, ce qu’ils ont gardé, et ce que ça vous apprend. Générez la contre-proposition quand vous êtes prêt.'),
         cta: L(`Generate Round ${latestRound} counter`, `Générer la contre-proposition du tour ${latestRound}`),
         href: '#email-section',
         round: latestRound,

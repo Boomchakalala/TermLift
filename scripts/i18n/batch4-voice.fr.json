@@ -1,0 +1,68 @@
+{
+  "landing": {
+    "eyebrow": "Gratuit · sans inscription · deux minutes",
+    "h1a": "Votre fournisseur",
+    "h1b": "vous surfacture ?",
+    "leadFree": "Collez le devis. Deux minutes plus tard vous avez le score, ce qui est gonflé, combien il y a sur la table et quoi répondre. Puis le Plan, l'e-mail, chaque round qui suit. Tout ça gratuitement.",
+    "ctaPrimary": "Le savoir — gratuit",
+    "ctaSecondary": "Parcourir un vrai dossier",
+    "shot": {
+      "verdict": "Ils comptent sur vous pour ne pas négocier.",
+      "sub": "Bon produit, mauvais paliers. 80 sièges sur 200 ne font que consulter.",
+      "nextTitle": "Maintenant, préparez la riposte",
+      "nextBody": "Des demandes chiffrées dans l'ordre, quoi offrir, et quoi dire s'ils disent non.",
+      "nextCta": "Construire le Plan"
+    },
+    "how": {
+      "title": "Trois étapes. Arrêtez-vous quand vous avez ce qu'il vous faut.",
+      "s1title": "Le verdict",
+      "s1body": "Score sur 100, ce qui est gonflé, où sont vos leviers. Deux minutes, sans compte.",
+      "s2title": "Le Plan",
+      "s2body": "Quoi demander, dans l'ordre, avec des chiffres. Ce que vous pouvez offrir. Quoi dire s'ils disent non.",
+      "s3title": "L'e-mail",
+      "s3body": "Prêt à envoyer, dans le ton que la relation supporte. Collez leur réponse et passez au round 2."
+    },
+    "who": {
+      "lead": "Fondateurs, responsables ops, office managers, premiers acheteurs. TermLift vous donne ce qu'un acheteur grand compte a d'office : un chiffre à défendre et les mots pour le dire."
+    },
+    "tour": {
+      "title": "À quoi ça ressemble, concrètement.",
+      "t1title": "Du verdict au Plan",
+      "t1body": "Le verdict vous dit où vous en êtes. Le Plan en fait une liste de demandes chiffrées, dans l'ordre, avec les replis et ce que vous pouvez offrir en retour.",
+      "t2title": "L'e-mail, dans votre ton",
+      "t2body": "Construit à partir du Plan, adapté à la relation : chaleureux, direct ou ferme. Collez la réponse du fournisseur et on vous dit ce qui a bougé."
+    },
+    "wins": {
+      "title": "À quoi ça ressemble quand ça marche."
+    },
+    "final": {
+      "title": "Un devis qui traîne dans votre boîte mail ? Collez-le ici.",
+      "cta": "Le savoir — gratuit"
+    }
+  },
+  "home": {
+    "emptyTitle": "Un devis sous la main ? Voyons ce qu'ils cachent.",
+    "emptyBody": "Collez-le. Deux minutes plus tard : le score, ce qui est gonflé, et le montant sur la table.",
+    "kpiNeeds": "À vous de jouer",
+    "kpiNeedsNone": "Rien ne vous attend pour l'instant",
+    "noMatch": "Rien ici avec ces filtres."
+  },
+  "tryPage": {
+    "eyebrow": "Gratuit · sans inscription · deux minutes",
+    "title": "Collez le devis. Voyez s'ils vous surfacturent.",
+    "sub": "Le score, ce qui est gonflé, combien il y a sur la table. Deux minutes.",
+    "cta": "Le savoir",
+    "contextPlaceholder": "Quelque chose à savoir ? Budget, à quel point vous les aimez, l'urgence… (facultatif)"
+  },
+  "newPage": {
+    "sub": "Collez un devis. Deux minutes plus tard vous saurez où vous en êtes."
+  },
+  "dealPage": {
+    "primaryRunFull": "Construire le Plan",
+    "primaryRunning": "Construction du Plan…",
+    "statSavings": "Sur la table",
+    "statNoFlags": "rien à pousser, honnêtement",
+    "statSavingsNone": "pas encore de demandes — construisez le Plan",
+    "trialCta": "Garder cette analyse — compte gratuit"
+  }
+}

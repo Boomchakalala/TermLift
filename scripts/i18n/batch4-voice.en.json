@@ -1,0 +1,68 @@
+{
+  "landing": {
+    "eyebrow": "Free · no signup · two minutes",
+    "h1a": "Is your supplier",
+    "h1b": "overcharging you?",
+    "leadFree": "Drop the quote in. Two minutes later you know the score, what's padded, how much is on the table and what to say back. Then the Playbook, the email, every round after. All of it free.",
+    "ctaPrimary": "Find out — free",
+    "ctaSecondary": "Walk through a real deal",
+    "shot": {
+      "verdict": "They're counting on you not to push back.",
+      "sub": "Right product, wrong tiers. 80 of 200 seats only ever view.",
+      "nextTitle": "Now build the comeback",
+      "nextBody": "Ordered asks with numbers, what to offer, and what to say if they say no.",
+      "nextCta": "Build the Playbook"
+    },
+    "how": {
+      "title": "Three steps. Stop whenever you've got what you need.",
+      "s1title": "The verdict",
+      "s1body": "Score out of 100, what's padded, where your leverage is. Two minutes, no account.",
+      "s2title": "The Playbook",
+      "s2body": "What to ask for, in order, with numbers. What you can offer. What to say if they say no.",
+      "s3title": "The email",
+      "s3body": "Ready to send, in the tone the relationship can take. Paste their reply and get round 2."
+    },
+    "who": {
+      "lead": "Founders, ops leads, office managers, first-time buyers. TermLift gives you what an enterprise buyer has by default: a number to push for and the words to say."
+    },
+    "tour": {
+      "title": "What it actually looks like.",
+      "t1title": "From verdict to Playbook",
+      "t1body": "The verdict tells you where you stand. The Playbook turns that into an ordered list of asks with numbers, fallbacks, and what you can offer in return.",
+      "t2title": "The email, in your tone",
+      "t2body": "Built from the Playbook, matched to the relationship: warm, direct or firm. Paste the vendor's reply and we tell you what moved."
+    },
+    "wins": {
+      "title": "What it looks like when it works."
+    },
+    "final": {
+      "title": "Got a quote sitting in your inbox? Drop it in.",
+      "cta": "Find out — free"
+    }
+  },
+  "home": {
+    "emptyTitle": "Got a quote? Let's see what they're hiding.",
+    "emptyBody": "Paste it in. Two minutes later: the score, what's padded, and the number on the table.",
+    "kpiNeeds": "Your move",
+    "kpiNeedsNone": "Nothing on you right now",
+    "noMatch": "Nothing here with these filters."
+  },
+  "tryPage": {
+    "eyebrow": "Free · no signup · two minutes",
+    "title": "Drop the quote. See if they're overcharging you.",
+    "sub": "The score, what's padded, how much is on the table. Two minutes.",
+    "cta": "Find out",
+    "contextPlaceholder": "Anything we should know? Budget, how much you like them, how urgent… (optional)"
+  },
+  "newPage": {
+    "sub": "Drop a quote in. Two minutes later you'll know where you stand."
+  },
+  "dealPage": {
+    "primaryRunFull": "Build the Playbook",
+    "primaryRunning": "Building the Playbook…",
+    "statSavings": "On the table",
+    "statNoFlags": "nothing to push on, honestly",
+    "statSavingsNone": "no asks yet — build the Playbook",
+    "trialCta": "Keep this analysis — free account"
+  }
+}
