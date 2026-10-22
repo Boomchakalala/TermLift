@@ -17,7 +17,7 @@ export default async function VendorsPage() {
     supabase.from('vendors').select('id, canonical_name, aliases').eq('user_id', user.id),
     supabase
       .from('deals')
-      .select('id, vendor_id, status, savings_amount, final_total, updated_at, created_at, rounds(output_json, round_number)')
+      .select('id, vendor_id, status, savings_amount, savings_base, savings_base_currency, final_total, updated_at, created_at, rounds(output_json, round_number)')
       .eq('user_id', user.id)
       .not('vendor_id', 'is', null),
     supabase.from('profiles').select('base_currency').eq('id', user.id).single(),
@@ -29,7 +29,10 @@ export default async function VendorsPage() {
   try { await fetchRates() } catch { /* fall back to unconverted sums */ }
   for (const r of rows) {
     r.totalBase = await sumInBase(r.totalsByCurrency, baseCurrency)
-    r.savingsBase = await sumInBase(r.savingsByCurrency, baseCurrency)
+    // Frozen-in-base wins are taken as stored; deals frozen in another base or never frozen convert live.
+    const frozenOther: Record<string, number> = {}
+    for (const [c, n] of Object.entries(r.savingsFrozenByBase)) if (c !== baseCurrency) frozenOther[c] = (frozenOther[c] || 0) + n
+    r.savingsBase = (r.savingsFrozenByBase[baseCurrency] || 0) + await sumInBase(r.savingsLiveByCurrency, baseCurrency) + await sumInBase(frozenOther, baseCurrency)
   }
   return <VendorsListClient rows={rows} baseCurrency={baseCurrency} />
 }

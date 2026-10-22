@@ -10,6 +10,9 @@ export interface DealLite {
   vendor_id: string | null
   status: string | null
   savings_amount: number | null
+  /** Frozen at close in savings_base_currency (migration 20261022); null for older deals. */
+  savings_base?: number | null
+  savings_base_currency?: string | null
   final_total: number | null
   updated_at: string
   created_at: string
@@ -38,7 +41,12 @@ export interface VendorRow {
   aliases: string[]
   dealCount: number
   totalsByCurrency: Record<string, number>
+  /** Won savings per deal currency — every won deal, for the per-currency sub line. */
   savingsByCurrency: Record<string, number>
+  /** Won savings already frozen in a base currency, keyed by that currency. Not in savingsLiveByCurrency. */
+  savingsFrozenByBase: Record<string, number>
+  /** Won savings that still need a live conversion (no frozen figure), per deal currency. */
+  savingsLiveByCurrency: Record<string, number>
   /** Converted into the account's base currency (see sumInBase); set by the page, absent in tests. */
   totalBase?: number
   savingsBase?: number
@@ -63,6 +71,8 @@ export function aggregateVendors(
     const ds = byVendor.get(v.id) || []
     const totalsByCurrency: Record<string, number> = {}
     const savingsByCurrency: Record<string, number> = {}
+    const savingsFrozenByBase: Record<string, number> = {}
+    const savingsLiveByCurrency: Record<string, number> = {}
     let scoreSum = 0
     let scoreCount = 0
     let lastActivity: string | null = null
@@ -77,6 +87,11 @@ export function aggregateVendors(
       }
       if (d.status === 'closed_won' && d.savings_amount && d.savings_amount > 0) {
         savingsByCurrency[cur] = (savingsByCurrency[cur] || 0) + d.savings_amount
+        if (d.savings_base != null && d.savings_base >= 0 && d.savings_base_currency) {
+          savingsFrozenByBase[d.savings_base_currency] = (savingsFrozenByBase[d.savings_base_currency] || 0) + d.savings_base
+        } else {
+          savingsLiveByCurrency[cur] = (savingsLiveByCurrency[cur] || 0) + d.savings_amount
+        }
       }
       const sc = o?.score
       if (typeof sc === 'number') { scoreSum += sc; scoreCount++ }
@@ -90,6 +105,8 @@ export function aggregateVendors(
       dealCount: ds.length,
       totalsByCurrency,
       savingsByCurrency,
+      savingsFrozenByBase,
+      savingsLiveByCurrency,
       avgScore: scoreCount ? Math.round(scoreSum / scoreCount) : null,
       lastActivity,
     }

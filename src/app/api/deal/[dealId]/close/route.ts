@@ -6,6 +6,7 @@ import { checkRateLimit } from '@/lib/rate-limit'
 import { runWithAiContext } from '@/lib/ai-telemetry'
 import { deriveCloseOutcome } from '@/lib/close-outcome'
 import { buildVerificationRecord } from '@/lib/verification'
+import { convertCurrency, detectCurrency, type Currency } from '@/lib/currency'
 
 /**
  * Close a deal. The financial outcome is DERIVED here from two totals — the
@@ -26,7 +27,7 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { data: closeProfile } = await supabase.from('profiles').select('is_admin').eq('id', user.id).single()
+    const { data: closeProfile } = await supabase.from('profiles').select('is_admin, base_currency').eq('id', user.id).single()
     if (!closeProfile?.is_admin) {
       const rateLimit = await checkRateLimit(user.id)
       if (!rateLimit.allowed) {
@@ -168,6 +169,21 @@ RULES:
     })
 
     const closedAt = new Date().toISOString()
+
+    // Freeze the savings in the account's base currency with today's rate. Home, Insights,
+    // Settings and Vendors read this figure for won deals, so FX moves never rewrite a win.
+    let frozen: { savings_base: number; savings_base_currency: string; savings_fx_rate: number; savings_frozen_at: string } | null = null
+    if (o.status === 'closed_won' && o.savingsAmount != null && o.savingsAmount > 0) {
+      try {
+        const dealCurrency = detectCurrency(String(originalSnapshot.currency || originalSnapshot.total_commitment || ''))
+        const base = ((closeProfile as { base_currency?: string | null } | null)?.base_currency || 'EUR') as Currency
+        const inBase = await convertCurrency(o.savingsAmount, dealCurrency, base)
+        frozen = { savings_base: inBase, savings_base_currency: base, savings_fx_rate: Math.round((inBase / o.savingsAmount) * 1e6) / 1e6, savings_frozen_at: closedAt }
+      } catch (err) {
+        console.error('Savings freeze skipped (rates unavailable):', err)
+      }
+    }
+
     const { error: updateError } = await supabase
       .from('deals')
       .update({
@@ -179,6 +195,8 @@ RULES:
         verification,
         savings_amount: o.savingsAmount,
         savings_percent: o.savingsPercent,
+        // Reopening then closing as lost/paused clears the frozen figure with the savings.
+        ...(frozen ?? { savings_base: null, savings_base_currency: null, savings_fx_rate: null, savings_frozen_at: null }),
         what_changed: Array.isArray(whatChanged) ? whatChanged : null,
         close_notes: typeof notes === 'string' && notes.trim() ? notes : null,
         close_summary: closeSummary,

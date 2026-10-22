@@ -43,10 +43,25 @@ export interface DealLike {
   status?: string | null
   savings_amount?: number | null
   savings_percent?: number | null
+  /** savings_amount converted to savings_base_currency once, at close (see migration 20261022). */
+  savings_base?: number | null
+  savings_base_currency?: string | null
   closed_at?: string | null
   created_at: string
   updated_at: string
   rounds?: RoundLike[] | null
+}
+
+/**
+ * Achieved savings in `base`, frozen at close when the deal was frozen in that
+ * same currency; null when the reader has to convert live (older deals, or the
+ * account changed its base currency since).
+ */
+export function getFrozenSavingsBase(deal: DealLike, base: string): number | null {
+  if (!isWon(deal)) return null
+  if (deal.savings_base == null || !(deal.savings_base >= 0)) return null
+  if (!deal.savings_base_currency || deal.savings_base_currency !== base) return null
+  return deal.savings_base
 }
 
 const str = (v: unknown): string => (v == null ? '' : String(v))

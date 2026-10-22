@@ -5,7 +5,7 @@
  */
 import { convertCurrency, fetchRates, type Currency } from '@/lib/currency'
 import {
-  type DealLike, getAchievedSavings, getCategory, getDealCurrency, getLatestOutput, getPotentialSavings, getRedFlagCount,
+  type DealLike, getAchievedSavings, getCategory, getDealCurrency, getFrozenSavingsBase, getLatestOutput, getPotentialSavings, getRedFlagCount,
   getRenewalDate, getScore, getTotalAmount, getVendorName, isClosed, isWon,
 } from '@/lib/deal-metrics'
 
@@ -85,10 +85,13 @@ export async function enrichDeals(deals: DealLike[], baseCurrency: Currency, con
       const asks = [...(out.potential_savings?.must_have || []), ...(out.potential_savings?.nice_to_have || [])]
         .filter((a) => a?.ask && typeof a.amount === 'number' && a.amount > 0)
         .sort((a, b) => (b.amount || 0) - (a.amount || 0))
+      // Won deals carry their savings frozen in the base currency from the day they closed; only
+      // deals frozen in another base (or never frozen) are converted at today's rate.
+      const frozen = getFrozenSavingsBase(deal, baseCurrency)
       const [amount, potential, achieved, topAskAmount] = await Promise.all([
         toBase(getTotalAmount(deal), cur, baseCurrency, convert),
         toBase(getPotentialSavings(deal), cur, baseCurrency, convert),
-        toBase(getAchievedSavings(deal), cur, baseCurrency, convert),
+        frozen != null ? Promise.resolve(frozen) : toBase(getAchievedSavings(deal), cur, baseCurrency, convert),
         asks[0] ? toBase(Number(asks[0].amount), cur, baseCurrency, convert) : Promise.resolve(0),
       ])
       return {
