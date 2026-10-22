@@ -1,0 +1,65 @@
+{
+  "nav": { "pricing": "Pourquoi c'est gratuit" },
+  "footer": { "pricing": "Pourquoi c'est gratuit" },
+  "login": { "trialPrompt": "Créez un compte gratuit pour sauvegarder cette analyse. {day} analyses par jour, Plan de négociation inclus." },
+  "pricingPage": {
+    "freeEyebrow": "Gratuit",
+    "freeTitle": "C'est gratuit. La seule limite est quotidienne.",
+    "freeLead": "L'analyse, le Plan de négociation, les e-mails, chaque round : gratuits pour tout le monde. On plafonne l'usage pour que la facture d'IA reste raisonnable, c'est tout. La seule chose payante, c'est quand on négocie à votre place.",
+    "freeIncludedEyebrow": "Étapes 1 à 3 · chaque dossier",
+    "freeIncludedUnit": "sans carte, sans essai limité, sans upsell",
+    "freeF1": "Score du contrat 0–100 avec son détail",
+    "freeF2": "Chaque point de vigilance, quoi demander, et le repli",
+    "freeF3": "Le Plan de négociation sur chaque dossier : demandes ordonnées et chiffrées, vos leviers, ce que vous pouvez offrir",
+    "freeF4": "E-mail prêt à envoyer, dans le bon ton",
+    "freeF5": "Réponses du fournisseur analysées round par round, {regen} réécritures d'e-mail par round",
+    "freeF6": "Dossiers, fournisseurs et insights sauvegardés, en français ou en anglais",
+    "freeLimitsTitle": "Les limites",
+    "freeLimitsBody": "{day} nouvelles analyses par jour et {month} par mois par compte, un essai par jour sans compte. Si la capacité gratuite du jour est épuisée pour tout le monde, un message s'affiche et ça repart à minuit UTC. Vos dossiers ne sont jamais touchés.",
+    "freeCta": "Analyser un devis",
+    "negEyebrow": "La seule chose payante",
+    "negMin": "{min} minimum. Facturé après la signature, jamais avant.",
+    "whyEyebrow": "Pourquoi c'est gratuit",
+    "whyTitle": "On préfère que vous l'utilisiez plutôt que de le payer. Pour l'instant.",
+    "whyBody": "TermLift en est au début. Quelques personnes qui négocient de vrais devis et nous disent ce qui cloche valent plus qu'un péage que personne n'a franchi. Si ça change, on le dira un mois à l'avance, et tout ce que vous avez construit reste à vous.",
+    "faq1q": "C'est vraiment gratuit ?",
+    "faq1a": "Oui. L'analyse, le Plan de négociation, les e-mails et chaque round de suivi ne coûtent rien, pour tout le monde. Pas de carte, pas d'essai limité, aucune fonction derrière un bouton qui demande de l'argent.",
+    "faq2q": "Que se passe-t-il quand j'atteins la limite ?",
+    "faq2a": "Un message clair. La limite par compte est de {day} nouvelles analyses par jour et {month} par mois ; elle se remet à zéro à minuit UTC et le 1er. Les Plans, e-mails et rounds sur vos dossiers existants continuent de fonctionner. Très rarement, la capacité gratuite de la journée entière est épuisée ; ça repart aussi à minuit.",
+    "faq3q": "Comment est facturé le service de négociation ?",
+    "faq3a": "Au résultat : {pct} % des économies que TermLift vérifie par rapport à votre devis initial, avec un minimum de {min}. Pas d'économies, pas d'honoraires. Rien n'est conclu avec le fournisseur sans votre accord, et c'est vous qui signez.",
+    "faq4q": "Ça restera gratuit ?",
+    "faq4a": "Tant que les limites ci-dessus permettent de garder un coût raisonnable. Si ça devait changer, on l'annoncera un mois à l'avance, et chaque analyse, Plan et e-mail que vous avez construits restent à vous.",
+    "faq5q": "Puis-je m'arrêter à n'importe quelle étape ?",
+    "faq5a": "Oui. Lisez l'analyse et partez. Construisez le Plan et négociez vous-même. Ou confiez un dossier à TermLift. Vous pouvez aussi supprimer n'importe quel dossier, ou votre compte entier, à tout moment."
+  },
+  "settingsPage": {
+    "usageQuick": "Analyses",
+    "usageFree": "{day} par jour · {month} par mois · gratuit",
+    "usageNote": "Plans, e-mails et rounds inclus. Vous voulez qu'on négocie un dossier pour vous ? TermLift Négociation, c'est {pct} % des économies vérifiées."
+  },
+  "helpPage": {
+    "sections": {
+      "billing": {
+        "q1": "TermLift est-il vraiment gratuit ?",
+        "a1": "Oui. L'analyse, le Plan de négociation, les e-mails et chaque round sont gratuits pour tout le monde. Pas de carte, pas d'essai limité. Essayez un devis sans inscription, puis créez un compte gratuit pour garder vos dossiers.",
+        "q2": "Quelles sont les limites ?",
+        "a2": "{day} nouvelles analyses par jour et {month} par mois par compte, plus un essai par jour sans compte. Les Plans, e-mails et rounds sur vos dossiers existants ne comptent jamais dans ce nombre. Ces limites existent pour que la facture d'IA reste raisonnable, rien d'autre.",
+        "q3": "Combien coûte le Plan de négociation ?",
+        "a3": "Rien. Il est construit sur chaque dossier, gratuitement : les demandes, les replis, les leviers, l'e-mail et chaque round de suivi.",
+        "q4": "Ça restera gratuit ?",
+        "a4": "Tant que les limites permettent de garder un coût raisonnable. Si ça devait changer, on le dira un mois à l'avance, et tout ce que vous avez construit reste à vous."
+      }
+    }
+  },
+  "termsPage": {
+    "s5Intro": "Il n'y a pas d'abonnement et rien à payer pour l'analyse. Le seul service payant est la négociation, ci-dessous.",
+    "s5QuickTitle": "Analyse, Plan de négociation, e-mails et rounds — gratuits",
+    "s5QuickDesc": "Gratuits pour chaque compte, dans des limites techniques de {day} nouvelles analyses par jour et {month} par mois, plus une analyse par jour sans compte. Aucune carte requise. Nous pouvons ajuster ces limites pour garder le service viable.",
+    "s5DeepTitle": "Aucune option payante",
+    "s5DeepDesc": "Aucune fonction de l'analyse n'est vendue séparément. Si nous introduisons un jour une offre payante, nous l'annoncerons au moins un mois à l'avance, et tout ce que vous avez construit avant reste disponible.",
+    "s5Item3": "Nous fournissons l'analyse et le Plan de négociation gratuitement. Cela ne nous oblige pas à continuer indéfiniment ; voir la section 5."
+  },
+  "landing": { "final": { "lead": "Essayez un devis sans inscription. Créez un compte gratuit : {day} analyses par jour, Plan de négociation inclus." } },
+  "tryPage": { "footnote": "Essayez un devis sans inscription · un compte gratuit donne droit à {day} analyses par jour, Plan inclus" }
+}

@@ -2,8 +2,6 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { checkRateLimit } from '@/lib/rate-limit'
 import { renderMarkdown } from '@/lib/render-markdown'
-import { checkFreeQuota } from '@/lib/pricing'
-import { getPlaybookAccess, consumeCredit } from '@/lib/billing'
 
 export async function POST(request: Request) {
   try {
@@ -16,7 +14,6 @@ export async function POST(request: Request) {
     }
 
     // Get user profile and check usage limit
-    let useCredit = false
     const { data: profile } = await supabase
       .from('profiles')
       .select('usage_count, is_admin')
@@ -35,12 +32,6 @@ export async function POST(request: Request) {
           { error: rateLimit.message || 'Rate limit exceeded', remaining: rateLimit.remaining, resetAt: rateLimit.resetAt },
           { status: 429 }
         )
-      }
-      const quota = checkFreeQuota(profile.usage_count || 0)
-      if (!quota.allowed) {
-        const access = await getPlaybookAccess(user.id, null, false)
-        if (!access.granted) return NextResponse.json({ error: quota.message, paymentRequired: true }, { status: 402 })
-        if (access.kind === 'credit') useCredit = true
       }
     }
 
@@ -88,8 +79,6 @@ export async function POST(request: Request) {
     if (roundError || !round) {
       throw new Error('Failed to create round')
     }
-
-    if (useCredit) await consumeCredit(user.id, deal.id)
 
     // Increment usage count (skip for admins)
     if (!profile.is_admin) {

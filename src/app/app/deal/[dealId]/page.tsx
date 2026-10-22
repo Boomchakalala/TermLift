@@ -11,7 +11,6 @@ import { inferDealType } from '@/lib/deal-type-inference'
 import { getLocale } from 'next-intl/server'
 import { dealLocale, normalizeLocale } from '@/lib/output-language'
 import type { LanguageView } from '@/components/deal/TranslateControl'
-import { getPlaybookAccess } from '@/lib/billing'
 import enMessages from '@/i18n/en.json'
 import frMessages from '@/i18n/fr.json'
 
@@ -40,8 +39,6 @@ export default async function DealPage({ params, searchParams }: { params: Promi
 
   const isAdmin = !!profile?.is_admin
   const showFullPlaybook = isAdmin || SHOW_FULL_NEGOTIATION_PLAYBOOK
-  // What the Playbook costs on this deal right now (free / included / due) — the client shows the right button.
-  const playbookAccess = await getPlaybookAccess(user.id, dealId, isAdmin)
 
   // ── Generated-content language ──
   // The deal speaks Round 1's language. When the UI is in the other language and the
@@ -108,7 +105,6 @@ export default async function DealPage({ params, searchParams }: { params: Promi
       inferredDealType={inferred.type}
       renewalSuggestion={renewalSuggestion}
       languageView={languageView}
-      playbookAccess={playbookAccess}
       addRoundForm={deepComplete ? <AddRoundForm dealId={dealId} roundNumber={sortedRounds.length + 1} /> : null}
     />
   )

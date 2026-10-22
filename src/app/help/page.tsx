@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { getTranslations, getLocale } from 'next-intl/server'
 import { Info, Upload, CheckCircle2, Lock, CreditCard, Shield, Plus } from 'lucide-react'
-import { NEGOTIATION_FEE_PERCENT, NEGOTIATION_FEE_MINIMUM_EUR, FREE_ANALYSIS_LIMIT, deepAnalysisPriceLabel, earlyAccessUntilLabel } from '@/lib/pricing'
+import { NEGOTIATION_FEE_PERCENT, NEGOTIATION_FEE_MINIMUM_EUR, NEW_DEALS_PER_DAY, NEW_DEALS_PER_MONTH } from '@/lib/pricing'
 import { MarketingPage, PageHero, Section, wrap } from '@/components/marketing/MarketingPage'
 import { Btn } from '@/components/system'
 import { cn } from '@/lib/utils'
@@ -25,11 +25,10 @@ export default async function HelpPage() {
   const t = await getTranslations('helpPage')
   const locale = await getLocale()
   const pricing = {
-    price: deepAnalysisPriceLabel(),
-    date: earlyAccessUntilLabel(locale),
+    day: NEW_DEALS_PER_DAY,
+    month: NEW_DEALS_PER_MONTH,
     pct: NEGOTIATION_FEE_PERCENT,
     min: NEGOTIATION_FEE_MINIMUM_EUR,
-    limit: FREE_ANALYSIS_LIMIT,
   }
 
   const sections = SECTIONS.map((s) => ({

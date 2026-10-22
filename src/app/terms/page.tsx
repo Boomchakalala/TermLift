@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { getTranslations, getLocale } from 'next-intl/server'
 import { MarketingPage, PageHero, LegalDoc, Callout } from '@/components/marketing/MarketingPage'
-import { FREE_ANALYSIS_LIMIT, NEGOTIATION_FEE_PERCENT, NEGOTIATION_FEE_MINIMUM_EUR, earlyAccessUntilLabel, deepAnalysisPriceLabel } from '@/lib/pricing'
+import { NEGOTIATION_FEE_PERCENT, NEGOTIATION_FEE_MINIMUM_EUR, NEW_DEALS_PER_DAY, NEW_DEALS_PER_MONTH } from '@/lib/pricing'
 
 export const metadata: Metadata = {
   title: 'Terms of Service',
@@ -19,9 +19,8 @@ export default async function TermsPage() {
   const updated = new Date(LAST_UPDATED + 'T12:00:00Z').toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
 
   const pricing = {
-    limit: FREE_ANALYSIS_LIMIT,
-    price: deepAnalysisPriceLabel(),
-    date: earlyAccessUntilLabel(locale),
+    day: NEW_DEALS_PER_DAY,
+    month: NEW_DEALS_PER_MONTH,
     pct: NEGOTIATION_FEE_PERCENT,
     min: NEGOTIATION_FEE_MINIMUM_EUR,
   }

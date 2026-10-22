@@ -6,14 +6,13 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { getTranslations, getLocale } from 'next-intl/server'
 import { Plus, Handshake } from 'lucide-react'
-import { AppPage, PageHeader, PageBody, StatRow, StatTile, Btn, GateCard } from '@/components/system'
+import { AppPage, PageHeader, PageBody, StatRow, StatTile, Btn } from '@/components/system'
 import { HomeDealsClient } from '@/components/home/HomeDealsClient'
 import { HomeInsights } from '@/components/home/HomeInsights'
 import { TrialImporter } from '@/components/home/TrialImporter'
 import { buildHomeRows } from '@/lib/home-rows'
 import { enrichDeals, computeInsights } from '@/lib/deal-insights'
 import { fmtCompact, fmtMoney, type DealLike } from '@/lib/deal-metrics'
-import { FREE_ANALYSIS_LIMIT, isEarlyAccess, deepAnalysisPriceNote } from '@/lib/pricing'
 import type { Currency } from '@/lib/currency'
 import { cn } from '@/lib/utils'
 
@@ -44,11 +43,6 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
 
   const allDeals = (deals || []) as unknown as DealLike[]
   const isAdmin = !!profile?.is_admin
-  const usageCount = profile?.usage_count || 0
-  const remaining = Math.max(0, FREE_ANALYSIS_LIMIT - usageCount)
-  const atLimit = !isAdmin && usageCount >= FREE_ANALYSIS_LIMIT
-  const earlyAccess = isEarlyAccess()
-  const priceNote = deepAnalysisPriceNote(locale)
   const baseCurrency = ((profile?.base_currency as Currency) || 'EUR') as Currency
 
   const reqByDeal = new Map<string, string>()
@@ -131,15 +125,6 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
       </PageHeader>
 
       <PageBody>
-        {!isAdmin && (
-          atLimit && earlyAccess ? (
-            <GateCard tone="neutral" eyebrow={t('usageEyebrow')} title={t('usageEarlyTitle')} body={t('usageEarlyBody', { note: priceNote })} action={<Btn href="/app/new" variant="primary" size="sm">{t('usageNew')}</Btn>} />
-          ) : atLimit ? (
-            <GateCard tone="neutral" eyebrow={t('usageEyebrow')} title={t('usageLimitTitle', { limit: FREE_ANALYSIS_LIMIT })} body={t('usageLimitBody', { note: priceNote })} action={<Btn href="/app/new" variant="primary" size="sm">{t('usageNew')}</Btn>} />
-          ) : remaining <= 1 ? (
-            <GateCard tone="neutral" eyebrow={t('usageEyebrow')} title={t('usageLeftTitle', { n: remaining })} body={t('usageLeftBody')} />
-          ) : null
-        )}
         {tab === 'deals' ? (
           <HomeDealsClient rows={rows} initialFilter={filter} />
         ) : (

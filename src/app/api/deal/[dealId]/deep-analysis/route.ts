@@ -15,8 +15,6 @@ import { computeMarketBenchmark, type BenchmarkRun } from '@/lib/benchmark/servi
 import { clampInterpretation } from '@/lib/benchmark/interpret'
 import { toStructuredExtraction } from '@/lib/structured-extraction'
 import type { BenchmarkInput } from '@/lib/benchmark/types'
-import { getPlaybookAccess, consumeCredit } from '@/lib/billing'
-import { deepAnalysisPriceLabel } from '@/lib/pricing'
 import { analysisDate } from '@/lib/claude'
 import { isUnreadableClassification, resolveClassification } from '@/lib/claude/classification-guard'
 import { normalizeSavings } from '@/lib/savings-normalize'
@@ -87,18 +85,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ dea
       const capacity = await guardAiSpend(false)
       if (capacity) return capacity
     }
-
-    // Price gate (lib/billing-rules.ts): free during early access, first Playbook free,
-    // otherwise paid for this deal or covered by a credit bought from the new-deal gate.
-    const access = await getPlaybookAccess(user.id, dealId, !!limitProfile?.is_admin)
-    if (!access.granted) {
-      return NextResponse.json({
-        error: `The Negotiation Playbook is ${deepAnalysisPriceLabel()} for this deal.`,
-        paymentRequired: true,
-        price: access.priceEur,
-      }, { status: 402 })
-    }
-    if (access.kind === 'credit') await consumeCredit(user.id, dealId)
 
     const { data: deal } = await supabase
       .from('deals')

@@ -1,0 +1,65 @@
+{
+  "nav": { "pricing": "Why it's free" },
+  "footer": { "pricing": "Why it's free" },
+  "login": { "trialPrompt": "Create a free account to save this analysis. {day} analyses a day, Playbook included." },
+  "pricingPage": {
+    "freeEyebrow": "Free",
+    "freeTitle": "It's free. The only catch is a daily limit.",
+    "freeLead": "The analysis, the Negotiation Playbook, the emails, every round: free for everyone. We cap usage so the AI bill stays sane, that's all. The one thing we charge for is doing the negotiation for you.",
+    "freeIncludedEyebrow": "Steps 1 to 3 · every deal",
+    "freeIncludedUnit": "no card, no trial clock, no upsell",
+    "freeF1": "Deal score 0–100 with its breakdown",
+    "freeF2": "Every red flag, what to ask for, and the fallback",
+    "freeF3": "The Negotiation Playbook on every deal: ordered asks with amounts, your leverage, what you can offer",
+    "freeF4": "Ready-to-send email in the right tone",
+    "freeF5": "Vendor replies analysed round by round, {regen} email rewrites per round",
+    "freeF6": "Saved deals, vendors, insights, in English or French",
+    "freeLimitsTitle": "The limits",
+    "freeLimitsBody": "{day} new analyses a day and {month} a month per account, one try a day without an account. If the free capacity for the day is used up across everyone, you'll see a message and it resets at midnight UTC. Your deals are never affected.",
+    "freeCta": "Analyze a quote",
+    "negEyebrow": "The one thing we charge for",
+    "negMin": "{min} minimum. Invoiced after the signed deal, never before.",
+    "whyEyebrow": "Why it's free",
+    "whyTitle": "We'd rather have you using it than paying for it. For now.",
+    "whyBody": "TermLift is early. A few people negotiating real quotes and telling us what's wrong is worth more than a paywall nobody has crossed. If that changes we'll say so a month ahead, and everything you built stays yours.",
+    "faq1q": "Is it really free?",
+    "faq1a": "Yes. The analysis, the Negotiation Playbook, the emails and every follow-up round cost nothing, for everyone. No card, no trial clock, no feature behind a button that asks for money.",
+    "faq2q": "What happens when I hit the limit?",
+    "faq2a": "You get a plain message. The per-account limit is {day} new analyses a day and {month} a month; it resets at midnight UTC and on the 1st. Playbooks, emails and rounds on your existing deals keep working. Very rarely the free capacity for the whole day is used up; that also resets at midnight.",
+    "faq3q": "How is the negotiation service priced?",
+    "faq3a": "Success-based: {pct}% of the savings TermLift verifies against your original quote, with a {min} minimum. No savings, no fee. Nothing is agreed with the vendor without your approval, and you sign the contract yourself.",
+    "faq4q": "Will it stay free?",
+    "faq4a": "For as long as we can keep the cost sane with the limits above. If that ever changes we'll announce it a month ahead, and every analysis, Playbook and email you built stays yours.",
+    "faq5q": "Can I stop at any step?",
+    "faq5a": "Yes. Read the analysis and leave. Build the Playbook and negotiate yourself. Or hand one deal to TermLift. You can also delete any deal, or your whole account, at any time."
+  },
+  "settingsPage": {
+    "usageQuick": "Analyses",
+    "usageFree": "{day} a day · {month} a month · free",
+    "usageNote": "Playbooks, emails and rounds are included. Want a deal negotiated for you? TermLift Negotiate is {pct}% of verified savings."
+  },
+  "helpPage": {
+    "sections": {
+      "billing": {
+        "q1": "Is TermLift really free?",
+        "a1": "Yes. The analysis, the Negotiation Playbook, the emails and every round are free for everyone. No card, no trial clock. Try one quote without signing up, then create a free account to keep your deals.",
+        "q2": "What are the limits?",
+        "a2": "{day} new analyses a day and {month} a month per account, plus one try a day without an account. Playbooks, emails and rounds on your existing deals never count against that number. The limits exist so the AI bill stays sane, nothing else.",
+        "q3": "What does the Negotiation Playbook cost?",
+        "a3": "Nothing. It is built on every deal, for free: the asks, fallbacks, leverage, the email and every follow-up round.",
+        "q4": "Will it stay free?",
+        "a4": "For as long as the limits keep the cost sane. If that ever changes we will say so a month ahead, and everything you built stays yours."
+      }
+    }
+  },
+  "termsPage": {
+    "s5Intro": "There is no subscription and nothing to pay for the analysis. The one paid service is the negotiation, below.",
+    "s5QuickTitle": "Analysis, Negotiation Playbook, emails and rounds — free",
+    "s5QuickDesc": "Free for every account, within technical limits of {day} new analyses a day and {month} a month, plus one analysis a day without an account. No card required. We may change these limits to keep the service sustainable.",
+    "s5DeepTitle": "No paid unlocks",
+    "s5DeepDesc": "No feature of the analysis is sold separately. If we ever introduce a paid plan we will announce it at least one month ahead, and anything you built before that stays available to you.",
+    "s5Item3": "We provide the analysis and the Negotiation Playbook free of charge. That does not oblige us to keep doing so indefinitely; see section 5."
+  },
+  "landing": { "final": { "lead": "Try one quote without signing up. Create a free account for {day} analyses a day, Playbook included." } },
+  "tryPage": { "footnote": "Try one quote without signing up · a free account gives you {day} analyses a day, Playbook included" }
+}

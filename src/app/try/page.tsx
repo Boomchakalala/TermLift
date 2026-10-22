@@ -1,6 +1,7 @@
 'use client'
 
 import { useRef, useState } from 'react'
+import { NEW_DEALS_PER_DAY } from '@/lib/pricing'
 import { ArrowLeft, FolderOpen, Loader2, Upload, Zap } from 'lucide-react'
 import { AnalysisResultView } from '@/components/AnalysisResultView'
 import { MarketingHeader } from '@/components/MarketingHeader'
@@ -212,7 +213,7 @@ export default function TryPage() {
         </div>
 
         <div className="mt-4"><StageRail current="quick" /></div>
-        <p className="text-center text-[12px] text-ink-3 mt-2.5">{t('tryPage.footnote')}</p>
+        <p className="text-center text-[12px] text-ink-3 mt-2.5">{t('tryPage.footnote', { day: NEW_DEALS_PER_DAY })}</p>
       </main>
       <MarketingFooter />
     </div>

@@ -1,0 +1,9 @@
+{
+  "pricingPage": { "faqTitle": "Vos questions, nos réponses" },
+  "landing": { "how": { "s2tag": "Inclus", "s3tag": "Inclus" } },
+  "termsPage": {
+    "s5Item2": "Les honoraires de négociation ne sont facturés qu'après la signature d'un contrat avec des économies vérifiées, comme indiqué à la section 6. Rien n'est facturé avant.",
+    "s5Item4": "TermLift ne prend aucun paiement pour l'analyse, le Plan de négociation, les e-mails ou les rounds. Le service de négociation est facturé après la signature du contrat, comme indiqué à la section 6.",
+    "s5Item5": "Nous pouvons introduire une offre payante ou modifier les honoraires de négociation avec un préavis d'au moins 30 jours. Un changement ne s'applique jamais à une négociation déjà en cours, et tout ce que vous avez construit avant reste disponible."
+  }
+}

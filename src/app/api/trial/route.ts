@@ -8,7 +8,7 @@ import { runWithAiContext } from '@/lib/ai-telemetry'
 import { createAdminClient, createClient } from '@/lib/supabase/server'
 import { textForPersistence, transcribeForPersistence } from '@/lib/extract'
 import { TRIAL_MAX_PER_IP_PER_DAY } from '@/lib/ai-limits'
-import { FREE_ANALYSIS_LIMIT } from '@/lib/pricing'
+import { NEW_DEALS_PER_DAY } from '@/lib/ai-limits'
 import type { DealOutput, DealOutputV2 } from '@/types'
 
 // Allow up to 120s for classification + analysis with retries (Vercel Pro plan)
@@ -141,8 +141,8 @@ export async function POST(request: Request) {
       const fr = (await resolveRequestLocale(locale)) === 'fr'
       return NextResponse.json(
         { error: fr
-          ? `Vous avez utilisé votre analyse gratuite du jour. Créez un compte gratuit pour jusqu’à ${FREE_ANALYSIS_LIMIT} analyses rapides.`
-          : `You’ve used today’s free analysis. Create a free account for up to ${FREE_ANALYSIS_LIMIT} Quick Analyses.` },
+          ? `Vous avez utilisé votre analyse gratuite du jour. Créez un compte gratuit : ${NEW_DEALS_PER_DAY} analyses par jour, Plan de négociation inclus.`
+          : `You’ve used today’s free analysis. Create a free account: ${NEW_DEALS_PER_DAY} analyses a day, Negotiation Playbook included.` },
         { status: 429 }
       )
     }

@@ -11,8 +11,7 @@ import {
 } from 'lucide-react'
 import { useI18n } from '@/i18n/context'
 import { AppPage, PageHeader } from '@/components/system'
-import { FREE_ANALYSIS_LIMIT } from '@/lib/pricing'
-import { NEGOTIATION_FEE_PERCENT } from '@/lib/pricing'
+import { NEGOTIATION_FEE_PERCENT, NEW_DEALS_PER_DAY, NEW_DEALS_PER_MONTH } from '@/lib/pricing'
 import { RAW_TEXT_MAX_AGE_DAYS, NEGOTIATION_DOC_GRACE_DAYS, NEGOTIATION_DOC_MAX_AGE_DAYS } from '@/lib/retention'
 
 interface NegotiationPrefs {
@@ -74,7 +73,6 @@ export function SettingsClient({
   const [dealAlerts, setDealAlerts] = useState(true)
   const [notifProductUpdates, setNotifProductUpdates] = useState(true)
 
-  const remaining = Math.max(0, FREE_ANALYSIS_LIMIT - usageCount)
   const avatarInitial = firstName ? firstName[0].toUpperCase() : email[0].toUpperCase()
 
   // ── handlers (unchanged) ───────────────────
@@ -350,11 +348,9 @@ export function SettingsClient({
                   <p className="tl-h3 text-ink mb-2.5">{t('settingsPage.usage')}</p>
                   <div className="flex items-center justify-between text-[13px] mb-1.5">
                     <b>{t('settingsPage.usageQuick')}</b>
-                    <span className="text-ink-2 tl-num">{t('settingsPage.usageUsed', { used: Math.min(usageCount, FREE_ANALYSIS_LIMIT), limit: FREE_ANALYSIS_LIMIT })}</span>
+                    <span className="text-ink-2 tl-num">{t('settingsPage.usageFree', { day: NEW_DEALS_PER_DAY, month: NEW_DEALS_PER_MONTH })}</span>
                   </div>
-                  <div className="h-1.5 rounded-full bg-line-2 overflow-hidden"><div className="h-full rounded-full bg-green" style={{ width: `${Math.min(100, (usageCount / FREE_ANALYSIS_LIMIT) * 100)}%` }} /></div>
-                  <p className="text-[12px] text-ink-3 mt-2.5">{t('settingsPage.usageNote', { pct: NEGOTIATION_FEE_PERCENT })}</p>
-                  {remaining === 0 && <a href="mailto:hello@termlift.com" className="inline-block mt-2 text-[12.5px] font-semibold text-green-deep hover:underline">{t('settingsPage.usageContact')}</a>}
+                  <p className="text-[12px] text-ink-3">{t('settingsPage.usageNote', { pct: NEGOTIATION_FEE_PERCENT })}</p>
                 </div>
               </div>
             )}

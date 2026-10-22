@@ -8,7 +8,6 @@ import { FileText, Building2, Settings, User, LogOut, HelpCircle, ChevronDown, C
 import { NotificationBell, type NotificationItem } from '@/components/NotificationBell'
 import { useT } from '@/i18n/context'
 import { cn } from '@/lib/utils'
-import { FREE_ANALYSIS_LIMIT } from '@/lib/pricing'
 
 interface AppSidebarProps {
   userEmail: string
@@ -190,8 +189,6 @@ export function AppSidebar({ userEmail, isUpgraded, usageCount, isAdmin, linkBas
                   <span className="block text-[12.5px] font-medium text-ink truncate">{userEmail}</span>
                   {isAdmin && !demoMode ? (
                     <span className="block text-[11px] text-ink-3 truncate">{t('nav.admin')}</span>
-                  ) : !isUpgraded ? (
-                    <span className="block text-[11px] text-ink-3 truncate">{t('nav.freeUsed', { used: Math.min(usageCount, FREE_ANALYSIS_LIMIT), limit: FREE_ANALYSIS_LIMIT })}</span>
                   ) : null}
                 </span>
                 <ChevronDown className={cn('w-3.5 h-3.5 text-ink-3 transition-transform shrink-0', showUserMenu && 'rotate-180')} />

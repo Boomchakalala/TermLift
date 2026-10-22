@@ -10,7 +10,7 @@ import { getCanOffer } from '@/lib/email-asks'
 import { hasDeepContent as computeHasDeepContent } from '@/lib/deep-analysis-status'
 import { MarketBenchmark } from '@/components/deal/MarketBenchmark'
 import { shouldRenderBenchmark } from '@/lib/benchmark/visibility'
-import { FULL_ANALYSIS_EMAIL_REGEN_LIMIT, deepAnalysisPriceNote } from '@/lib/pricing'
+import { FULL_ANALYSIS_EMAIL_REGEN_LIMIT } from '@/lib/pricing'
 import { TONE_LABELS, type EmailTone } from '@/lib/tone-recommend'
 import { getFlagSeverity } from '@/lib/deal-metrics'
 import { snapTarget } from '@/lib/deal-target'
@@ -74,7 +74,7 @@ interface DealScrollViewProps {
   /** Redesign: the workspace header owns the primary CTA, so the trailing "Next step" card is redundant. */
   hideNextStep?: boolean
   /** Full Analysis run, owned by the workspace so every CTA on the page triggers the same request. */
-  fullAnalysis?: { loading: boolean; error: string | null; run: () => void; due?: boolean; priceLabel?: string; note?: string }
+  fullAnalysis?: { loading: boolean; error: string | null; run: () => void }
   /** Where the guided flow says the deal is (lib/negotiation-flow.ts). */
   flowPhase?: import('@/lib/negotiation-flow').FlowPhase
 }
@@ -630,10 +630,10 @@ export function DealScrollView(props: DealScrollViewProps) {
               tone="green"
               eyebrow={fr ? 'Étape 2 · Plan de négociation' : 'Step 2 · Negotiation Playbook'}
               title={fr ? 'Construisez votre stratégie de négociation' : 'Build your negotiation strategy'}
-              body={<>{fr ? 'Obtenez les demandes ordonnées et chiffrées, les positions cibles, les replis, vos leviers et la séquence de négociation prête à envoyer. Quelques minutes.' : 'Get the ordered asks with amounts, target positions, fallbacks, your leverage and the ready-to-send negotiation sequence. A couple of minutes.'}<span className="block mt-1.5 font-semibold text-green-deep">{fullAnalysis?.note ?? deepAnalysisPriceNote(locale)}{trialMode && (fr ? ' Cette analyse vous suit dans votre compte.' : ' This analysis comes with you into your account.')}</span>{deepAnalysisError && <span className="block text-risk mt-1">{deepAnalysisError}</span>}</>}
+              body={<>{fr ? 'Obtenez les demandes ordonnées et chiffrées, les positions cibles, les replis, vos leviers et la séquence de négociation prête à envoyer. Quelques minutes.' : 'Get the ordered asks with amounts, target positions, fallbacks, your leverage and the ready-to-send negotiation sequence. A couple of minutes.'}<span className="block mt-1.5 font-semibold text-green-deep">{fr ? 'Gratuit, inclus avec chaque analyse.' : 'Free, included with every analysis.'}{trialMode && (fr ? ' Cette analyse vous suit dans votre compte.' : ' This analysis comes with you into your account.')}</span>{deepAnalysisError && <span className="block text-risk mt-1">{deepAnalysisError}</span>}</>}
               action={trialMode
                 ? <Btn href="/login?from=trial" variant="primary">{fr ? 'Créer un compte gratuit' : 'Create free account'}</Btn>
-                : <Btn variant="primary" onClick={handleDeepAnalysis}><Microscope className="w-4 h-4" />{deepAnalysisError ? (fr ? 'Réessayer' : 'Try again') : (fr ? 'Obtenir le Plan de négociation' : 'Get the Negotiation Playbook')}{fullAnalysis?.due && !deepAnalysisError ? ` · ${fullAnalysis.priceLabel}` : ''}</Btn>}
+                : <Btn variant="primary" onClick={handleDeepAnalysis}><Microscope className="w-4 h-4" />{deepAnalysisError ? (fr ? 'Réessayer' : 'Try again') : (fr ? 'Obtenir le Plan de négociation' : 'Get the Negotiation Playbook')}</Btn>}
             />
           )}
         </div>

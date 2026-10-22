@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, Suspense, useEffect } from 'react'
+import { NEW_DEALS_PER_DAY } from '@/lib/pricing'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Loader2, ArrowRight } from 'lucide-react'
@@ -105,7 +106,7 @@ function LoginForm() {
             <div className="mb-1">
               <h1 className="font-display font-bold text-[24px] tracking-[-0.02em] text-ink">{isSignUp ? t('login.createAccount') : t('login.welcome')}</h1>
               <p className="text-[13.5px] text-ink-2 mt-1 leading-relaxed">
-                {fromTrial ? t('login.trialPrompt') : isSignUp ? t('login.signUpStart') : t('login.signInAccess')}
+                {fromTrial ? t('login.trialPrompt', { day: NEW_DEALS_PER_DAY }) : isSignUp ? t('login.signUpStart') : t('login.signInAccess')}
               </p>
             </div>
 

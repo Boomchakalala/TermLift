@@ -1,0 +1,9 @@
+{
+  "pricingPage": { "faqTitle": "Questions, answered" },
+  "landing": { "how": { "s2tag": "Included", "s3tag": "Included" } },
+  "termsPage": {
+    "s5Item2": "The negotiation fee is invoiced only after a deal is signed with verified savings, as set out in section 6. Nothing is charged before that.",
+    "s5Item4": "TermLift takes no payment for the analysis, the Negotiation Playbook, the emails or the rounds. The negotiation service is invoiced after the signed deal, as set out in section 6.",
+    "s5Item5": "We may introduce a paid plan or change the negotiation fee with at least 30 days’ notice. A change never applies to a negotiation already under way, and anything you built before it stays available to you."
+  }
+}

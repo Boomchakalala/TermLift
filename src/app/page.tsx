@@ -17,7 +17,7 @@ function Frame({ src, alt, width, height, className }: { src: string; alt: strin
   )
 }
 import { SHOWCASE_CARDS, SHOWCASE_COUNT, SHOWCASE_TOTAL_EUR } from '@/lib/demo-showcase'
-import { NEGOTIATION_FEE_PERCENT } from '@/lib/pricing'
+import { NEGOTIATION_FEE_PERCENT, NEW_DEALS_PER_DAY } from '@/lib/pricing'
 
 /* ─── Browser-frame wrapper for a product surface ─── */
 function Shot({ url, children }: { url: string; children: React.ReactNode }) {
@@ -71,7 +71,7 @@ export default async function LandingPage() {
             <h1 className="font-display font-extrabold text-[34px] sm:text-[46px] leading-[1.02] tracking-[-0.035em] mt-3">
               {t('h1a')} <span className="text-green">{t('h1b')}</span>
             </h1>
-            <p className="text-[15.5px] leading-[1.5] text-ink-2 max-w-[48ch] mt-4">{t('lead')}</p>
+            <p className="text-[15.5px] leading-[1.5] text-ink-2 max-w-[48ch] mt-4">{t('lead', { day: NEW_DEALS_PER_DAY })}</p>
             <div className="flex flex-wrap items-center gap-4 mt-5">
               <Btn href="/try" variant="primary" size="lg">{t('ctaPrimary')}</Btn>
               <Link href="/demo/deal/demo-atlassian" className="text-[13.5px] font-semibold text-ink-2 hover:text-ink inline-flex items-center gap-1.5 no-underline transition-colors">
