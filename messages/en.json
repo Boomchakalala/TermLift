@@ -141,14 +141,14 @@
     "linkedinLabel": "Connect on LinkedIn"
   },
   "feedback": {
-    "tab": "Feedback",
-    "title": "How can we improve TermLift?",
-    "placeholder": "Tell us what's working, what's not, or what you'd like to see...",
-    "rating": "Rate your experience",
-    "send": "Send feedback",
-    "sending": "Sending...",
-    "thanks": "Thank you — your feedback shapes TermLift",
-    "errorGeneric": "Failed to send feedback. Please try again."
+    "tab": "Something off?",
+    "title": "What's wrong with it?",
+    "placeholder": "Be blunt. What's confusing, what's missing, what did we get wrong?",
+    "rating": "How was it, honestly?",
+    "send": "Send it",
+    "sending": "Sending…",
+    "thanks": "Got it. That's exactly what we need right now.",
+    "errorGeneric": "Didn't go through. Try again, or email hello@termlift.com."
   },
   "try": {
     "headline": "Drop a vendor quote. See where you stand.",
@@ -194,7 +194,8 @@
     "privacyLink": "Privacy Policy",
     "and": "and",
     "backToSite": "Back to termlift.com",
-    "oauthFailed": "Google sign-in didn't complete. Try again, or use your email and password."
+    "oauthFailed": "Google sign-in didn't complete. Try again, or use your email and password.",
+    "free": "Free. No card, ever."
   },
   "app": {
     "dropFirst": "Drop in your first vendor quote",
@@ -1583,8 +1584,8 @@
         "a3": "Treat TermLift like any cloud-based tool. Do not upload documents you are contractually prohibited from sharing with third-party services. Your text is sent to Anthropic’s API for processing. See our Privacy Policy and Terms for full details."
       },
       "billing": {
-        "title": "Account & pricing",
-        "sub": "What it costs and how to manage your account",
+        "title": "Account & limits",
+        "sub": "What's free, where the limits are, and how to manage your account",
         "q1": "Is TermLift really free?",
         "a1": "Yes. The analysis, the Negotiation Playbook, the emails and every round are free for everyone. No card, no trial clock. Try one quote without signing up, then create a free account to keep your deals.",
         "q2": "What are the limits?",

@@ -1,0 +1,14 @@
+{
+  "feedback": {
+    "tab": "Un truc qui cloche ?",
+    "title": "Qu'est-ce qui ne va pas ?",
+    "placeholder": "Soyez direct. Qu'est-ce qui est confus, qu'est-ce qui manque, où on s'est trompés ?",
+    "rating": "Franchement, c'était comment ?",
+    "send": "Envoyer",
+    "sending": "Envoi…",
+    "thanks": "Reçu. C'est exactement ce dont on a besoin en ce moment.",
+    "errorGeneric": "Ça n'est pas passé. Réessayez, ou écrivez à hello@termlift.com."
+  },
+  "helpPage": { "sections": { "billing": { "title": "Compte et limites", "sub": "Ce qui est gratuit, où sont les limites, et comment gérer votre compte" } } },
+  "login": { "free": "Gratuit. Jamais de carte." }
+}

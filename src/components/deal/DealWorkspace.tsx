@@ -375,7 +375,7 @@ export function DealWorkspace({ deal, mode, messages, isAdmin, showFullPlaybook,
 
         {/* ── Verdict ─────────────────────────────────────────── */}
         {/* The verdict is the page's headline: a tinted band, the ring drawing itself in, the verdict in display size. */}
-        <div className={cn('rounded-[16px] border px-4 py-5 sm:px-6 sm:py-6 grid grid-cols-1 sm:grid-cols-[auto_1fr] gap-4 sm:gap-6 items-center', won ? 'bg-gradient-to-br from-green-soft to-surface border-green-line' : waitingOnClient ? 'bg-warn-soft border-warn-line' : 'bg-gradient-to-br from-green-soft/70 via-surface to-surface border-line')}>
+        <div className={cn('rounded-[16px] border px-4 py-5 sm:px-6 sm:py-6 grid grid-cols-1 sm:grid-cols-[auto_1fr] gap-4 sm:gap-6 items-center', won ? 'bg-gradient-to-br from-green-soft to-surface border-green-line' : waitingOnClient ? 'bg-warn-soft border-warn-line' : score != null && score < 65 ? 'bg-gradient-to-br from-risk-soft/80 via-surface to-surface border-risk-line/60' : score != null && score < 80 ? 'bg-gradient-to-br from-warn-soft/80 via-surface to-surface border-warn-line/60' : 'bg-gradient-to-br from-green-soft/70 via-surface to-surface border-line')}>
           {score != null && <ScoreRing score={score} size={96} muted={closed && !won} animate className="mx-auto sm:mx-0" />}
           <div className="min-w-0 text-center sm:text-left">
             {eyebrow && <p className={cn('tl-label', waitingOnClient ? 'text-warn' : 'text-green-deep')}>{eyebrow}</p>}

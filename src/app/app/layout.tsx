@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { AppSidebar } from '@/components/AppSidebar'
+import { FeedbackWidget } from '@/components/FeedbackWidget'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
@@ -34,6 +35,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <main className="min-h-screen overflow-x-clip transition-[margin] duration-200 md:ml-[var(--sidebar-width,220px)]">
         <div className="px-5 sm:px-8 py-8 pb-24 md:pb-8">{children}</div>
       </main>
+      {/* Feedback is the point of the free phase: one tab on every app page, no hunting for a contact form. */}
+      <FeedbackWidget />
     </div>
   )
 }

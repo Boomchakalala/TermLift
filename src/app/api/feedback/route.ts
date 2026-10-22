@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { emailAdmins } from '@/lib/notifications'
 
 export async function POST(request: Request) {
   try {
@@ -31,6 +32,22 @@ export async function POST(request: Request) {
       } else {
         return NextResponse.json({ error: 'Failed to save feedback' }, { status: 500 })
       }
+    }
+
+    // Feedback is the point of the free phase: it lands in the admins' inbox, not only in a table.
+    try {
+      const stars = rating ? `${'★'.repeat(Number(rating))}${'☆'.repeat(Math.max(0, 5 - Number(rating)))} (${rating}/5)` : 'no rating'
+      await emailAdmins(
+        `TermLift feedback · ${stars}`,
+        `${message?.trim() || '(no message)'}
+
+— ${user.email || user.id}
+Page: ${pageUrl || '?'}
+${new Date().toISOString()}`,
+        user.email || undefined,
+      )
+    } catch (err) {
+      console.error('Feedback email failed (row saved):', err)
     }
 
     return NextResponse.json({ success: true })

@@ -1,0 +1,14 @@
+{
+  "feedback": {
+    "tab": "Something off?",
+    "title": "What's wrong with it?",
+    "placeholder": "Be blunt. What's confusing, what's missing, what did we get wrong?",
+    "rating": "How was it, honestly?",
+    "send": "Send it",
+    "sending": "Sending…",
+    "thanks": "Got it. That's exactly what we need right now.",
+    "errorGeneric": "Didn't go through. Try again, or email hello@termlift.com."
+  },
+  "helpPage": { "sections": { "billing": { "title": "Account & limits", "sub": "What's free, where the limits are, and how to manage your account" } } },
+  "login": { "free": "Free. No card, ever." }
+}

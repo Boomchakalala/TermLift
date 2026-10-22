@@ -141,14 +141,14 @@
     "linkedinLabel": "Nous suivre sur LinkedIn"
   },
   "feedback": {
-    "tab": "Avis",
-    "title": "Comment améliorer TermLift ?",
-    "placeholder": "Dites-nous ce qui fonctionne, ce qui ne va pas ou ce que vous aimeriez voir...",
-    "rating": "Notez votre expérience",
-    "send": "Envoyer l'avis",
-    "sending": "Envoi...",
-    "thanks": "Merci — vos retours façonnent TermLift",
-    "errorGeneric": "Échec de l'envoi. Veuillez réessayer."
+    "tab": "Un truc qui cloche ?",
+    "title": "Qu'est-ce qui ne va pas ?",
+    "placeholder": "Soyez direct. Qu'est-ce qui est confus, qu'est-ce qui manque, où on s'est trompés ?",
+    "rating": "Franchement, c'était comment ?",
+    "send": "Envoyer",
+    "sending": "Envoi…",
+    "thanks": "Reçu. C'est exactement ce dont on a besoin en ce moment.",
+    "errorGeneric": "Ça n'est pas passé. Réessayez, ou écrivez à hello@termlift.com."
   },
   "try": {
     "headline": "Votre fournisseur s'est préparé pour cette négociation. À votre tour.",
@@ -194,7 +194,8 @@
     "privacyLink": "Politique de confidentialité",
     "and": "et",
     "backToSite": "Retour sur termlift.com",
-    "oauthFailed": "La connexion Google n'a pas abouti. Réessayez, ou utilisez votre e-mail et votre mot de passe."
+    "oauthFailed": "La connexion Google n'a pas abouti. Réessayez, ou utilisez votre e-mail et votre mot de passe.",
+    "free": "Gratuit. Jamais de carte."
   },
   "app": {
     "dropFirst": "Déposez votre premier devis fournisseur",
@@ -1583,8 +1584,8 @@
         "a3": "Traitez TermLift comme tout outil cloud. N’importez pas de documents que vos contrats vous interdisent de partager avec des services tiers. Votre texte est envoyé à l’API d’Anthropic pour traitement. Consultez notre Politique de confidentialité et nos Conditions pour tous les détails."
       },
       "billing": {
-        "title": "Compte et tarifs",
-        "sub": "Ce que ça coûte et comment gérer votre compte",
+        "title": "Compte et limites",
+        "sub": "Ce qui est gratuit, où sont les limites, et comment gérer votre compte",
         "q1": "TermLift est-il vraiment gratuit ?",
         "a1": "Oui. L'analyse, le Plan de négociation, les e-mails et chaque round sont gratuits pour tout le monde. Pas de carte, pas d'essai limité. Essayez un devis sans inscription, puis créez un compte gratuit pour garder vos dossiers.",
         "q2": "Quelles sont les limites ?",

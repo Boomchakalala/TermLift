@@ -49,7 +49,7 @@ export function FeedbackWidget() {
       {!open && (
         <button
           onClick={() => setOpen(true)}
-          className="fixed right-0 top-1/2 -translate-y-1/2 z-40 bg-green hover:bg-green-deep text-white px-2 py-3 rounded-l-lg shadow-lg transition-all hover:shadow-xl"
+          className="fixed right-0 bottom-[calc(120px+env(safe-area-inset-bottom))] md:bottom-auto md:top-1/2 md:-translate-y-1/2 z-40 bg-green hover:bg-green-deep text-white px-2 py-3 rounded-l-lg shadow-lg transition-all hover:shadow-xl"
           style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}
         >
           <span className="text-xs font-semibold tracking-wide flex items-center gap-1.5">
