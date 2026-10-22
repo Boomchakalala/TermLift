@@ -78,10 +78,12 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
   const rows = buildHomeRows(allDeals, reqByDeal)
   const enriched = await enrichDeals(allDeals, baseCurrency)
   const insights = computeInsights(enriched, baseCurrency)
-  // "Needs you" = TermLift is waiting on an answer from you. Running Full
-  // Analysis is an option, not an obligation, so quick-stage deals don't count.
-  const needsYou = rows.filter((r) => r.waitingOnClient).length
-  const needsSub = needsYou ? t('kpiNeedsReply', { n: needsYou }) : t('kpiNeedsNone')
+  // "Needs you" = the next move is yours: TermLift is waiting on an answer, or a
+  // Playbook is ready and the email hasn't gone out. Running Full Analysis is an
+  // option, not an obligation, so quick-stage deals don't count.
+  const needsYou = rows.filter((r) => r.needsYou).length
+  const needsReply = rows.filter((r) => r.waitingOnClient).length
+  const needsSub = needsYou === 0 ? t('kpiNeedsNone') : needsReply === needsYou ? t('kpiNeedsReply', { n: needsYou }) : t('kpiNeedsAction', { n: needsYou })
 
   const dateShort = (d: Date) => d.toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US', { month: 'short', day: 'numeric' })
 

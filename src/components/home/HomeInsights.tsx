@@ -56,7 +56,7 @@ export async function HomeInsights({ insights: I, linkBase = '/app', locale = 'e
             <div className="hidden lg:block">
               <p className="tl-label text-ink-3">{t('avgSaving')}</p>
               <p className="font-display font-bold text-[18px] leading-none tracking-[-0.02em] text-ink tl-num mt-1">{avgSaving ? fmtMoney(avgSaving, cur) : '—'}</p>
-              <p className="text-[12px] text-ink-2 mt-1">{I.captureRate != null ? `${I.captureRate}% ${t('perfCapture').toLowerCase()}` : t('perfCaptureSub')}</p>
+              <p className="text-[12px] text-ink-2 mt-1">{I.captureRate == null ? t('perfCaptureSub') : I.captureRate > 100 ? t('perfCaptureOver', { pct: I.captureRate - 100 }) : `${I.captureRate}% ${t('perfCapture').toLowerCase()}`}</p>
             </div>
           </div>
 

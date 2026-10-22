@@ -24,6 +24,8 @@ export interface HomeRow {
   lost: boolean
   /** TermLift negotiation is waiting on the user. */
   waitingOnClient: boolean
+  /** The next move is the user's: TermLift needs a reply, or the Playbook is ready and the Round 1 email hasn't been sent. */
+  needsYou: boolean
   /** Deal is stuck at Quick — the "unlock Deep Analysis" hint. */
   needsUnlock: boolean
   score?: number
@@ -71,6 +73,7 @@ export function buildHomeRows(deals: DealLike[], requestStatusByDeal: Map<string
       won,
       lost: d.status === 'closed_lost',
       waitingOnClient: nr === 'waiting_for_client_info',
+      needsYou: nr === 'waiting_for_client_info' || (!closed && mode !== 'termlift' && stage === 'full'),
       needsUnlock: stage === 'quick',
       score: getScore(d),
       flags: getRedFlagCount(d),

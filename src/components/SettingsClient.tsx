@@ -338,7 +338,7 @@ export function SettingsClient({
                     <div className="bg-green-soft rounded-[10px] p-4 border border-green-line">
                       <div className="flex items-center gap-2 mb-2">
                         <div className="w-7 h-7 rounded-lg bg-green flex items-center justify-center"><TrendingUp className="w-3.5 h-3.5 text-white" /></div>
-                        <p className="text-[11px] text-green-deep">{locale === 'fr' ? '\u00c9conomies' : 'Savings'}</p>
+                        <p className="text-[11px] text-green-deep">{locale === 'fr' ? '\u00c9conomis\u00e9' : 'Saved'}</p>
                       </div>
                       <p className="text-[22px] font-bold text-green-deep font-display">{totalSavings}</p>
                     </div>

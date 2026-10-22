@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
-import { Search, Building2 } from 'lucide-react'
+import { Search, Building2, ChevronDown } from 'lucide-react'
 import { useI18n } from '@/i18n/context'
 import { formatTotals, type VendorRow } from '@/lib/vendor-aggregate'
 import { fmtCompact } from '@/lib/deal-metrics'
@@ -20,7 +20,11 @@ function sumTotals(rows: VendorRow[], key: 'totalsByCurrency' | 'savingsByCurren
  * row: name, what you spend with them, what you've clawed back, how their
  * quotes score. The header strip totals the lot.
  */
-export function VendorsListClient({ rows, baseCurrency = 'EUR' }: { rows: VendorRow[]; baseCurrency?: Currency }) {
+export function VendorsListClient({ rows: allRows, baseCurrency = 'EUR' }: { rows: VendorRow[]; baseCurrency?: Currency }) {
+  // Vendors with no linked deal are leftovers from deleted deals or merges: counted nowhere, listed under a fold.
+  const rows = useMemo(() => allRows.filter((r) => r.dealCount > 0), [allRows])
+  const orphans = useMemo(() => allRows.filter((r) => r.dealCount === 0).sort((a, b) => a.name.localeCompare(b.name)), [allRows])
+  const [showOrphans, setShowOrphans] = useState(false)
   // One figure per tile in the base currency; the per-currency split stays as the sub line when a vendor bills in more than one.
   const base = (r: VendorRow, key: 'totalBase' | 'savingsBase', map: 'totalsByCurrency' | 'savingsByCurrency') => r[key] ?? Object.values(r[map]).reduce((s, n) => s + n, 0)
   const money = (n: number) => (n > 0 ? fmtCompact(n, baseCurrency) : '—')
@@ -65,13 +69,13 @@ export function VendorsListClient({ rows, baseCurrency = 'EUR' }: { rows: Vendor
         )}
       </PageHeader>
       <PageBody>
-        {rows.length === 0 ? (
+        {allRows.length === 0 ? (
           <div className="py-16 text-center border border-dashed border-line rounded-[14px] bg-surface">
             <span className="w-11 h-11 rounded-[10px] bg-ground grid place-items-center mx-auto mb-3"><Building2 className="w-5 h-5 text-ink-3" /></span>
             <p className="text-[15px] font-semibold text-ink">{t('vendorsPage.emptyTitle')}</p>
             <p className="text-[13px] text-ink-2 mt-1 max-w-[46ch] mx-auto">{t('vendorsPage.emptyBody')}</p>
           </div>
-        ) : filtered.length === 0 ? (
+        ) : filtered.length === 0 && rows.length > 0 ? (
           <p className="text-center text-[13px] text-ink-3 py-10 border border-dashed border-line rounded-[14px] bg-surface">{t('vendorsPage.noMatch', { q })}</p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
@@ -105,6 +109,24 @@ export function VendorsListClient({ rows, baseCurrency = 'EUR' }: { rows: Vendor
                 </Link>
               )
             })}
+          </div>
+        )}
+        {orphans.length > 0 && !q && (
+          <div className="mt-2">
+            <button type="button" onClick={() => setShowOrphans((v) => !v)} aria-expanded={showOrphans} className="inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-ink-3 hover:text-ink-2 transition-colors">
+              <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showOrphans ? 'rotate-180' : ''}`} />
+              {t('vendorsPage.noDealVendors', { n: orphans.length })}
+            </button>
+            {showOrphans && (
+              <div className="mt-2">
+                <p className="text-[12px] text-ink-3 mb-2">{t('vendorsPage.noDealVendorsHint')}</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {orphans.map((v) => (
+                    <Link key={v.id} href={`/app/vendors/${v.id}`} className="no-underline text-[12.5px] font-medium text-ink-2 bg-surface border border-line rounded-lg px-2.5 py-1 hover:border-[#C9D3CE] hover:text-ink transition-colors">{v.name}</Link>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </PageBody>

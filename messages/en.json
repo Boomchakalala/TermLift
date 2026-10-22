@@ -1155,7 +1155,9 @@
     "demoCta": "Sign up to use it with your own quotes",
     "usageEarlyTitle": "Your 4 free quick analyses are used",
     "usageEarlyBody": "Each new deal now runs as a Negotiation Playbook: {note}",
-    "usageNew": "New analysis"
+    "usageNew": "New analysis",
+    "kpiNeedsAction": "{n} waiting on your move",
+    "noMatchCta": "Show all deals"
   },
   "insights": {
     "spendByCategory": "Spend by category",
@@ -1221,7 +1223,8 @@
     "recurringSub": "Flag types across your active contracts",
     "recurringIn": "{n, plural, one {in # deal} other {in # deals}}",
     "noFlags": "No open flags on active deals.",
-    "scoreDeals": "{n, plural, one {# quote} other {# quotes}}"
+    "scoreDeals": "{n, plural, one {# quote} other {# quotes}}",
+    "perfCaptureOver": "{pct}% more than identified"
   },
   "dealPage": {
     "crumbDeals": "Deals",
@@ -1429,7 +1432,9 @@
     "cardDeals": "{n, plural, one {# deal} other {# deals}}",
     "lastActivity": "Last activity {d}",
     "noScore": "No score yet",
-    "shareOfSpend": "{pct}% of analysed spend"
+    "shareOfSpend": "{pct}% of analysed spend",
+    "noDealVendors": "{n} vendors without a deal yet",
+    "noDealVendorsHint": "Left over from earlier analyses or merges. They move up here as soon as a deal is linked."
   },
   "settingsPage": {
     "title": "Settings",

@@ -2,6 +2,8 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { SettingsClient } from '@/components/SettingsClient'
 import { formatCurrency, parseMoney, type Currency } from '@/lib/currency'
+import { computeInsights, enrichDeals } from '@/lib/deal-insights'
+import type { DealLike } from '@/lib/deal-metrics'
 import { getTranslations } from 'next-intl/server'
 import { cookies } from 'next/headers'
 
@@ -35,6 +37,9 @@ export default async function SettingsPage() {
   const activeDeals = allDeals.filter(d => !d.status?.startsWith('closed_'))
   const closedDeals = allDeals.filter(d => d.status?.startsWith('closed_'))
 
+  const baseCurrencyForInsights = (profile?.base_currency || 'EUR') as Currency
+  // The one "saved" number: same pipeline as Home (won deals, converted to the base currency).
+  const savingsAchieved = computeInsights(await enrichDeals(allDeals as unknown as DealLike[], baseCurrencyForInsights), baseCurrencyForInsights).savingsAchieved
   const totalSavingsIdentified = allDeals.reduce((sum, d) => {
     const rounds = (d as any).rounds || []
     const latest = rounds.sort((a: any, b: any) => (b.round_number || 0) - (a.round_number || 0))[0]
@@ -69,7 +74,7 @@ export default async function SettingsPage() {
         roundCount={roundCount || 0}
         isAdmin={profile?.is_admin || false}
         baseCurrency={baseCurrency}
-        totalSavings={formatCurrency(totalSavingsIdentified, baseCurrency)}
+        totalSavings={formatCurrency(savingsAchieved || totalSavingsIdentified, baseCurrency)}
         memberSince={createdAt.toLocaleDateString(locale, { month: 'long', year: 'numeric' })}
         joinedAgo={joinedAgo}
         locale={profile?.locale || 'en'}

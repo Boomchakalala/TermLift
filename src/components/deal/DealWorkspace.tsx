@@ -373,8 +373,9 @@ export function DealWorkspace({ deal, mode, messages, isAdmin, showFullPlaybook,
             {sortedRounds.length > 1 && <Chip>{t('dealPage.rounds', { n: sortedRounds.length })}</Chip>}
           </div>
           {/* One action cluster: the next step · ⋯ (export / close / reopen). The hand-off lives at the bottom of the page. */}
-          <div className="flex items-center gap-2 w-full sm:w-auto sm:ml-auto [&>a]:flex-1 sm:[&>a]:flex-none [&>button]:flex-1 sm:[&>button]:flex-none">
-            {headerPrimary}
+          <div className="flex items-center gap-2 ml-auto [&>a]:flex-none [&>button]:flex-none">
+            {/* Phone shows this action in the bottom bar and the next-step card already; the header keeps only the menu. */}
+            {headerPrimary && <div className="hidden md:contents">{headerPrimary}</div>}
             {mode === 'app' && (
               <DealHeaderClient
                 dealId={deal.id}

@@ -60,8 +60,9 @@ export async function fetchRates(): Promise<ExchangeRates> {
   }
 
   try {
-    // next.revalidate persists the response in Next.js Data Cache across serverless cold starts
-    const response = await fetch(`${EXCHANGE_API_URL}/USD`, { next: { revalidate: 3600 } })
+    // next.revalidate persists the response in Next.js Data Cache across serverless cold starts.
+    // One rate per day: every page converts with the same number until the next refresh.
+    const response = await fetch(`${EXCHANGE_API_URL}/USD`, { next: { revalidate: 86400 } })
     if (!response.ok) {
       throw new Error('Failed to fetch exchange rates')
     }

@@ -1155,7 +1155,9 @@
     "demoCta": "Créer un compte pour l'utiliser avec vos propres devis",
     "usageEarlyTitle": "Vos 4 analyses rapides gratuites sont utilisées",
     "usageEarlyBody": "Chaque nouveau dossier passe désormais par un Plan de négociation : {note}",
-    "usageNew": "Nouvelle analyse"
+    "usageNew": "Nouvelle analyse",
+    "kpiNeedsAction": "{n} en attente de votre action",
+    "noMatchCta": "Voir tous les dossiers"
   },
   "insights": {
     "spendByCategory": "Dépenses par catégorie",
@@ -1221,7 +1223,8 @@
     "recurringSub": "Types d'alertes sur vos contrats actifs",
     "recurringIn": "{n, plural, one {dans # dossier} other {dans # dossiers}}",
     "noFlags": "Aucune alerte ouverte sur les dossiers actifs.",
-    "scoreDeals": "{n, plural, one {# devis} other {# devis}}"
+    "scoreDeals": "{n, plural, one {# devis} other {# devis}}",
+    "perfCaptureOver": "{pct} % de plus que les économies identifiées"
   },
   "dealPage": {
     "crumbDeals": "Dossiers",
@@ -1429,7 +1432,9 @@
     "cardDeals": "{n, plural, one {# dossier} other {# dossiers}}",
     "lastActivity": "Dernière activité {d}",
     "noScore": "Pas encore de score",
-    "shareOfSpend": "{pct} % des dépenses analysées"
+    "shareOfSpend": "{pct} % des dépenses analysées",
+    "noDealVendors": "{n} fournisseurs sans dossier pour l'instant",
+    "noDealVendorsHint": "Issus d'analyses ou de fusions passées. Ils remontent ici dès qu'un dossier leur est rattaché."
   },
   "settingsPage": {
     "title": "Paramètres",

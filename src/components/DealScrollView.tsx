@@ -637,7 +637,7 @@ export function DealScrollView(props: DealScrollViewProps) {
           ) : (
             <>
               <IconHeading icon={Zap} tone="green" eyebrow={fr ? 'Étape 2 · Stratégie' : 'Step 2 · Strategy'} title={fr ? 'Votre plan de négociation' : 'Your negotiation playbook'} sub={fr ? 'Quoi demander, votre levier, et quoi offrir en retour' : 'What to push for, your leverage, and what to offer in return'} />
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
                 <div className={cn('rounded-[14px] border border-green-line bg-green-soft', PAD)}>
                   <p className="tl-label text-green-deep mb-3.5 flex items-center gap-1.5"><Target className="w-3.5 h-3.5" />{t('output.pushFor')}</p>
                   <ol className="m-0 p-0 list-none flex flex-col gap-3">

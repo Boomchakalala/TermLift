@@ -204,6 +204,7 @@ export function AppSidebar({ userEmail, isUpgraded, usageCount, isAdmin, linkBas
               <div className="fixed inset-0 z-10" onClick={() => setShowUserMenu(false)} />
               <div className={cn('absolute bottom-full mb-1 bg-surface rounded-[10px] shadow-lg border border-line py-1 z-20', collapsed ? 'left-2 w-52' : 'left-3 right-3')}>
                 <Link href={`${linkBase}/settings`} onClick={() => setShowUserMenu(false)} className="flex items-center gap-2 px-3 py-2 text-[13px] text-ink-2 hover:bg-ground no-underline"><Settings className="w-3.5 h-3.5" />{t('nav.settings')}</Link>
+                <Link href={demoMode ? '/help' : `${linkBase}/help`} onClick={() => setShowUserMenu(false)} className="flex items-center gap-2 px-3 py-2 text-[13px] text-ink-2 hover:bg-ground no-underline"><HelpCircle className="w-3.5 h-3.5" />{t('nav.help')}</Link>
                 <div className="border-t border-line-2 my-1" />
                 {demoMode ? (
                   <Link href="/login?from=demo" onClick={() => setShowUserMenu(false)} className="flex items-center gap-2 px-3 py-2 text-[13px] font-semibold text-green-deep hover:bg-green-soft no-underline"><User className="w-3.5 h-3.5" />{t('nav.demoSignup')}</Link>

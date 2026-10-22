@@ -93,13 +93,13 @@ export function HomeDealsClient({ rows: initialRows, linkBase = '/app', readOnly
   const [bulkDeleting, setBulkDeleting] = useState(false)
   useEffect(() => setRows(initialRows), [initialRows])
 
-  const needsCount = rows.filter((r) => r.waitingOnClient).length
+  const needsCount = rows.filter((r) => r.needsYou).length
 
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase()
     return rows.filter((r) => {
       if (term && !r.vendor.toLowerCase().includes(term) && !r.category.toLowerCase().includes(term)) return false
-      if (filter === 'needs') return r.waitingOnClient
+      if (filter === 'needs') return r.needsYou
       if (filter === 'termlift') return r.mode === 'termlift' && !r.closed
       if (filter === 'won') return r.won
       return true
@@ -263,7 +263,10 @@ export function HomeDealsClient({ rows: initialRows, linkBase = '/app', readOnly
       )}
 
       {filtered.length === 0 ? (
-        <div className="py-10 text-center text-[13px] text-ink-3 border border-dashed border-line rounded-[14px] bg-surface">{t('home.noMatch')}</div>
+        <div className="py-10 text-center border border-dashed border-line rounded-[14px] bg-surface">
+          <p className="text-[13px] text-ink-3">{t('home.noMatch')}</p>
+          <button type="button" onClick={() => { setFilter('all'); setQ('') }} className="mt-3 inline-flex items-center h-8 px-3 rounded-lg border border-line bg-surface text-[12.5px] font-semibold text-ink-2 hover:text-ink hover:border-[#C9D3CE] transition-colors">{t('home.noMatchCta')}</button>
+        </div>
       ) : (
         <>
           {active.length > 0 && (

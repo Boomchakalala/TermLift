@@ -1,0 +1,13 @@
+{
+  "home": {
+    "kpiNeedsAction": "{n} waiting on your move",
+    "noMatchCta": "Show all deals"
+  },
+  "insights": {
+    "perfCaptureOver": "{pct}% more than identified"
+  },
+  "vendorsPage": {
+    "noDealVendors": "{n} vendors without a deal yet",
+    "noDealVendorsHint": "Left over from earlier analyses or merges. They move up here as soon as a deal is linked."
+  }
+}

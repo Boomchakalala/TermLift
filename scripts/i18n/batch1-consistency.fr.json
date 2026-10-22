@@ -1,0 +1,13 @@
+{
+  "home": {
+    "kpiNeedsAction": "{n} en attente de votre action",
+    "noMatchCta": "Voir tous les dossiers"
+  },
+  "insights": {
+    "perfCaptureOver": "{pct} % de plus que les économies identifiées"
+  },
+  "vendorsPage": {
+    "noDealVendors": "{n} fournisseurs sans dossier pour l'instant",
+    "noDealVendorsHint": "Issus d'analyses ou de fusions passées. Ils remontent ici dès qu'un dossier leur est rattaché."
+  }
+}

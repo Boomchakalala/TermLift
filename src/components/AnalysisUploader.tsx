@@ -348,12 +348,6 @@ export function AnalysisUploader({
             )}
           </div>
         )}
-        <div className="mt-3 flex gap-2 items-center flex-wrap">
-          <span className="text-[12px] text-ink-3">Supports</span>
-          {['PDF', 'PNG', 'JPG', 'WEBP', 'Text'].map(f => (
-            <span key={f} className="text-[11px] font-medium text-ink-3 bg-surface-2 px-2 py-0.5 rounded-md">{f}</span>
-          ))}
-        </div>
         </>
         )}
 
@@ -384,7 +378,7 @@ export function AnalysisUploader({
       </div>
 
       {/* ─── RIGHT — CTA + value prop, or the live progress panel (2 cols on desktop) ─── */}
-      <div className="lg:col-span-2 flex flex-col gap-4 sm:gap-5">
+      <div className="lg:col-span-2 flex flex-col gap-4 sm:gap-5 lg:sticky lg:top-6 self-start">
         {analyzing && showProgress ? (
           <AnalysisProgress liveFindings={liveFindings} completionFlash={completionFlash} />
         ) : (
@@ -408,7 +402,7 @@ export function AnalysisUploader({
             )}
 
             {showValueProp && (
-              <div className="bg-green-soft border border-green-line rounded-[14px] p-5 sm:p-6 flex-1">
+              <div className="bg-green-soft border border-green-line rounded-[14px] p-5 sm:p-6">
                 <p className="text-[16px] sm:text-[17px] font-bold text-ink mb-3 leading-snug font-display">
                   {valuePropHeadline}
                 </p>

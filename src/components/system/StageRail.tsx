@@ -46,12 +46,12 @@ export function StageRail({ current, hrefs, compact, minimal, skipped = [], clas
               {state === 'done' ? '✓' : state === 'skipped' ? '–' : i + 1}
             </span>
             {/* Labels give way by importance as the rail narrows: current always shows,
-                done steps need ~600px of rail, future steps ~820px. Numbers stay. */}
+                done steps need ~600px of rail, future steps ~640px. Numbers stay. */}
             <span
               className={cn(
                 'truncate',
                 (state === 'done' || state === 'skipped') && 'hidden @[600px]:inline',
-                state === 'next' && 'hidden @[820px]:inline',
+                state === 'next' && 'hidden @[640px]:inline',
                 minimal && state !== 'now' && '!hidden',
               )}
             >
@@ -63,7 +63,8 @@ export function StageRail({ current, hrefs, compact, minimal, skipped = [], clas
           'flex items-center justify-center gap-2 rounded-lg text-[12.5px] font-semibold whitespace-nowrap min-w-0',
           // Below 600px only the current label is visible: the other steps shrink to their circle so
           // the current label never truncates on a phone.
-          minimal ? (state === 'now' ? 'flex-1' : 'flex-none') : state === 'now' ? 'flex-1' : 'flex-none @[600px]:flex-1',
+          // flex-auto (not flex-1): widths follow label length, so "Negotiation Playbook" never truncates next to "Closed".
+          minimal ? (state === 'now' ? 'flex-1' : 'flex-none') : state === 'now' ? 'flex-auto' : 'flex-none @[600px]:flex-auto',
           compact ? 'px-2 py-1.5' : state === 'now' ? 'px-3 py-2' : 'px-1.5 py-2 @[600px]:px-3',
           state === 'done' && 'text-ink-2',
           state === 'now' && 'bg-green-soft text-green-deep',
