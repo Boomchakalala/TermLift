@@ -42,7 +42,8 @@ const nextConfig: NextConfig = {
           // 'unsafe-inline' for scripts is required by Next.js's inline bootstrap without a nonce setup.
           { key: 'Content-Security-Policy', value: [
             "default-src 'self'",
-            "script-src 'self' 'unsafe-inline' https://*.posthog.com",
+            // React dev tooling needs eval(); production never gets it.
+            `script-src 'self' 'unsafe-inline'${process.env.NODE_ENV === 'development' ? " 'unsafe-eval'" : ''} https://*.posthog.com`,
             "style-src 'self' 'unsafe-inline'",
             "img-src 'self' data: blob: https:",
             "font-src 'self' data:",

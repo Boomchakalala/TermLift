@@ -58,6 +58,8 @@ describe('vendorKeySimilarity', () => {
 describe('shortenVendorDisplayName', () => {
   it('strips trailing legal suffixes and a parenthetical aside', () => {
     expect(shortenVendorDisplayName('Docusign International (EMEA) Limited')).toBe('Docusign')
+    expect(shortenVendorDisplayName('Datadog, Inc.')).toBe('Datadog')
+    expect(shortenVendorDisplayName('Big Deal, Ltd')).toBe('Big Deal')
   })
 
   // Regression: the old regex used `S\.?A\.?S?\.?` (no word boundary) to strip

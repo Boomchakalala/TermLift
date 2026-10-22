@@ -55,7 +55,10 @@ export function shortenVendorDisplayName(name: string): string {
     if (DISPLAY_LEGAL_SUFFIXES.has(last)) tokens.pop()
     else break
   }
-  return tokens.join(' ').trim() || name.trim()
+  // "Datadog, Inc." -> tokens ["Datadog,", "Inc."] -> pop "Inc." -> "Datadog," — drop the separator
+  // left behind on the last kept token (comma, dash, ampersand).
+  const joined = tokens.join(' ').replace(/[\s,;:&\-–—]+$/u, '').trim()
+  return joined || name.trim()
 }
 
 function bigrams(s: string): Map<string, number> {

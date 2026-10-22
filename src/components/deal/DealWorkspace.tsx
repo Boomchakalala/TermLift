@@ -317,7 +317,12 @@ export function DealWorkspace({ deal, mode, messages, isAdmin, showFullPlaybook,
       try {
         const p = JSON.parse(raw) as { starting_position?: string; next_action?: string }
         return [p.starting_position, p.next_action].filter(Boolean).join(' ') || scoreRationale || ''
-      } catch { return raw }
+      } catch {
+        // Malformed/truncated JSON from an older close: salvage the narrative field, never print the object.
+        const m = raw.match(/"starting_position"\s*:\s*"((?:[^"\\]|\\.)*)"/)
+        if (m) return m[1].replace(/\\"/g, '"')
+        return raw.trimStart().startsWith('{') ? (scoreRationale || '') : raw
+      }
     })()
   } else if (closed) {
     eyebrow = t('dealPage.verdictClosedEyebrow')
