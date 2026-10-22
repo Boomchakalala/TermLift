@@ -1,5 +1,6 @@
 'use client'
 
+import { Fragment } from 'react'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
 import type { FlowStep } from '@/lib/negotiation-flow'
@@ -17,9 +18,12 @@ interface Props {
  * label the current one, so nothing is hidden and nothing overflows.
  */
 export function NegotiationProgress({ steps, locale, className }: Props) {
+  const currentIdx = Math.max(0, steps.findIndex((s) => s.state === 'current'))
   return (
     <div className={cn('flex items-center gap-0 bg-surface border border-line rounded-xl p-1 overflow-x-auto', className)} role="list" aria-label={locale === 'fr' ? 'Étapes de la négociation' : 'Negotiation steps'}>
       {steps.map((s, i) => {
+        // The track between two steps is green once the step before it is done.
+        const track = i > 0 && <span aria-hidden className={cn('h-[2px] rounded-full shrink-0 w-3 sm:w-5', i <= currentIdx ? 'bg-green' : 'bg-line')} />
         const label = s.label[locale]
         const inner = (
           <>
@@ -27,7 +31,7 @@ export function NegotiationProgress({ steps, locale, className }: Props) {
               className={cn(
                 'w-5 h-5 rounded-full grid place-items-center tl-label text-[10px] shrink-0 border-[1.5px]',
                 s.state === 'done' && 'bg-green border-green text-white',
-                s.state === 'current' && 'border-green text-green-deep bg-surface',
+                s.state === 'current' && 'border-green text-green-deep bg-surface shadow-[0_0_0_3px_var(--tl-green-soft)]',
                 s.state === 'next' && 'border-dashed border-line text-ink-3 bg-surface',
               )}
               aria-hidden
@@ -43,10 +47,15 @@ export function NegotiationProgress({ steps, locale, className }: Props) {
           s.state === 'done' && 'text-ink-2',
           s.state === 'next' && 'text-ink-3',
         )
-        return s.href ? (
-          <Link key={s.key} href={s.href} className={cls} role="listitem" aria-current={s.state === 'current' ? 'step' : undefined} title={label}>{inner}</Link>
-        ) : (
-          <div key={s.key} className={cls} role="listitem" aria-current={s.state === 'current' ? 'step' : undefined} title={label}>{inner}</div>
+        return (
+          <Fragment key={s.key}>
+            {track}
+            {s.href ? (
+              <Link href={s.href} className={cls} role="listitem" aria-current={s.state === 'current' ? 'step' : undefined} title={label}>{inner}</Link>
+            ) : (
+              <div className={cls} role="listitem" aria-current={s.state === 'current' ? 'step' : undefined} title={label}>{inner}</div>
+            )}
+          </Fragment>
         )
       })}
     </div>

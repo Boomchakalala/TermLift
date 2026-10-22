@@ -180,7 +180,7 @@ export async function HomeInsights({ insights: I, linkBase = '/app', locale = 'e
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3.5">
         <Card>
           <SectionHeading title={t('renewals')} sub={t('renewalsSub')} />
-          {I.renewals.length === 0 ? <p className="text-[13px] text-ink-3">{t('noRenewals')}</p> : (
+          {I.renewals.length === 0 ? <div><p className="text-[13px] text-ink-3">{t('noRenewals')}</p><p className="text-[12px] text-ink-3 mt-1">{t('noRenewalsHint')}</p></div> : (
             <div className="divide-y divide-line-2">
               {I.renewals.map((r) => (
                 <Link key={r.id} href={`${linkBase}/deal/${r.id}`} className="grid grid-cols-[1fr_auto] sm:grid-cols-[1.5fr_auto_1fr] items-center gap-3 py-2.5 no-underline hover:bg-surface-2 -mx-2 px-2 rounded-lg">

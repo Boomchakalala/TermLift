@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic'
 
 import Link from 'next/link'
+import { CountUp } from '@/components/landing/Reveal'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { getTranslations, getLocale } from 'next-intl/server'
@@ -102,9 +103,19 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
           </>
         }
       >
+        {/* The one sentence Home is for: how much is on the table and where. */}
+        {insights.savingsIdentified > 0 && insights.opportunities[0] ? (
+          <p className="mt-3.5 text-[15px] sm:text-[16px] text-ink leading-snug max-w-[72ch]">
+            {t('headlineTable', { total: fmtCompact(insights.savingsIdentified, baseCurrency), n: insights.activeCount })}{' '}
+            <Link href={`/app/deal/${insights.opportunities[0].id}`} className="font-semibold text-green-deep no-underline hover:underline">{insights.opportunities[0].vendor}</Link>{' '}
+            {t('headlineBiggest', { amount: fmtCompact(insights.opportunities[0].potential, baseCurrency) })}
+          </p>
+        ) : insights.savingsAchieved > 0 ? (
+          <p className="mt-3.5 text-[15px] sm:text-[16px] text-ink leading-snug max-w-[72ch]">{t('headlineSaved', { total: fmtCompact(insights.savingsAchieved, baseCurrency), n: insights.wonCount })}</p>
+        ) : null}
         <StatRow flat className="mt-4 pt-4 border-t border-line-2">
-          <StatTile flat tone="money" label={t('kpiSaved')} value={insights.savingsAchieved > 0 ? fmtMoney(insights.savingsAchieved, baseCurrency) : '—'} sub={t('kpiSavedSub', { n: insights.wonCount })} />
-          <StatTile flat tone="money" label={t('kpiPipeline')} value={insights.savingsIdentified > 0 ? fmtMoney(insights.savingsIdentified, baseCurrency) : '—'} sub={t('kpiPipelineSub', { n: insights.activeCount })} />
+          <StatTile flat tone="money" label={t('kpiSaved')} value={insights.savingsAchieved > 0 ? <CountUp value={fmtMoney(insights.savingsAchieved, baseCurrency)} duration={900} /> : '—'} sub={t('kpiSavedSub', { n: insights.wonCount })} />
+          <StatTile flat tone="money" label={t('kpiPipeline')} value={insights.savingsIdentified > 0 ? <CountUp value={fmtMoney(insights.savingsIdentified, baseCurrency)} duration={900} /> : '—'} sub={t('kpiPipelineSub', { n: insights.activeCount })} />
           <StatTile flat tone={needsYou > 0 ? 'warn' : 'neutral'} label={t('kpiNeeds')} value={needsYou} sub={needsSub} />
           <StatTile
             flat

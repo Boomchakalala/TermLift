@@ -30,7 +30,7 @@ export function NextActionCard({ next, locale, action, aside, error, className }
         {error && <p className="text-[12.5px] text-risk mt-1.5">{error}</p>}
         {aside && <div className="mt-2 text-[12.5px]">{aside}</div>}
       </div>
-      <div className="flex sm:justify-end [&>a]:w-full sm:[&>a]:w-auto [&>button]:w-full sm:[&>button]:w-auto">{action}</div>
+      <div className={cn('flex sm:justify-end [&>a]:w-full sm:[&>a]:w-auto [&>button]:w-full sm:[&>button]:w-auto', green && 'tl-next-action')}>{action}</div>
     </div>
   )
 }

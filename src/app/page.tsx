@@ -109,7 +109,7 @@ export default async function LandingPage() {
                 ].map((s, i) => (
                   <div key={s.label} className="tl-rise rounded-xl border border-line bg-surface px-3 py-2.5 min-w-0" style={{ '--tl-delay': `${120 + i * 80}ms` } as React.CSSProperties}>
                     <p className="tl-label text-ink-3 text-[9.5px]">{s.label}</p>
-                    <p className={`font-display font-bold text-[17px] tracking-[-0.02em] tl-num mt-1 leading-none ${s.tone}`}>{s.value}</p>
+                    <p className={`font-display font-bold text-[17px] tracking-[-0.02em] tl-num mt-1 leading-none ${s.tone}`}><CountUp value={s.value} duration={900} /></p>
                     <p className="text-[11px] text-ink-3 mt-1 truncate">{s.sub}</p>
                   </div>
                 ))}

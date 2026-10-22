@@ -138,8 +138,23 @@ body {
   animation: tl-ring-draw 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) 0.15s both;
 }
 
+/* The one next-step button breathes twice after the page settles, then rests. */
+@keyframes tl-cta-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(29, 185, 84, 0.45); }
+  70% { box-shadow: 0 0 0 10px rgba(29, 185, 84, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(29, 185, 84, 0); }
+}
+.tl-next-action > a,
+.tl-next-action > button {
+  animation: tl-cta-pulse 1.6s ease-out 0.8s 2;
+}
+
 /* Respect reduced-motion preference */
 @media (prefers-reduced-motion: reduce) {
+  .tl-next-action > a,
+  .tl-next-action > button {
+    animation: none;
+  }
   .animate-hero-float,
   .animate-marquee {
     animation-play-state: paused;

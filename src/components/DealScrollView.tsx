@@ -19,6 +19,7 @@ import { TONE_APPROACH } from '@/lib/tone-recommend'
 import type { RoundDelta } from '@/types'
 import { cn } from '@/lib/utils'
 import { VendorOfferField } from '@/components/deal/VendorOfferField'
+import { CountUp, FillBar } from '@/components/landing/Reveal'
 
 interface DealScrollViewProps {
   latestOutput: any
@@ -390,7 +391,12 @@ export function DealScrollView(props: DealScrollViewProps) {
   }, [o?.red_flags])
 
   // ── red flag accordion state ──
-  const [openFlags, setOpenFlags] = useState<Record<number, boolean>>({})
+  // HIGH flags start open: they are the reason the score is what it is. The rest open on tap.
+  const [openFlags, setOpenFlags] = useState<Record<number, boolean>>(() => {
+    const init: Record<number, boolean> = {}
+    sortedFlags.forEach(({ idx, severity }: any) => { if (severity === 'HIGH') init[idx] = true })
+    return init
+  })
   const [showWatch, setShowWatch] = useState(false)
   const allFlagsOpen = sortedFlags.length > 0 && sortedFlags.every(({ idx }: any) => openFlags[idx])
   const toggleFlag = (idx: number) => setOpenFlags((p) => ({ ...p, [idx]: !p[idx] }))
@@ -543,6 +549,10 @@ export function DealScrollView(props: DealScrollViewProps) {
                     <span className="flex-1 min-w-0">
                       <span className="flex items-center gap-2 flex-wrap mb-1"><Chip tone={tone} mono>{severity}</Chip></span>
                       <span className="block text-[14px] font-semibold text-ink leading-snug">{flag.issue}</span>
+                      {/* Collapsed rows still show the one thing to do about it. */}
+                      {!open && flag.what_to_ask_for && (
+                        <span className="block text-[12.5px] text-ink-3 mt-1 truncate"><span className="font-medium text-green-deep">{fr ? 'Demander' : 'Ask'}:</span> {flag.what_to_ask_for}</span>
+                      )}
                     </span>
                     <ChevronDown className={cn('w-4 h-4 text-ink-3 shrink-0 mt-1.5 transition-transform', open && 'rotate-180')} />
                   </button>
@@ -679,9 +689,9 @@ export function DealScrollView(props: DealScrollViewProps) {
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
                       <div><p className="tl-label text-ink-3">{fr ? 'Devis initial' : 'Original quote'}</p><p className="font-display font-bold text-[22px] text-ink-3 line-through tl-num leading-none mt-1.5">{totalCommitment ? normalizeAmount(totalCommitment) : '—'}</p></div>
                       <div><p className="tl-label text-ink-3">{fr ? 'Après économies' : 'After savings'}</p><p className="font-display font-bold text-[22px] text-ink tl-num leading-none mt-1.5">{fmtSav(afterAmt)}</p></div>
-                      <div className="sm:text-right"><p className="tl-label text-green-deep">{fr ? `Économies · ${pct} %` : `Savings · ${pct}%`}</p><p className="font-display font-extrabold text-[22px] text-green-deep tl-num leading-none mt-1.5">{fmtSav(savingsData.total)}</p></div>
+                      <div className="sm:text-right"><p className="tl-label text-green-deep">{fr ? `Économies · ${pct} %` : `Savings · ${pct}%`}</p><p className="font-display font-extrabold text-[22px] text-green-deep tl-num leading-none mt-1.5"><CountUp value={fmtSav(savingsData.total)} duration={900} /></p></div>
                     </div>
-                    <div className="h-1.5 rounded-full bg-line-2 overflow-hidden mt-4"><div className="h-full rounded-full bg-green transition-all duration-500" style={{ width: `${pct}%` }} /></div>
+                    <FillBar pct={pct} className="mt-4" />
                     {savingsData.mustHave.length > 0 && (
                       <div className="mt-5 pt-4 border-t border-line-2">
                         <p className="tl-label text-green-deep mb-1">{fr ? 'Économies indispensables' : 'Must-have savings'}</p>

@@ -15,6 +15,7 @@ import { NextActionCard } from '@/components/deal/NextActionCard'
 import { AnalysisPending } from '@/components/deal/AnalysisPending'
 import { TranslateControl, type LanguageView } from '@/components/deal/TranslateControl'
 import { AppPage, BackLink, Btn, Chip, DealStatus, GateCard, PageBody, ScoreRing, StatRow, StatTile } from '@/components/system'
+import { CountUp } from '@/components/landing/Reveal'
 import { deriveDealStage, deriveNegotiationMode, stageChipKey, type DealStage } from '@/lib/deal-stage'
 import { deriveNegotiationFlow } from '@/lib/negotiation-flow'
 import { hasDeepContent, deepAnalysisIsRunning, dealHasFullAnalysis } from '@/lib/deep-analysis-status'
@@ -364,7 +365,7 @@ export function DealWorkspace({ deal, mode, messages, isAdmin, showFullPlaybook,
           </div>
         </div>
         <div className="px-4 sm:px-6 pt-1.5 pb-2.5 flex flex-wrap items-center gap-x-3 gap-y-2">
-          <h1 className="font-display font-bold text-[20px] tracking-[-0.02em] text-ink leading-tight truncate max-w-full">{vendor}</h1>
+          <h1 className="font-display font-bold text-[22px] md:text-[28px] tracking-[-0.025em] text-ink leading-tight truncate max-w-full">{vendor}</h1>
           <div className="flex flex-wrap gap-1.5">
             {category && category !== 'Other' && <Chip>{category}</Chip>}
             {dealType && <Chip>{dealType}</Chip>}
@@ -429,13 +430,13 @@ export function DealWorkspace({ deal, mode, messages, isAdmin, showFullPlaybook,
         )}
 
         {/* ── Verdict ─────────────────────────────────────────── */}
-        <div className={cn('rounded-[14px] border px-4 py-4 sm:px-5 grid grid-cols-1 sm:grid-cols-[auto_1fr] gap-4 sm:gap-5 items-start', won ? 'bg-green-soft border-green-line' : waitingOnClient ? 'bg-warn-soft border-warn-line' : 'bg-surface border-line')}>
-          {/* Top-aligned with the verdict text (not centred on the whole card, which left it floating between the verdict and the reasons list). */}
-          {score != null && <ScoreRing score={score} size={76} muted={closed && !won} className="mx-auto sm:mx-0 sm:mt-0.5" />}
+        {/* The verdict is the page's headline: a tinted band, the ring drawing itself in, the verdict in display size. */}
+        <div className={cn('rounded-[16px] border px-4 py-5 sm:px-6 sm:py-6 grid grid-cols-1 sm:grid-cols-[auto_1fr] gap-4 sm:gap-6 items-center', won ? 'bg-gradient-to-br from-green-soft to-surface border-green-line' : waitingOnClient ? 'bg-warn-soft border-warn-line' : 'bg-gradient-to-br from-green-soft/70 via-surface to-surface border-line')}>
+          {score != null && <ScoreRing score={score} size={96} muted={closed && !won} animate className="mx-auto sm:mx-0" />}
           <div className="min-w-0 text-center sm:text-left">
             {eyebrow && <p className={cn('tl-label', waitingOnClient ? 'text-warn' : 'text-green-deep')}>{eyebrow}</p>}
-            {title && <p className="font-display font-bold text-[16px] text-ink mt-1 leading-snug">{title}</p>}
-            {body && <HeroVerdict text={String(body)} className="text-[13px] text-ink-2 mt-1 leading-relaxed max-w-[72ch] sm:mx-0 mx-auto" />}
+            {title && <p className="font-display font-bold text-[19px] sm:text-[23px] tracking-[-0.02em] text-ink mt-1.5 leading-tight">{title}</p>}
+            {body && <HeroVerdict text={String(body)} className="text-[13.5px] sm:text-[14px] text-ink-2 mt-2 leading-relaxed max-w-[72ch] sm:mx-0 mx-auto" />}
             {/* No "top reasons" list here any more — it duplicated the first three red flags one screen below. The tile carries the count. */}
           </div>
         </div>
@@ -446,12 +447,12 @@ export function DealWorkspace({ deal, mode, messages, isAdmin, showFullPlaybook,
           <StatTile
             tone="money" hi={won && achieved > 0}
             label={won ? t('dealPage.statSaved') : t('dealPage.statSavings')}
-            value={
+            value={<CountUp duration={900} value={
               won && achieved > 0 ? fmtMoney(achieved, currency)
               : range && range.high > 0 ? t('dealPage.statUpTo', { v: fmtMoney(range.high, currency) })
               : potential > 0 ? fmtMoney(potential, currency)
               : '—'
-            }
+            } />}
             sub={
               won && achieved > 0 && savingsPct != null ? t('dealPage.statAchieved', { pct: savingsPct.toFixed(1) })
               : range ? t('dealPage.statSavingsRange', { low: fmtMoney(range.low, currency), high: fmtMoney(range.high, currency) })

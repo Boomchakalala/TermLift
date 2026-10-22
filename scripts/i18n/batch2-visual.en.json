@@ -1,0 +1,10 @@
+{
+  "home": {
+    "headlineTable": "{total} still on the table across {n, plural, one {# active deal} other {# active deals}}.",
+    "headlineBiggest": "holds {amount} of it.",
+    "headlineSaved": "{total} saved across {n, plural, one {# won deal} other {# won deals}}. Nothing active right now."
+  },
+  "insights": {
+    "noRenewalsHint": "Renewal dates are read from the quote itself. Quotes that state a term and a start date show up here."
+  }
+}

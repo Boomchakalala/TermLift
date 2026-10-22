@@ -1,5 +1,6 @@
 'use client'
 
+import { Fragment } from 'react'
 import Link from 'next/link'
 import { useT } from '@/i18n/context'
 import { cn } from '@/lib/utils'
@@ -31,13 +32,15 @@ export function StageRail({ current, hrefs, compact, minimal, skipped = [], clas
       {STAGE_ORDER.map((stage, i) => {
         const state: 'done' | 'now' | 'next' | 'skipped' = i === idx ? 'now' : skipped.includes(stage) ? 'skipped' : i < idx ? 'done' : 'next'
         const label = t(STAGE_LABEL_KEY[stage])
+        // The track between two stages is green once the stage before it is done.
+        const track = i > 0 && <span aria-hidden className={cn('h-[2px] rounded-full shrink-0', compact || minimal ? 'w-2' : 'w-3 @[600px]:w-5', i <= idx ? 'bg-green' : 'bg-line')} />
         const inner = (
           <>
             <span
               className={cn(
                 'w-5 h-5 rounded-full grid place-items-center tl-label text-[10px] shrink-0 border-[1.5px]',
                 state === 'done' && 'bg-green border-green text-white',
-                state === 'now' && 'border-green text-green-deep bg-surface',
+                state === 'now' && 'border-green text-green-deep bg-surface shadow-[0_0_0_3px_var(--tl-green-soft)]',
                 state === 'next' && 'border-dashed border-line text-ink-3 bg-surface',
                 state === 'skipped' && 'border-line text-ink-3 bg-line-2',
               )}
@@ -72,14 +75,19 @@ export function StageRail({ current, hrefs, compact, minimal, skipped = [], clas
           state === 'skipped' && 'line-through decoration-line',
         )
         const href = hrefs?.[stage]
-        return href ? (
-          <Link key={stage} href={href} className={cls} role="listitem" aria-current={state === 'now' ? 'step' : undefined}>
-            {inner}
-          </Link>
-        ) : (
-          <div key={stage} className={cls} role="listitem" aria-current={state === 'now' ? 'step' : undefined}>
-            {inner}
-          </div>
+        return (
+          <Fragment key={stage}>
+            {track}
+            {href ? (
+              <Link href={href} className={cls} role="listitem" aria-current={state === 'now' ? 'step' : undefined}>
+                {inner}
+              </Link>
+            ) : (
+              <div className={cls} role="listitem" aria-current={state === 'now' ? 'step' : undefined}>
+                {inner}
+              </div>
+            )}
+          </Fragment>
         )
       })}
     </div>

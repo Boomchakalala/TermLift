@@ -1,0 +1,10 @@
+{
+  "home": {
+    "headlineTable": "{total} encore sur la table sur {n, plural, one {# dossier actif} other {# dossiers actifs}}.",
+    "headlineBiggest": "en concentre {amount}.",
+    "headlineSaved": "{total} économisés sur {n, plural, one {# dossier gagné} other {# dossiers gagnés}}. Rien d'actif pour l'instant."
+  },
+  "insights": {
+    "noRenewalsHint": "Les dates de renouvellement viennent du devis lui-même. Les devis qui indiquent une durée et une date de début apparaissent ici."
+  }
+}

@@ -1157,7 +1157,10 @@
     "usageEarlyBody": "Each new deal now runs as a Negotiation Playbook: {note}",
     "usageNew": "New analysis",
     "kpiNeedsAction": "{n} waiting on your move",
-    "noMatchCta": "Show all deals"
+    "noMatchCta": "Show all deals",
+    "headlineTable": "{total} still on the table across {n, plural, one {# active deal} other {# active deals}}.",
+    "headlineBiggest": "holds {amount} of it.",
+    "headlineSaved": "{total} saved across {n, plural, one {# won deal} other {# won deals}}. Nothing active right now."
   },
   "insights": {
     "spendByCategory": "Spend by category",
@@ -1224,7 +1227,8 @@
     "recurringIn": "{n, plural, one {in # deal} other {in # deals}}",
     "noFlags": "No open flags on active deals.",
     "scoreDeals": "{n, plural, one {# quote} other {# quotes}}",
-    "perfCaptureOver": "{pct}% more than identified"
+    "perfCaptureOver": "{pct}% more than identified",
+    "noRenewalsHint": "Renewal dates are read from the quote itself. Quotes that state a term and a start date show up here."
   },
   "dealPage": {
     "crumbDeals": "Deals",
