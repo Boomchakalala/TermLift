@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { NEGOTIATION_SERVICE_ENABLED } from '@/lib/features'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useI18n } from '@/i18n/context'
 import { cn } from '@/lib/utils'
@@ -493,7 +494,7 @@ export function DealWorkspace({ deal, mode, messages, isAdmin, showFullPlaybook,
 
         {/* ── Bottom service CTA: the other way to run the negotiation. Once, at the end of the flow, never a competing primary. ── */}
         {/* The trial shows it too: it is the visitor's only view of step 4 before they sign up. */}
-        {((!isTrial && !closed && !openRequest && deepDone && showFullPlaybook) || isTrial) && (
+        {NEGOTIATION_SERVICE_ENABLED && ((!isTrial && !closed && !openRequest && deepDone && showFullPlaybook) || isTrial) && (
           <GateCard
             tone="neutral"
             eyebrow={t('dealPage.serviceEyebrow')}

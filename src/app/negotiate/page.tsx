@@ -1,6 +1,8 @@
 export const dynamic = 'force-dynamic'
 
 import { createClient } from '@/lib/supabase/server'
+import { NEGOTIATION_SERVICE_ENABLED } from '@/lib/features'
+import { redirect } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
 import { FileCheck, PhoneCall, Calendar } from 'lucide-react'
 import { MarketingHeader } from '@/components/MarketingHeader'
@@ -10,6 +12,7 @@ import { StageRail } from '@/components/system'
 import { NEGOTIATION_FEE_PERCENT } from '@/lib/pricing'
 
 export default async function NegotiatePage() {
+  if (!NEGOTIATION_SERVICE_ENABLED) redirect('/')
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   const t = await getTranslations('negotiateRequest')

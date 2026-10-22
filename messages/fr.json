@@ -692,7 +692,8 @@
     "negMin": "{min} minimum. Facturé après la signature, jamais avant.",
     "whyEyebrow": "Pourquoi c'est gratuit",
     "whyTitle": "On préfère que vous l'utilisiez plutôt que de le payer. Pour l'instant.",
-    "whyBody": "TermLift en est au début. Quelques personnes qui négocient de vrais devis et nous disent ce qui cloche valent plus qu'un péage que personne n'a franchi. Si ça change, on le dira un mois à l'avance, et tout ce que vous avez construit reste à vous."
+    "whyBody": "TermLift en est au début. Quelques personnes qui négocient de vrais devis et nous disent ce qui cloche valent plus qu'un péage que personne n'a franchi. Si ça change, on le dira un mois à l'avance, et tout ce que vous avez construit reste à vous.",
+    "freeLeadParked": "L'analyse, le Plan de négociation, les e-mails, chaque round : gratuits pour tout le monde. On plafonne l'usage pour que la facture d'IA reste raisonnable, c'est tout. Rien n'est à vendre."
   },
   "privacyPage": {
     "badge": "Juridique",
@@ -1055,7 +1056,8 @@
       "s4tag": "Option · {pct} % des économies",
       "s4title": "Ou laissez TermLift s'en charger",
       "s4body": "À tout moment, passez-nous la main. Un négociateur mène les échanges, vous validez le résultat. Pas d'économies, pas de frais.",
-      "addon": "À tout moment"
+      "addon": "À tout moment",
+      "leadFree": "Chaque dossier dans TermLift suit la même échelle — vous la verrez sur votre page de dossier exactement comme ici. Arrêtez-vous là où vous avez ce qu'il vous faut."
     },
     "who": {
       "eyebrow": "Pour qui",
@@ -1119,7 +1121,8 @@
       "title": "Essayez-le sur le devis qui attend dans votre boîte mail.",
       "lead": "Essayez un devis sans inscription. Créez un compte gratuit : {day} analyses par jour, Plan de négociation inclus.",
       "cta": "Analyser un devis — gratuit"
-    }
+    },
+    "leadFree": "Collez un devis. En quelques minutes vous avez un score, les points de vigilance et un montant d'économies. Puis le Plan de négociation, l'e-mail à envoyer, et chaque round qui suit. Tout ça gratuitement."
   },
   "home": {
     "title": "Dossiers",
@@ -1467,7 +1470,8 @@
     "usageUsed": "{used} gratuite(s) sur {limit} utilisée(s)",
     "usageNote": "Plans, e-mails et rounds inclus. Vous voulez qu'on négocie un dossier pour vous ? TermLift Négociation, c'est {pct} % des économies vérifiées.",
     "usageContact": "Besoin de plus ? Contactez-nous",
-    "usageFree": "{day} par jour · {month} par mois · gratuit"
+    "usageFree": "{day} par jour · {month} par mois · gratuit",
+    "usageNoteFree": "Plans, e-mails et rounds inclus. Rien à acheter."
   },
   "negotiateRequest": {
     "crumb": "Demander une négociation",

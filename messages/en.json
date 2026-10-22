@@ -692,7 +692,8 @@
     "negMin": "{min} minimum. Invoiced after the signed deal, never before.",
     "whyEyebrow": "Why it's free",
     "whyTitle": "We'd rather have you using it than paying for it. For now.",
-    "whyBody": "TermLift is early. A few people negotiating real quotes and telling us what's wrong is worth more than a paywall nobody has crossed. If that changes we'll say so a month ahead, and everything you built stays yours."
+    "whyBody": "TermLift is early. A few people negotiating real quotes and telling us what's wrong is worth more than a paywall nobody has crossed. If that changes we'll say so a month ahead, and everything you built stays yours.",
+    "freeLeadParked": "The analysis, the Negotiation Playbook, the emails, every round: free for everyone. We cap usage so the AI bill stays sane, that's all. Nothing is for sale."
   },
   "privacyPage": {
     "badge": "Legal",
@@ -1055,7 +1056,8 @@
       "s4tag": "Add-on · {pct}% of savings",
       "s4title": "Or let TermLift handle it",
       "s4body": "At any point, hand the deal over. A negotiator runs the back-and-forth, you approve the outcome. No savings, no fee.",
-      "addon": "Any time"
+      "addon": "Any time",
+      "leadFree": "Every deal in TermLift moves along the same ladder — you'll see it on your deal page exactly like this. Stop wherever you've got what you need."
     },
     "who": {
       "eyebrow": "Who it's for",
@@ -1119,7 +1121,8 @@
       "title": "Try it on the quote in your inbox.",
       "lead": "Try one quote without signing up. Create a free account for {day} analyses a day, Playbook included.",
       "cta": "Analyze a quote — free"
-    }
+    },
+    "leadFree": "Paste a quote. In a couple of minutes you get a score, the red flags, and a savings number. Then the Negotiation Playbook, the email to send, and every round after. All of it free."
   },
   "home": {
     "title": "Deals",
@@ -1467,7 +1470,8 @@
     "usageUsed": "{used} of {limit} free used",
     "usageNote": "Playbooks, emails and rounds are included. Want a deal negotiated for you? TermLift Negotiate is {pct}% of verified savings.",
     "usageContact": "Need more? Contact us",
-    "usageFree": "{day} a day · {month} a month · free"
+    "usageFree": "{day} a day · {month} a month · free",
+    "usageNoteFree": "Playbooks, emails and rounds are included. Nothing to buy."
   },
   "negotiateRequest": {
     "crumb": "Request a negotiation",

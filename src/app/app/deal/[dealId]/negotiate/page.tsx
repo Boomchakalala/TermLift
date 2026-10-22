@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic'
 
 import { createClient } from '@/lib/supabase/server'
+import { NEGOTIATION_SERVICE_ENABLED } from '@/lib/features'
 import { notFound, redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
 import { getTranslations } from 'next-intl/server'
@@ -15,6 +16,7 @@ import type { DealOutput, DealOutputV2 } from '@/types'
 
 export default async function NegotiateDealPage({ params }: { params: Promise<{ dealId: string }> }) {
   const { dealId } = await params
+  if (!NEGOTIATION_SERVICE_ENABLED) redirect(`/app/deal/${dealId}`)
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')

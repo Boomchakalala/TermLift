@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { NEGOTIATION_SERVICE_ENABLED } from '@/lib/features'
 import { getTranslations } from 'next-intl/server'
 import { ArrowRight, Check } from 'lucide-react'
 import { MarketingHeader } from '@/components/MarketingHeader'
@@ -49,13 +50,13 @@ export default async function LandingPage() {
     { n: 2, tag: t('how.s2tag'), title: t('how.s2title'), body: t('how.s2body'), addon: false },
     { n: 3, tag: t('how.s3tag'), title: t('how.s3title'), body: t('how.s3body'), addon: false },
     { n: 4, tag: t('how.s4tag', { pct }), title: t('how.s4title'), body: t('how.s4body'), addon: true },
-  ]
+  ].filter((s) => NEGOTIATION_SERVICE_ENABLED || !s.addon)
 
   const tours = [
     { k: t('tour.t1k'), title: t('tour.t1title'), body: t('tour.t1body'), bullets: [t('tour.t1b1'), t('tour.t1b2'), t('tour.t1b3')], img: t('tour.t1img'), src: '/landing/tour-playbook-v5.png', w: 1104, h: 839, flip: false },
     { k: t('tour.t2k'), title: t('tour.t2title'), body: t('tour.t2body'), bullets: [t('tour.t2b1'), t('tour.t2b2'), t('tour.t2b3')], img: t('tour.t2img'), src: '/landing/tour-email-v5.png', w: 1120, h: 686, flip: true },
     { k: t('tour.t3k'), title: t('tour.t3title'), body: t('tour.t3body'), bullets: [t('tour.t3b1'), t('tour.t3b2'), t('tour.t3b3')], img: t('tour.t3img'), src: '/landing/tour-negotiate-v5.png', w: 840, h: 716, flip: false },
-  ]
+  ].filter((_, i) => NEGOTIATION_SERVICE_ENABLED || i < 2)
 
   const wrap = 'max-w-[1120px] mx-auto px-5 sm:px-7'
 
@@ -71,7 +72,7 @@ export default async function LandingPage() {
             <h1 className="font-display font-extrabold text-[34px] sm:text-[46px] leading-[1.02] tracking-[-0.035em] mt-3">
               {t('h1a')} <span className="text-green">{t('h1b')}</span>
             </h1>
-            <p className="text-[15.5px] leading-[1.5] text-ink-2 max-w-[48ch] mt-4">{t('lead')}</p>
+            <p className="text-[15.5px] leading-[1.5] text-ink-2 max-w-[48ch] mt-4">{NEGOTIATION_SERVICE_ENABLED ? t('lead') : t('leadFree')}</p>
             <div className="flex flex-wrap items-center gap-4 mt-5">
               <Btn href="/try" variant="primary" size="lg">{t('ctaPrimary')}</Btn>
               <Link href="/demo/deal/demo-atlassian" className="text-[13.5px] font-semibold text-ink-2 hover:text-ink inline-flex items-center gap-1.5 no-underline transition-colors">
@@ -132,53 +133,13 @@ export default async function LandingPage() {
         <div className={wrap}>
           <Eyebrow>{t('how.eyebrow')}</Eyebrow>
           <h2 className="font-display font-extrabold text-[26px] sm:text-[32px] leading-[1.08] tracking-[-0.03em] max-w-[24ch] mt-2.5">{t('how.title')}</h2>
-          <p className="text-[15px] text-ink-2 max-w-[56ch] mt-2.5 leading-[1.5]">{t('how.lead')}</p>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mt-7">
+          <p className="text-[15px] text-ink-2 max-w-[56ch] mt-2.5 leading-[1.5]">{NEGOTIATION_SERVICE_ENABLED ? t('how.lead') : t('how.leadFree')}</p>
+          <div className={`grid grid-cols-1 md:grid-cols-2 gap-3 mt-7 ${steps.length === 4 ? 'lg:grid-cols-4' : 'lg:grid-cols-3'}`}>
             {steps.map((s) => (
               <div key={s.n} className={`rounded-[14px] p-4 flex flex-col gap-2 ${s.addon ? 'bg-ground border border-dashed border-line' : 'bg-surface border border-line'}`}>
                 <div className="flex justify-between tl-label text-green-deep"><span className={s.addon ? 'text-ink-3' : undefined}>{s.addon ? t('how.addon') : t('how.step', { n: s.n })}</span><span className="text-ink-3">{s.tag}</span></div>
                 <h3 className="font-display font-bold text-[17px]">{s.title}</h3>
                 <p className="text-[13px] text-ink-2 leading-[1.5]">{s.body}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ═══ WHO IT'S FOR — photo slot ═══ */}
-      <section className="py-12 sm:py-14">
-        <div className={`${wrap} grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] gap-8 lg:gap-10 items-center`}>
-          <Frame src="/landing/who-home-v5.png" alt={t('who.imgAlt')} width={1220} height={660} />
-          <div>
-            <Eyebrow>{t('who.eyebrow')}</Eyebrow>
-            <h2 className="font-display font-extrabold text-[26px] sm:text-[32px] leading-[1.08] tracking-[-0.03em] max-w-[24ch] mt-2.5">{t('who.title')}</h2>
-            <p className="text-[15px] text-ink-2 max-w-[56ch] mt-2.5 leading-[1.5]">{t('who.lead')}</p>
-            <ul className="m-0 mt-4 p-0 list-none flex flex-col gap-2 text-[14px]">
-              {[t('who.p1'), t('who.p2'), t('who.p3')].map((p) => (
-                <li key={p} className="flex gap-2.5 items-start"><Check className="w-4 h-4 text-green shrink-0 mt-0.5" />{p}</li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      </section>
-
-      {/* ═══ INSIDE THE PRODUCT — screenshot slots ═══ */}
-      <section className="bg-ground py-12 sm:py-14">
-        <div className={wrap}>
-          <Eyebrow>{t('tour.eyebrow')}</Eyebrow>
-          <h2 className="font-display font-extrabold text-[26px] sm:text-[32px] leading-[1.08] tracking-[-0.03em] max-w-[24ch] mt-2.5">{t('tour.title')}</h2>
-          <div className="mt-4">
-            {tours.map((tr, i) => (
-              <div key={tr.k} className={`grid grid-cols-1 lg:grid-cols-[1fr_1.2fr] gap-4 lg:gap-9 items-center py-6 ${i > 0 ? 'border-t border-line' : ''}`}>
-                <div className={tr.flip ? 'lg:order-2' : ''}>
-                  <span className="tl-label text-ink-3">{tr.k}</span>
-                  <h3 className="font-display font-bold text-[20px] sm:text-[22px] mt-1.5">{tr.title}</h3>
-                  <p className="text-[14px] text-ink-2 max-w-[46ch] mt-2 leading-[1.5]">{tr.body}</p>
-                  <ul className="m-0 mt-3 p-0 list-none flex flex-col gap-1.5 text-[13px]">
-                    {tr.bullets.map((b) => <li key={b}><span className="text-green mr-1.5">—</span>{b}</li>)}
-                  </ul>
-                </div>
-                <Frame src={tr.src} alt={tr.img} width={tr.w} height={tr.h} className={tr.flip ? 'lg:order-1' : ''} />
               </div>
             ))}
           </div>
@@ -217,6 +178,47 @@ export default async function LandingPage() {
         </div>
       </section>
 
+      {/* ═══ INSIDE THE PRODUCT — screenshot slots ═══ */}
+      <section className="bg-ground py-12 sm:py-14">
+        <div className={wrap}>
+          <Eyebrow>{t('tour.eyebrow')}</Eyebrow>
+          <h2 className="font-display font-extrabold text-[26px] sm:text-[32px] leading-[1.08] tracking-[-0.03em] max-w-[24ch] mt-2.5">{t('tour.title')}</h2>
+          <div className="mt-4">
+            {tours.map((tr, i) => (
+              <div key={tr.k} className={`grid grid-cols-1 lg:grid-cols-[1fr_1.2fr] gap-4 lg:gap-9 items-center py-6 ${i > 0 ? 'border-t border-line' : ''}`}>
+                <div className={tr.flip ? 'lg:order-2' : ''}>
+                  <span className="tl-label text-ink-3">{tr.k}</span>
+                  <h3 className="font-display font-bold text-[20px] sm:text-[22px] mt-1.5">{tr.title}</h3>
+                  <p className="text-[14px] text-ink-2 max-w-[46ch] mt-2 leading-[1.5]">{tr.body}</p>
+                  <ul className="m-0 mt-3 p-0 list-none flex flex-col gap-1.5 text-[13px]">
+                    {tr.bullets.map((b) => <li key={b}><span className="text-green mr-1.5">—</span>{b}</li>)}
+                  </ul>
+                </div>
+                <Frame src={tr.src} alt={tr.img} width={tr.w} height={tr.h} className={tr.flip ? 'lg:order-1' : ''} />
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ═══ WHO IT'S FOR — photo slot ═══ */}
+      <section className="py-12 sm:py-14">
+        <div className={`${wrap} grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] gap-8 lg:gap-10 items-center`}>
+          <Frame src="/landing/who-home-v5.png" alt={t('who.imgAlt')} width={1220} height={660} />
+          <div>
+            <Eyebrow>{t('who.eyebrow')}</Eyebrow>
+            <h2 className="font-display font-extrabold text-[26px] sm:text-[32px] leading-[1.08] tracking-[-0.03em] max-w-[24ch] mt-2.5">{t('who.title')}</h2>
+            <p className="text-[15px] text-ink-2 max-w-[56ch] mt-2.5 leading-[1.5]">{t('who.lead')}</p>
+            <ul className="m-0 mt-4 p-0 list-none flex flex-col gap-2 text-[14px]">
+              {[t('who.p1'), t('who.p2'), t('who.p3')].map((p) => (
+                <li key={p} className="flex gap-2.5 items-start"><Check className="w-4 h-4 text-green shrink-0 mt-0.5" />{p}</li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      {NEGOTIATION_SERVICE_ENABLED && (<>
       {/* ═══ TERMLIFT NEGOTIATE ═══ */}
       <section className="bg-ink text-white py-12 sm:py-14">
         <div className={`${wrap} grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] gap-8 lg:gap-10 items-center`}>
@@ -241,6 +243,7 @@ export default async function LandingPage() {
           </div>
         </div>
       </section>
+      </>)}
 
       {/* ═══ FINAL CTA ═══ */}
       <section className="py-12 sm:py-14 text-center">

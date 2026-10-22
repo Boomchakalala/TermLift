@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState, useRef, useEffect } from 'react'
+import { NEGOTIATION_SERVICE_ENABLED } from '@/lib/features'
 import { useRouter } from 'next/navigation'
 import { Search, MoreHorizontal, CheckCircle2, Trash2, CheckSquare, Loader2 } from 'lucide-react'
 import { useI18n } from '@/i18n/context'
@@ -162,7 +163,8 @@ export function HomeDealsClient({ rows: initialRows, linkBase = '/app', readOnly
   const filters: Array<{ key: Filter; label: string; count?: number }> = [
     { key: 'all', label: t('home.filterAll') },
     { key: 'needs', label: t('home.filterNeeds'), count: needsCount },
-    { key: 'termlift', label: t('home.filterTermlift') },
+    // Parked service: the chip only appears while a deal is actually being negotiated by TermLift.
+    ...(NEGOTIATION_SERVICE_ENABLED || rows.some((r) => r.mode === 'termlift' && !r.closed) ? [{ key: 'termlift' as const, label: t('home.filterTermlift') }] : []),
     { key: 'won', label: t('home.filterWon') },
   ]
 

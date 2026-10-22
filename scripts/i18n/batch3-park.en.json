@@ -1,0 +1,14 @@
+{
+  "landing": {
+    "leadFree": "Paste a quote. In a couple of minutes you get a score, the red flags, and a savings number. Then the Negotiation Playbook, the email to send, and every round after. All of it free.",
+    "how": {
+      "leadFree": "Every deal in TermLift moves along the same ladder — you'll see it on your deal page exactly like this. Stop wherever you've got what you need."
+    }
+  },
+  "pricingPage": {
+    "freeLeadParked": "The analysis, the Negotiation Playbook, the emails, every round: free for everyone. We cap usage so the AI bill stays sane, that's all. Nothing is for sale."
+  },
+  "settingsPage": {
+    "usageNoteFree": "Playbooks, emails and rounds are included. Nothing to buy."
+  }
+}

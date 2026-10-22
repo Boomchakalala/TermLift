@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic'
 
 import Link from 'next/link'
+import { NEGOTIATION_SERVICE_ENABLED } from '@/lib/features'
 import { CountUp } from '@/components/landing/Reveal'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
@@ -92,7 +93,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
         sub={t('sub', { n: rows.length, spend: fmtCompact(insights.totalSpend, baseCurrency) })}
         actions={
           <>
-            <Btn href="/negotiate" variant="ghost" size="sm"><Handshake className="w-3.5 h-3.5" />{t('requestNegotiation')}</Btn>
+            {NEGOTIATION_SERVICE_ENABLED && <Btn href="/negotiate" variant="ghost" size="sm"><Handshake className="w-3.5 h-3.5" />{t('requestNegotiation')}</Btn>}
             <Btn href="/app/new" variant="primary" size="sm"><Plus className="w-3.5 h-3.5" />{t('newAnalysis')}</Btn>
           </>
         }

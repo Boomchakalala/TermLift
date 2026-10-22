@@ -1,4 +1,5 @@
 import type { MetadataRoute } from 'next'
+import { NEGOTIATION_SERVICE_ENABLED } from '@/lib/features'
 import { getAllPosts } from '@/lib/blog'
 
 /**
@@ -23,7 +24,7 @@ const STATIC: Array<[path: string, priority: number, changeFrequency: MetadataRo
 ]
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const pages: MetadataRoute.Sitemap = STATIC.map(([path, priority, changeFrequency]) => ({ url: `${BASE}${path}`, priority, changeFrequency }))
+  const pages: MetadataRoute.Sitemap = STATIC.filter(([path]) => NEGOTIATION_SERVICE_ENABLED || path !== '/negotiate').map(([path, priority, changeFrequency]) => ({ url: `${BASE}${path}`, priority, changeFrequency }))
   const posts: MetadataRoute.Sitemap = getAllPosts('en').map((p) => ({
     url: `${BASE}/blog/${p.slug}`,
     lastModified: new Date(p.date),

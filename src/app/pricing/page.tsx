@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { NEGOTIATION_SERVICE_ENABLED } from '@/lib/features'
 import { getTranslations } from 'next-intl/server'
 import { MarketingHeader } from '@/components/MarketingHeader'
 import { MarketingFooter } from '@/components/MarketingFooter'
@@ -7,7 +8,7 @@ import { NEGOTIATION_FEE_PERCENT, NEGOTIATION_FEE_MINIMUM_EUR, FULL_ANALYSIS_EMA
 
 export const metadata: Metadata = {
   title: 'Free vendor quote analysis and Negotiation Playbook',
-  description: `Analyse a supplier quote, build the Negotiation Playbook and write the emails — free, for everyone. Or have TermLift negotiate for a ${NEGOTIATION_FEE_PERCENT}% success fee, nothing if we don't save you money.`,
+  description: 'Analyse a supplier quote, build the Negotiation Playbook and write the emails — free, for everyone. Three analyses a day, no card, no upsell.',
   alternates: { canonical: 'https://www.termlift.com/pricing' },
 }
 
@@ -32,7 +33,7 @@ export default async function PricingPage() {
   const v = { day: NEW_DEALS_PER_DAY, month: NEW_DEALS_PER_MONTH, regen: FULL_ANALYSIS_EMAIL_REGEN_LIMIT, pct: NEGOTIATION_FEE_PERCENT, min: `€${NEGOTIATION_FEE_MINIMUM_EUR}` }
   // Dynamic keys — next-intl's typed `t` can't infer them, so go through a loose signature.
   const tt = t as unknown as (key: string, values?: Record<string, string | number>) => string
-  const faqs = [1, 2, 3, 4, 5].map((i) => ({ q: tt(`faq${i}q`, v), a: tt(`faq${i}a`, v) }))
+  const faqs = [1, 2, 3, 4, 5].filter((i) => NEGOTIATION_SERVICE_ENABLED || i !== 3).map((i) => ({ q: tt(`faq${i}q`, v), a: tt(`faq${i}a`, v) }))
 
   return (
     <div className="min-h-screen bg-white text-ink flex flex-col">
@@ -41,12 +42,12 @@ export default async function PricingPage() {
         <section className="max-w-[1120px] mx-auto px-5 sm:px-7 pt-10 pb-12 sm:pb-14 text-center">
           <p className="tl-label text-green-deep text-[11px]">{t('freeEyebrow')}</p>
           <h1 className="font-display font-extrabold text-[30px] sm:text-[38px] leading-[1.05] tracking-[-0.03em] mt-2.5">{t('freeTitle')}</h1>
-          <p className="text-[15px] sm:text-[16px] text-ink-2 max-w-[58ch] mx-auto mt-3 leading-[1.5]">{tt('freeLead', v)}</p>
+          <p className="text-[15px] sm:text-[16px] text-ink-2 max-w-[58ch] mx-auto mt-3 leading-[1.5]">{tt(NEGOTIATION_SERVICE_ENABLED ? 'freeLead' : 'freeLeadParked', v)}</p>
           <div className="max-w-[900px] mx-auto mt-6"><StageRail current="full" /></div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8 text-left">
             {/* What free means */}
-            <div className="bg-surface border border-line rounded-[16px] p-5 flex flex-col gap-3 md:col-span-2">
+            <div className={`bg-surface border border-line rounded-[16px] p-5 flex flex-col gap-3 ${NEGOTIATION_SERVICE_ENABLED ? 'md:col-span-2' : 'md:col-span-3'}`}>
               <span className="tl-label text-green-deep">{t('freeIncludedEyebrow')}</span>
               <div className="flex items-end gap-3">
                 <span className="font-display font-extrabold text-[40px] leading-none tracking-[-0.04em] tl-num">€0</span>
@@ -67,8 +68,8 @@ export default async function PricingPage() {
               <Btn href="/try" variant="primary" className="mt-auto self-start">{t('freeCta')}</Btn>
             </div>
 
-            {/* The one paid thing */}
-            <div className="bg-ink text-white rounded-[16px] p-5 flex flex-col gap-3">
+            {/* The one paid thing — parked while NEGOTIATION_SERVICE_ENABLED is false */}
+            {NEGOTIATION_SERVICE_ENABLED && <div className="bg-ink text-white rounded-[16px] p-5 flex flex-col gap-3">
               <span className="tl-label text-green">{t('negEyebrow')}</span>
               <h3 className="font-display font-bold text-[19px]">{t('neg.title')}</h3>
               <div className="font-display font-extrabold text-[34px] tracking-[-0.03em] tl-num leading-none">
@@ -79,7 +80,7 @@ export default async function PricingPage() {
               </ul>
               <p className="text-[12px] text-white/60">{tt('negMin', v)}</p>
               <Btn href="/negotiate" variant="primary" block className="mt-auto">{t('neg.cta')}</Btn>
-            </div>
+            </div>}
           </div>
 
           <div className="max-w-[720px] mx-auto mt-10 text-left bg-green-soft border border-green-line rounded-[16px] px-5 py-4">

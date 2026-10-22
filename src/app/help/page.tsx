@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { NEGOTIATION_SERVICE_ENABLED } from '@/lib/features'
 import { getTranslations, getLocale } from 'next-intl/server'
 import { Info, Upload, CheckCircle2, Lock, CreditCard, Shield, Plus } from 'lucide-react'
 import { NEGOTIATION_FEE_PERCENT, NEGOTIATION_FEE_MINIMUM_EUR, NEW_DEALS_PER_DAY, NEW_DEALS_PER_MONTH } from '@/lib/pricing'
@@ -36,9 +37,10 @@ export default async function HelpPage() {
     icon: s.icon,
     title: t(`sections.${s.key}.title`),
     sub: t(`sections.${s.key}.sub`),
-    items: Array.from({ length: s.n }, (_, i) => ({
-      q: t(`sections.${s.key}.q${i + 1}`, pricing),
-      a: t(`sections.${s.key}.a${i + 1}`, pricing),
+    // Parked service: billing questions 5–7 describe TermLift Negotiate.
+    items: Array.from({ length: s.n }, (_, i) => i + 1).filter((n) => NEGOTIATION_SERVICE_ENABLED || s.key !== 'billing' || ![5, 6, 7].includes(n)).map((n) => ({
+      q: t(`sections.${s.key}.q${n}`, pricing),
+      a: t(`sections.${s.key}.a${n}`, pricing),
     })),
   }))
 

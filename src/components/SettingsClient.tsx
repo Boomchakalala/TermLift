@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { NEGOTIATION_SERVICE_ENABLED } from '@/lib/features'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import {
@@ -350,7 +351,7 @@ export function SettingsClient({
                     <b>{t('settingsPage.usageQuick')}</b>
                     <span className="text-ink-2 tl-num">{t('settingsPage.usageFree', { day: NEW_DEALS_PER_DAY, month: NEW_DEALS_PER_MONTH })}</span>
                   </div>
-                  <p className="text-[12px] text-ink-3">{t('settingsPage.usageNote', { pct: NEGOTIATION_FEE_PERCENT })}</p>
+                  <p className="text-[12px] text-ink-3">{NEGOTIATION_SERVICE_ENABLED ? t('settingsPage.usageNote', { pct: NEGOTIATION_FEE_PERCENT }) : t('settingsPage.usageNoteFree')}</p>
                 </div>
               </div>
             )}

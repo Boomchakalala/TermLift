@@ -1,0 +1,14 @@
+{
+  "landing": {
+    "leadFree": "Collez un devis. En quelques minutes vous avez un score, les points de vigilance et un montant d'économies. Puis le Plan de négociation, l'e-mail à envoyer, et chaque round qui suit. Tout ça gratuitement.",
+    "how": {
+      "leadFree": "Chaque dossier dans TermLift suit la même échelle — vous la verrez sur votre page de dossier exactement comme ici. Arrêtez-vous là où vous avez ce qu'il vous faut."
+    }
+  },
+  "pricingPage": {
+    "freeLeadParked": "L'analyse, le Plan de négociation, les e-mails, chaque round : gratuits pour tout le monde. On plafonne l'usage pour que la facture d'IA reste raisonnable, c'est tout. Rien n'est à vendre."
+  },
+  "settingsPage": {
+    "usageNoteFree": "Plans, e-mails et rounds inclus. Rien à acheter."
+  }
+}
